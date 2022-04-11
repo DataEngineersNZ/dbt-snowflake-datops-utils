@@ -30,7 +30,7 @@
 
         {% set mock_model_relation = "unit_tests." + test_case_name %}
 
-        {% do _create_mock_table_or_view(mock_model_relation, ns.test_sql) %}
+        {% do dbt_dataengineers_utils._create_mock_table_or_view(mock_model_relation, ns.test_sql) %}
     {% endif %}
 
 
