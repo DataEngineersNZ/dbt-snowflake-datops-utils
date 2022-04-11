@@ -39,7 +39,7 @@
 
 
 {% macro _get_model_to_mock(model, suffix) %}
-    {{ return(adapter.dispatch('_get_model_to_mock', 'dbt_datamocktool')(model, suffix)) }}
+    {{ return(adapter.dispatch('_get_model_to_mock', 'dbt_dataengineers_utils')(model, suffix)) }}
 {% endmacro %}
 
 {% macro default___get_model_to_mock(model, suffix) %}
@@ -65,7 +65,7 @@
 
 
 {% macro _create_mock_table_or_view(model, test_sql) %}
-    {{ return(adapter.dispatch('_create_mock_table_or_view', 'dbt_datamocktool')(model, test_sql)) }}
+    {{ return(adapter.dispatch('_create_mock_table_or_view', 'dbt_dataengineers_utils')(model, test_sql)) }}
 {% endmacro %}
 
 {% macro default___create_mock_table_or_view(model, test_sql) %}
