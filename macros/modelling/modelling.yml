@@ -2,7 +2,7 @@ version: 2
 
 macros:
   - name: date_key
-    description: This macro converts date into YYYYMMDD format
+    description: This macro converts the specified DateKey into a Date with the format 'YYYYMMDD'
     docs:
       show: true
     arguments:
@@ -11,43 +11,43 @@ macros:
         description: the date is passed as an argument to get the YYYYMMDD format
 
   - name: datetime_from_dim
-    description: This macro creates DateTime in YYYYMMDDHHMI format from the date and time field.
+    description: This macro creates the specified dateKey and timeKey fields into a DateTime with the specified format.
     docs:
       show: true
     arguments:
       - name: dateKey
         type: string
-        description: the date is passed as an argument, the format is YYYYMMDD
+        description:  the date is passed as an argument, the format is YYYYMMDD
       - name: timeKey
         type: string
         description: time is passed as an argument, the format is HHMI
       - name: dt_format
         type: string
-        description: converts the date-time into specified DateTime format otherwise YYYYMMDDHHMI as a date format
+        description: converts the date-time into specified DateTime format otherwise 'YYYYMMDDHHMI' as a date format
 
   - name: datetime_to_date_dim
-    description: This macro converts the given column into date(YYYYMMDD) format.  
+    description: This macro converts the specified col data into a Date with the format 'YYYYMMDD'
     docs:
       show: true
     arguments:
       - name: col
         type: string
-        description: Name of the column
+        description: The Name of the column
 
   - name: datetime_to_time_dim
-    description: This macro converts the given column into time(HHMI) format.  
+    description: This macro converts the specified col into a Time with the format HHMI
     docs:
       show: true
     arguments:
       - name: col
         type: string
-        description: Name of the column
+        description: The Name of the column
 
   - name: time_key
-    description: This macro converts field into the time key(HHMI format).  
+    description: This macro converts the specified TimeKey into the time key(HHMI format).  
     docs:
       show: true
     arguments:
       - name: TimeKey
         type: string
-        description: the time value
+        description: The Name of the TimeKey Column

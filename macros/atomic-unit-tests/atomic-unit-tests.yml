@@ -10,25 +10,25 @@ macros:
         type: string
         description: Name of the model 
       - name: input_mapping
-        type: string
+        type: List
         description: '{{ doc("input_mapping_description") }}'
       - name: expected_output
-        type: string
+        type: List
         description: '{{ doc("expected_output") }}'
       - name: name
         type: string
-        description: name of the unit test. example - tc__fct_orders_has_all_payment_methods
+        description: name of the unit test. This should be the same as the test case folder under the 'unit tests' folder. Its format shoul be 'tc__<<model name>>_<<test name>>'  example - tc__fct_orders_has_all_payment_methods
       - name: description
         type: string
         description: readable description of test case
       - name: compare_columns
-        type: string
-        description: It allows to compare specified columns otherwise compare all columns.
+        type: List
+        description: List of  It allows to compare specified columns otherwise compare all columns.
   
   - name: get_unit_test_sql
-    description: '{{ doc("input_mapping_description") }}'
+    description: Generates the SQL for the unit test
     docs:
-      show: true
+      show: false
     arguments:
       - name: model
         type: string
@@ -41,49 +41,51 @@ macros:
         description: name of the unit test. example - tc__fct_orders_has_all_payment_methods
 
   - name: _get_model_to_mock
-    description: This is the DBT default macro
+    description: This is for internal use to the get_unit_test macro
     docs:
-      show: true
+      show: false
     arguments:
       - name: model
         type: string
         description: Name of the model 
       - name: suffix
         type: string
-        description: DBT default
-        
+        description: Gets the model to mock
+
   - name: default___get_model_to_mock
-    description: This is the DBT default macro
+    description: This is for internal use to the get_unit_test macro
     docs:
-      show: true
+      show: false
     arguments:
       - name: model
         type: string
         description: Name of the model 
       - name: suffix
         type: string
-        description: DBT default
+        description: Gets the model to mock
+
+      
 
   - name: _create_mock_table_or_view
-    description: This is the DBT default macro
+    description: This is for internal use to the get_unit_test macro
     docs:
-      show: true
+      show: false
     arguments:
       - name: model
         type: string
         description: Name of the model 
       - name: test_sql
         type: string
-        description: DBT default
+        description: SQL Statement to create mock table or view
 
   - name: default___create_mock_table_or_view
-    description: This is the DBT default macro
+    description: This is for internal use to the get_unit_test macro
     docs:
-      show: true
+      show: false
     arguments:
       - name: model
         type: string
         description: Name of the model 
       - name: test_sql
         type: string
-        description: DBT default
+        description: SQL Statement to create mock table or view
