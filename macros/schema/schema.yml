@@ -4,7 +4,7 @@ macros:
   - name: generate_schema_name
     description: This macro is a replacement for the default macro which allows for the schema name as per model folder structure in the dbt folder
     docs:
-      show: true
+      show: false
     arguments:
       - name: custom_schema_name
         type: string
