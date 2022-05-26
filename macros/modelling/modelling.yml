@@ -1,0 +1,53 @@
+version: 2
+
+macros:
+  - name: date_key
+    description: This macro converts the specified DateKey into a Date with the format 'YYYYMMDD'.
+    docs:
+      show: true
+    arguments:
+      - name: DateKey
+        type: string
+        description: The date is passed as an argument to get the YYYYMMDD format.
+
+  - name: datetime_from_dim
+    description: This macro creates the specified dateKey and timeKey fields into a DateTime with the specified format.
+    docs:
+      show: true
+    arguments:
+      - name: dateKey
+        type: string
+        description:  The date is passed as an argument, the format is YYYYMMDD.
+      - name: timeKey
+        type: string
+        description: Time is passed as an argument, the format is HHMI.
+      - name: dt_format
+        type: string
+        description: Converts the date-time into specified DateTime format otherwise 'YYYYMMDDHHMI' as a date format.
+
+  - name: datetime_to_date_dim
+    description: This macro converts the specified col fields into a Date with the format 'YYYYMMDD'.
+    docs:
+      show: true
+    arguments:
+      - name: col
+        type: string
+        description: The Name of the column
+
+  - name: datetime_to_time_dim
+    description: This macro converts the specified col field into a Time with the format 'HHMI'.
+    docs:
+      show: true
+    arguments:
+      - name: col
+        type: string
+        description: The Name of the column
+
+  - name: time_key
+    description: This macro converts the specified col field into a Time with the format 'HHMI'.  
+    docs:
+      show: true
+    arguments:
+      - name: TimeKey
+        type: string
+        description: The Name of the TimeKey Column.

@@ -1,0 +1,91 @@
+version: 2
+
+macros:
+  - name: test_unit_test
+    description: '{{ doc("unit_test_description") }}' 
+    docs:
+      show: true
+    arguments:
+      - name: model
+        type: string
+        description: Name of the model 
+      - name: input_mapping
+        type: List
+        description: '{{ doc("input_mapping_description") }}'
+      - name: expected_output
+        type: List
+        description: '{{ doc("expected_output") }}'
+      - name: name
+        type: string
+        description: Name of the unit test. This should be the same as the test case folder under the 'unit tests' folder. Its format shoul be 'tc__<<model name>>_<<test name>>'  example - tc__fct_orders_has_all_payment_methods
+      - name: description
+        type: string
+        description: Readable description of test case
+      - name: compare_columns
+        type: List
+        description: List of  It allows to compare specified columns otherwise compare all columns.
+  
+  - name: get_unit_test_sql
+    description: This is for internal use to the test_unit_test macro. The macro generates the SQL for the unit test.
+    docs:
+      show: false
+    arguments:
+      - name: model
+        type: string
+        description: Name of the model 
+      - name: input_mapping
+        type: string
+        description: '{{ doc("input_mapping_description") }}'
+      - name: test_case_name
+        type: string
+        description: Name of the unit test. example - tc__fct_orders_has_all_payment_methods
+
+  - name: _get_model_to_mock
+    description: This is for internal use to the get_unit_test macro
+    docs:
+      show: false
+    arguments:
+      - name: model
+        type: string
+        description: Name of the model 
+      - name: suffix
+        type: string
+        description: Gets the model to mock
+
+  - name: default___get_model_to_mock
+    description: This is for internal use to the get_unit_test macro
+    docs:
+      show: false
+    arguments:
+      - name: model
+        type: string
+        description: Name of the model 
+      - name: suffix
+        type: string
+        description: Gets the model to mock
+
+      
+
+  - name: _create_mock_table_or_view
+    description: This is for internal use to the get_unit_test macro
+    docs:
+      show: false
+    arguments:
+      - name: model
+        type: string
+        description: Name of the model 
+      - name: test_sql
+        type: string
+        description: SQL Statement to create mock table or view
+
+  - name: default___create_mock_table_or_view
+    description: This is for internal use to the get_unit_test macro
+    docs:
+      show: false
+    arguments:
+      - name: model
+        type: string
+        description: Name of the model 
+      - name: test_sql
+        type: string
+        description: SQL Statement to create mock table or view

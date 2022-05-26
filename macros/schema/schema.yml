@@ -1,0 +1,42 @@
+version: 2
+
+macros:
+  - name: generate_schema_name
+    description: This macro is a replacement for the default macro which allows for the schema name as per model folder structure in the dbt folder
+    docs:
+      show: false
+    arguments:
+      - name: custom_schema_name
+        type: string
+        description: If we need a custom schema name, the schema is grabbed from the dbt_project.yml file otherwise, schema is grabbed from the folder
+      - name: node
+        type: string
+        description: node is the folder level.
+  
+  - name: ref
+    description: '{{ doc("ref") }}'
+    docs:
+      show: true
+    arguments:
+      - name: model_name
+        type: string
+        description: Name of the model
+      - name: include_database
+        type: bool
+        description: Include database name if model exists in another snowflake database. Default is false.
+
+  - name: source
+    description: '{{ doc("src") }}'
+    docs:
+      show: true
+    arguments:
+      - name: schema_name
+        type: string
+        description: Schema name
+      - name: model_name
+        type: string
+        description: Name of the source data model
+      - name: include_database
+        type: bool
+        description: Include database name if model exists in another snowflake database. Default is false.
+
