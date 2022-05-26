@@ -1,5 +1,5 @@
 {% docs unit_test_description %}
-    describes the atomic unit test that need to be run:
+    This macro describes an atomic unit test that is executed when running 'dbt test'.
 
     example:
 
@@ -23,7 +23,7 @@
 {% enddocs %}
 
 {% docs input_mapping_description %}
-    descibes macro should be replacing the source or references in the test
+    Specifies which 'ref' or 'source' macros should be replaced with the relevant test macro
 
     example:
 
@@ -33,7 +33,7 @@
 {% enddocs %}
 
 {% docs expected_output %}
-    descibes macro should be replacing the source or references in the test
+    Specifies the expected output of the model. This needs to be a table and not a macro.
 
     example:
 

@@ -17,16 +17,16 @@ macros:
         description: '{{ doc("expected_output") }}'
       - name: name
         type: string
-        description: name of the unit test. This should be the same as the test case folder under the 'unit tests' folder. Its format shoul be 'tc__<<model name>>_<<test name>>'  example - tc__fct_orders_has_all_payment_methods
+        description: Name of the unit test. This should be the same as the test case folder under the 'unit tests' folder. Its format shoul be 'tc__<<model name>>_<<test name>>'  example - tc__fct_orders_has_all_payment_methods
       - name: description
         type: string
-        description: readable description of test case
+        description: Readable description of test case
       - name: compare_columns
         type: List
         description: List of  It allows to compare specified columns otherwise compare all columns.
   
   - name: get_unit_test_sql
-    description: Generates the SQL for the unit test
+    description: This is for internal use to the test_unit_test macro. The macro generates the SQL for the unit test.
     docs:
       show: false
     arguments:
@@ -38,7 +38,7 @@ macros:
         description: '{{ doc("input_mapping_description") }}'
       - name: test_case_name
         type: string
-        description: name of the unit test. example - tc__fct_orders_has_all_payment_methods
+        description: Name of the unit test. example - tc__fct_orders_has_all_payment_methods
 
   - name: _get_model_to_mock
     description: This is for internal use to the get_unit_test macro

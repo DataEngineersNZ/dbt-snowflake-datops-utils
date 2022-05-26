@@ -2,7 +2,7 @@ version: 2
 
 macros:
   - name: grant_database_ownership_access
-    description: This macro grants ownership privilege to the specific roles within the database
+    description: This macro grants ownership privileges to the specified rolename on the database.
     docs:
       show: true
     arguments:
@@ -11,7 +11,7 @@ macros:
         description: Name of the role eg- ANALYST
 
   - name: grant_database_usage_access
-    description: This macro grants database usages privilege to the specific roles within the database. To get access on the database, the role needs to have usage privilege in the database.
+    description: This macro grants usage privilages to the specified rolename inside the database. To get access on the database, the rolename needs to have usage privilege in the database.
     docs:
       show: true
     arguments:
@@ -20,7 +20,7 @@ macros:
         description: Name of the role eg- ANALYST
 
   - name: grant_schema_ownership_access
-    description: This macro grants ownership privilege inside the schema to a specific role. 
+    description: This macro grants ownership privilege inside the schema to the specified rolename. 
     docs:
       show: true
     arguments:
@@ -32,10 +32,10 @@ macros:
         description: Name of the role eg- ANALYST
       - name: include_future_grants
         type: bool
-        description: Grants future privilege to the objects FUTURE VIEWS, FUTURE MATERIALIZED VIEWS, FUTURE TABLES, and FUTURE EXTERNAL TABLES. Default is false
+        description: Grants future privilege to the objects FUTURE VIEWS, FUTURE MATERIALIZED VIEWS, FUTURE TABLES, and FUTURE EXTERNAL TABLES. Default is false.
 
   - name: grant_schema_read_access
-    description: This macro grants read-only access to the specified role inside the schema. 
+    description: This macro grants read-only access to the specified rolename inside the schema.
     docs:
       show: true
     arguments:
@@ -47,10 +47,10 @@ macros:
         description: Name of the role eg- ANALYST
       - name: include_future_grants
         type: bool
-        description: Grants future privilege to the objects FUTURE VIEWS, FUTURE MATERIALIZED VIEWS, FUTURE TABLES, and FUTURE EXTERNAL TABLES. Default is false
+        description: Grants future privilege to the objects FUTURE VIEWS, FUTURE MATERIALIZED VIEWS, FUTURE TABLES, and FUTURE EXTERNAL TABLES. Default is false.
   
   - name: grant_schema_write_access
-    description: This macro grants write access to the specific role inside the schema.
+    description: This macro grants write access to the specified rolename inside the schema.
     docs:
       show: true
     arguments:
@@ -62,10 +62,10 @@ macros:
         description: Name of the role eg- ANALYST
       - name: include_future_grants
         type: bool
-        description: Grants future privilege to the objects FUTURE VIEWS, FUTURE MATERIALIZED VIEWS, FUTURE TABLES, and FUTURE EXTERNAL TABLES. Default is false
+        description: Grants future privilege to the objects FUTURE VIEWS, FUTURE MATERIALIZED VIEWS, FUTURE TABLES, and FUTURE EXTERNAL TABLES. Default is false.
 
   - name: grant_privileges
-    description: This macro runs on the post-hook in dbt. This will apply the grant to the database, schema, table, views, stages, file formats, functions, sequences, external tables, materialized views, procedures, streams, tasks, and future objects(views and tables) with specific roles
+    description: This macro runs on the post-hook in dbt. This will apply the grant to the database, schema, table, views, stages, file formats, functions, sequences, external tables, materialized views, procedures, streams, tasks, and future objects(views and tables) with specified rolename.
     docs:
       show: true
     arguments:
