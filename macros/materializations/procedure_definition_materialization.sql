@@ -5,7 +5,7 @@
   Adapted from https://github.com/venkatra/dbt_hacks
 
 */
-{%- materialization procedure_definition, adapter='snowflake' -%}
+{%- macro snowflake__stored_procedure() -%}
   {%- set preferred_language = config.get('preferred_language', default=SQL) -%}
   {%- set parameters = config.get('parameters', default={}) -%}
   {%- set identifier = config.get('override_name', default=model['alias'] ) -%}
@@ -39,5 +39,5 @@
   -- return
   {{ return({'relations': [target_relation]}) }}
 
-{%- endmaterialization -%}
+{%- endmacro -%}
  
