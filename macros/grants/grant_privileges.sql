@@ -8,7 +8,7 @@
         {{ dbt_dataengineers_utils.grant_schema_ownership_access(schemas, 'DATAOPS_ADMIN', false) }}
         {{ dbt_dataengineers_utils.grant_schema_read_access(schemas, 'ANALYST', false) }}
         {{ dbt_dataengineers_utils.grant_schema_read_access(domain_schemas, 'READERS_PROD', false) }}
-    {% if target.name == 'unit-test' %}
+    {% elif target.name == 'unit-test' %}
         {{ dbt_dataengineers_utils.grant_database_ownership_access('DATAOPS_ADMIN') }}
         {{ dbt_dataengineers_utils.grant_database_usage_access('DATAOPS_ADMIN') }}
         {{ dbt_dataengineers_utils.grant_database_usage_access('DEVELOPERS') }}
