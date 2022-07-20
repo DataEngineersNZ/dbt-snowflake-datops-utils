@@ -7,13 +7,10 @@
     {%- set database = source_node.database -%}
     {%- set stream_name = dbt_dataengineers_utils.snowflake_get_stream_name(identifier) -%}
 
-    {%- set current_target_relation = adapter.get_relation(database=database, schema=schema, identifier=identifier) -%}
-    {%- set current_stream_relation = adapter.get_relation(database=database, schema=schema, identifier=stream_name) -%}
-
-    {% if current_stream_relation is none and current_target_relation is not none%}
-        {%- set new_stream_relation = api.Relation.create(schema=schema, identifier=stream_name) %}
-        {% do build_plan.append(dbt_dataengineers_utils.snowflake_create_stream(new_stream_relation, current_target_relation)) %}
-    {% endif %}
+    {%- set target_relation = api.Relation.create(database=database, schema=schema, identifier=identifier) -%}
+    {%- set target_stream_relation = api.Relation.create(database=database, schema=schema, identifier=stream_name) -%}
+    
+    {% do build_plan.append(dbt_dataengineers_utils.snowflake_create_stream(target_stream_relation, target_relation)) %}
 
     {% do return(build_plan) %}
 {% endmacro %}
