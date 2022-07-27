@@ -1,28 +1,28 @@
 
 {% macro stage_table_sources() %}
-    {% set sources_to_stage = [] %}
-    {% set streams_to_stage = [] %}
-    {% set source_nodes = graph.sources.values() if graph.sources else [] %}
-    {% for node in source_nodes %}
-        {% if node.external %}
-            {% if node.external.auto_create_table %}
-                {% do sources_to_stage.append(node) %}
+    {% if flags.WHICH == 'run' %}
+        {% set sources_to_stage = [] %}
+        {% set streams_to_stage = [] %}
+        {% set source_nodes = graph.sources.values() if graph.sources else [] %}
+        {% for node in source_nodes %}
+            {% if node.external %}
+                {% if node.external.auto_create_table %}
+                    {% do sources_to_stage.append(node) %}
+                {% endif %}
+                {% if node.external.auto_create_stream %}
+                    {% do streams_to_stage.append(node) %}
+                {% endif %}
             {% endif %}
-            {% if node.external.auto_create_stream %}
-                {% do streams_to_stage.append(node) %}
-            {% endif %}
-        {% endif %}
-    {% endfor %}
+        {% endfor %}
 
-    {% do log('sources to create: ' ~ sources_to_stage|length, info = true) %}
-    {% do log('streams to create: ' ~ streams_to_stage|length, info = true) %}
+        {% do log('sources to create: ' ~ sources_to_stage|length, info = true) %}
+        {% do log('streams to create: ' ~ streams_to_stage|length, info = true) %}
 
-    {# Initial run to cater for  #}
-    {% do dbt_dataengineers_utils.stage_table_sources_plans(sources_to_stage, true, false) %}
-    {% do dbt_dataengineers_utils.stage_table_sources_plans(sources_to_stage, false, false) %}
-    {% do dbt_dataengineers_utils.stage_table_sources_plans(streams_to_stage, false, true) %}
-
-
+        {# Initial run to cater for  #}
+        {% do dbt_dataengineers_utils.stage_table_sources_plans(sources_to_stage, true, false) %}
+        {% do dbt_dataengineers_utils.stage_table_sources_plans(sources_to_stage, false, false) %}
+        {% do dbt_dataengineers_utils.stage_table_sources_plans(streams_to_stage, false, true) %}
+    {% endif %}
 {% endmacro %}
 
 {% macro stage_table_sources_plans(sources_to_stage, isFirstRun, isStream) %}
