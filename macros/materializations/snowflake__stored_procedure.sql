@@ -9,7 +9,7 @@
   {%- set preferred_language = config.get('preferred_language', default=SQL) -%}
   {%- set parameters = config.get('parameters', default={}) -%}
   {%- set identifier = config.get('override_name', default=model['alias'] ) -%}
-
+  {%- set return_type = config.get('return_type', default={} ) -%}
 
   {%- set target_relation = api.Relation.create( identifier=identifier, schema=schema, database=database) -%}
 
@@ -25,7 +25,7 @@
   -- build model
 
   {% call statement('main') -%}
-    {{ dbt_dataengineers_utils.create_storedprocedure_stmt_fromfile(target_relation, preferred_language, parameters, sql) }}
+    {{ dbt_dataengineers_utils.create_storedprocedure_stmt_fromfile(target_relation, preferred_language, parameters, return_type, sql) }}
   {%- endcall %}
 
       --------------------------------------------------------------------------------------------------------------------
