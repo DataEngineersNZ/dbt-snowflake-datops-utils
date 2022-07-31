@@ -1,0 +1,29 @@
+version: 2
+
+macros:
+  - name: depends_on_ref
+    description: This macro adds a commented refrence to a reference model
+    docs:
+      show: true
+    arguments:
+      - name: include_for
+        type: string
+        description: options include docs, run or all
+      - name: model
+        type: string
+        description: the reference model to add
+
+  - name: depends_on_source
+    description: This macro adds a commented refrence to a source model
+    docs:
+      show: true
+    arguments:
+      - name: include_for
+        type: string
+        description: options include docs, run or all
+      - name: schema
+        type: string
+        description: the schema for the source model to add
+      - name: model
+        type: string
+        description: the source model to add
