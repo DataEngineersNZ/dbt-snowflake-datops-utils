@@ -8,8 +8,10 @@
         {# Check if the model does not contain a subfolder (e.g, models created at the MODELS root folder) #}
         {% if node.fqn[1:-1]|length == 1 %}
             {{ split_name[0] | trim }}
-        {% else %}
+        {% elif node.fqn[1:-1]|length == 2 %}
             {{ split_name[1] | trim }}
+        {% else %}
+            {{ split_name[2] | trim }}
         {% endif %}
     {%- else -%}
         {{ custom_schema_name | trim }}
