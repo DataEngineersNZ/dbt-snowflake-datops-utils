@@ -40,3 +40,26 @@ macros:
         type: bool
         description: Include database name if model exists in another snowflake database. Default is false.
 
+  - name: model_ref
+    description: This macro generates an model reference but doesn't leave a dependancy
+    docs:
+      show: true
+    arguments:
+      - name: model_name
+        type: string
+        description: Name of the model
+
+  - name: model_source
+    description: This macro generates a source reference but doesn't leave a dependancy
+    docs:
+      show: true
+    arguments:
+      - name: schema_name
+        type: string
+        description: Schema name
+      - name: model_name
+        type: string
+        description: Name of the source data model
+      - name: include_database
+        type: bool
+        description: Include database name if model exists in another snowflake database. Default is false.
