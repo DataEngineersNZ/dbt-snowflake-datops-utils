@@ -1,4 +1,4 @@
-{% macro get_unit_test_sql(model, input_mapping, test_case_name) %}
+{% macro get_unit_test_sql(model, input_mapping, input_parameters, test_case_name) %}
     {% set ns=namespace(
         test_sql="(select 1) raw_sql",
         rendered_keys={},
@@ -26,6 +26,11 @@
         {% for k,v in input_mapping.items() %}
             {# render the original sql and replacement key before replacing because v is already rendered when it is passed to this test #}
             {% set ns.test_sql = render(ns.test_sql)|replace(ns.rendered_keys[k], v) %}
+        {% endfor %}
+
+        {% for k,v in input_parameters.items() %}
+            {# render the original sql and replacement key before replacing because v is already rendered when it is passed to this test #}
+            {% set ns.test_sql = render(ns.test_sql)|replace(":" ~ ns.rendered_keys[k], v) %}
         {% endfor %}
 
         {% set mock_model_relation = "unit_tests." + test_case_name %}
