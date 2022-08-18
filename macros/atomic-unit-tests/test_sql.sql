@@ -23,15 +23,19 @@
         {% endif %}
         {% set ns.test_sql = ns.graph_model.raw_sql %}
 
-        {% for k,v in input_mapping.items() %}
-            {# render the original sql and replacement key before replacing because v is already rendered when it is passed to this test #}
-            {% set ns.test_sql = render(ns.test_sql)|replace(ns.rendered_keys[k], v) %}
-        {% endfor %}
+        {% if input_mapping is not none %}
+            {% for k,v in input_mapping.items() %}
+                {# render the original sql and replacement key before replacing because v is already rendered when it is passed to this test #}
+                {% set ns.test_sql = render(ns.test_sql)|replace(ns.rendered_keys[k], v) %}
+            {% endfor %}
+        {% endif %}
 
-        {% for k,v in input_parameters.items() %}
-            {# render the original sql and replacement key before replacing because v is already rendered when it is passed to this test #}
-            {% set ns.test_sql = render(ns.test_sql)|replace(":" ~ ns.rendered_keys[k], v) %}
-        {% endfor %}
+        {% if input_parameters is not none %}
+            {% for k,v in input_parameters.items() %}
+                {# render the original sql and replacement key before replacing because v is already rendered when it is passed to this test #}
+                {% set ns.test_sql = render(ns.test_sql)|replace(":" ~ ns.rendered_keys[k], v) %}
+            {% endfor %}
+        {% endif %}
 
         {% set mock_model_relation = "unit_tests." + test_case_name %}
 
