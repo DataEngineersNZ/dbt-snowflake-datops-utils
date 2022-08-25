@@ -201,7 +201,7 @@ macros:
     arguments:
       - name: model
         type: string
-        description: Name of the model 
+        description: Name of the model
       - name: test_sql
         type: string
         description: SQL Statement to create mock table or view
@@ -235,4 +235,4 @@ macros:
         description: list of column names
       - name: values
         type: list
-        description: list of values for the columns
+        description: list of values for the columns.
