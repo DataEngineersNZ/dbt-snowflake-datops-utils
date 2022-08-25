@@ -1,0 +1,9 @@
+# Data Engineers Snowflake DataOps Utils Project Changelog
+
+## v0.1.8 2022-08-26
+
+* Added ability to test stored procedures and user defined functions
+
+## v0.1.7 2022-08-18
+
+* Added ability to create external tables
