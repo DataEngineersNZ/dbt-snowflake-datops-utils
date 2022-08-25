@@ -55,7 +55,9 @@
                 {% endif %}
             {% endfor %}
         {% endif %}
-
+        
+        {% set target_relation = api.Relation.create( identifier=test_case_name, schema="unit_tests", database=database) %}
+        {% set mock_model_relation = "unit_tests." + test_case_name %}
 
         {% if ns.materialized_type == "stored_procedure" %}
             {% set ns.view_data = dbt_dataengineers_utils.get_stored_procedure_unit_test_sql(ns, target_relation, mock_model_relation) %}
