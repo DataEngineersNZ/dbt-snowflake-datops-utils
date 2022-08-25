@@ -5,14 +5,15 @@
         graph_model=none,
         preferred_language="sql",
         return_type="varchar",
-        materialized_type="stored_procedure",
+        materialized_type="unknown",
         sdk_version="",
         import_Path="",
         packages="",
         handler_name="",
         imports="",
         target_path="",
-        runtime_version=""
+        runtime_version="",
+        view_data=""
     ) %}
     {% if input_mapping is not none %}
         {% for k in input_mapping.keys() %}
@@ -49,54 +50,20 @@
                 {# render the original sql and replacement key before replacing because v is already rendered when it is passed to this test #}
                 {% if ns.materialized_type == "stored_procedure" %}
                     {% set ns.test_sql = render(ns.test_sql)|replace(":" ~ k, v) %}
-                {% else %}
+                {% elif ns.materialized_type == "user_defined_function" %}
                     {% set ns.test_sql = render(ns.test_sql)|replace(k, v) %}
                 {% endif %}
             {% endfor %}
         {% endif %}
 
 
-        {% set target_relation = api.Relation.create( identifier=test_case_name, schema="unit_tests", database=database) %}
-        {% set mock_model_relation = "unit_tests." + test_case_name %}
-
         {% if ns.materialized_type == "stored_procedure" %}
-            {% do dbt_dataengineers_utils._create_mock_stored_procedure(target_relation, ns.preferred_language, ns.return_type, ns.test_sql) %}
-            {% set view_data = "(" ~ dbt_dataengineers_utils.create_return_view(mock_model_relation) ~ ")" %}
-        {% else %}
-            {% set ns.sdk_version = ns.graph_model.config.get("sdk_version") %}
-            {% set ns.import_Path = ns.graph_model.config.get("import_Path") %}
-            {% set ns.packages = ns.graph_model.config.get("packages") %}
-            {% set ns.handler_name = ns.graph_model.config.get("handler_name") %}
-            {% set ns.imports = ns.graph_model.config.get("imports") %}
-            {% set ns.target_path = ns.graph_model.config.get("target_path") %}
-            {% set ns.runtime_version = ns.graph_model.config.get("runtime_version") %}
+            {% set ns.view_data = dbt_dataengineers_utils.get_stored_procedure_unit_test_sql(ns, target_relation, mock_model_relation) %}
 
-            {% do dbt_dataengineers_utils._create_mock_user_defined_function(target_relation, ns.preferred_language, ns.return_type, ns.sdk_version, ns.import_Path, ns.packages, ns.handler_name, ns.imports, ns.target_path, ns.runtime_version, ns.test_sql) %}    
-            {% if ns.return_type.startswith("table") %}
-                {% set view_data = "( SELECT * FROM table(" ~ mock_model_relation ~ "()))" %}
-            {% else %}
-                {% set view_data = "( SELECT " ~ mock_model_relation ~ "() AS result)" %}
-            {% endif %}
+        {% elif ns.materialized_type == "user_defined_function" %}
+            {% set ns.view_data = dbt_dataengineers_utils.get_user_defined_function_unit_test_sql(ns, target_relation, mock_model_relation) %}
         {% endif%}
 
     {% endif %}
-    {{ view_data }}
-{% endmacro %}
-
-
-{% macro _create_mock_stored_procedure(target_relation, preferred_language, return_type, test_sql) %}
-    {{ return(adapter.dispatch('_create_mock_stored_procedure', 'dbt_dataengineers_utils')(target_relation, preferred_language, return_type, test_sql)) }}
-{% endmacro %}
-
-{% macro default___create_mock_stored_procedure(target_relation, preferred_language, return_type, test_sql) %}
-    {% do run_query(snowflake_create_stored_procedure_statement(target_relation, preferred_language, return_type, test_sql)) %}
-{% endmacro %}
-
-
-{% macro _create_mock_user_defined_function(target_relation, preferred_language, return_type, sdk_version, import_Path, packages, handler_name, imports, target_path,runtime_version, test_sql) %}
-    {{ return(adapter.dispatch('_create_mock_user_defined_function', 'dbt_dataengineers_utils')(target_relation, preferred_language, return_type, sdk_version, import_Path, packages, handler_name, imports, target_path,runtime_version, test_sql)) }}
-{% endmacro %}
-
-{% macro default___create_mock_user_defined_function(target_relation, preferred_language, return_type, sdk_version, import_Path, packages, handler_name, imports, target_path,runtime_version, test_sql) %}
-    {% do run_query(snowflake_create_user_defined_functions_statement(target_relation, preferred_language, return_type, sdk_version, import_Path, packages, handler_name, imports, target_path,runtime_version, test_sql)) %}
+    {{ ns.view_data }}
 {% endmacro %}

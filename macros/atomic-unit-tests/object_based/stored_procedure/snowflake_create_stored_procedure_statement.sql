@@ -1,11 +1,11 @@
-{%- macro snowflake_create_stored_procedure_statement(relation, preferred_language, return_type, sql) -%}
+{%- macro snowflake_create_stored_procedure_statement(relation, ns) -%}
 
 CREATE OR REPLACE PROCEDURE {{ relation.include(database=(not temporary), schema=(not temporary)) }}()
-RETURNS {{ return_type }}
-LANGUAGE {{ preferred_language }}
+RETURNS {{ ns.return_type }}
+LANGUAGE {{ ns.preferred_language }}
 AS
 $$
-    {{ sql }}
+    {{ ns.test_sql }}
 $$
 ;
 

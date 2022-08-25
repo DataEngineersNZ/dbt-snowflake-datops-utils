@@ -1,4 +1,4 @@
-{% macro get_unit_test_sql(model, input_mapping, test_case_name) %}
+{% macro get_model_unit_test_sql(model, input_mapping, test_case_name) %}
     {% set ns=namespace(
         test_sql="(select 1) raw_sql",
         rendered_keys={},
@@ -11,7 +11,7 @@
     {% endfor %}
 
     {% if execute %}
-        {# inside an execute block because graph nodes aren't well-defined during parsing #}
+        {# inside an execute block because graph nodes arent well-defined during parsing #}
         {% set ns.graph_model = graph.nodes.get("model." + project_name + "." + model.name) %}
         {# if the model uses an alias, the above call was unsuccessful, so loop through the graph to grab it by the alias instead #}
         {% if ns.graph_model is none %}

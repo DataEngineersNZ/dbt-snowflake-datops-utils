@@ -1,25 +1,25 @@
-{%- macro snowflake_create_user_defined_functions_statement(relation, preferred_language, return_type, sdk_version, import_Path, packages, handler_name, imports, target_path,runtime_version, sql) -%}
+{%- macro snowflake_create_user_defined_functions_statement(relation, ns) -%}
 
 CREATE OR REPLACE FUNCTION {{ relation.include(database=(not temporary), schema=(not temporary)) }}()
 
-RETURNS {{ return_type }}
-{% if preferred_language != 'sql' %}
-LANGUAGE  {{ preferred_language }}
+RETURNS {{ ns.return_type }}
+{% if ns.preferred_language != 'sql' %}
+LANGUAGE  {{ ns.preferred_language }}
 {% endif %}
 
-{% if preferred_language == 'python'  %}
-RUNTIME_VERSION = '{{ runtime_version }}'
-HANDLER = '{{ handler_name }}'
-PACKAGES = {{ packages }}
+{% if ns.preferred_language == 'python'  %}
+RUNTIME_VERSION = '{{ ns.runtime_version }}'
+HANDLER = '{{ ns.handler_name }}'
+PACKAGES = {{ ns.packages }}
 
 {% elif preferred_language == 'java'  %}
-handler = {{ handler_name }}
-target_path = {{ target_path }}
+handler = {{ ns.handler_name }}
+target_path = {{ ns.target_path }}
 {% endif %}
 
 AS
 
 $$
-{{ sql }}
+{{ ns.test_sql }}
 $$
 {%- endmacro -%}
