@@ -89,7 +89,7 @@ macros:
     arguments:
       - name: object_type
         type: string
-         description: type of objectwhich is being dropped
+        description: type of objectwhich is being dropped
       - name: database
         type: string
         description: target database
