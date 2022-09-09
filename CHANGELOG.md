@@ -1,5 +1,9 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
+## v0.1.9 2022-09-09
+
+* Add ability to remove items from a database which are not part of the dbt project
+
 ## v0.1.8 2022-08-26
 
 * Added ability to test stored procedures and user defined functions
