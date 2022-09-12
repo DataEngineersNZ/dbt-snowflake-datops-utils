@@ -1,0 +1,140 @@
+version: 2
+
+macros:
+  - name: clean_functions
+    description: This macro compares dbt user defined functions with those deployed and removes from snowflake if they no longer exist in dbt.
+    docs:
+      show: true
+    arguments:
+      - name: database
+        type: string
+        description: target database
+      - name: dry_run
+        type: boolean
+        description: specifies if the macro should run in dry run mode
+
+  - name: clean_generic
+    description: This macro compares dbt streams or tasks with those deployed and removes from snowflake if they no longer exist in dbt.
+    docs:
+      show: true
+    arguments:
+      - name: object_type
+        type: string
+        description: type of object to clean (TASK, STREAM, STAGE)
+      - name: database
+        type: string
+        description: target database
+      - name: dry_run
+        type: boolean
+        description: specifies if the macro should run in dry run mode
+
+  - name: clean_models
+    description: This macro compares dbt tables, external tables and views with those deployed and removes from snowflake if they no longer exist in dbt.
+    docs:
+      show: true
+    arguments:
+      - name: database
+        type: string
+        description: target database
+      - name: dry_run
+        type: boolean
+        description: specifies if the macro should run in dry run mode
+
+  - name: clean_objects
+    description: This macro runs all the other clean macros and should be used on a post-hook event
+    docs:
+      show: true
+    arguments:
+      - name: database
+        type: string
+        description: target database
+      - name: check_schemas
+        type: string
+        description: compare schemas in dbt with those deployed
+      - name: check_functions
+        type: string
+        description: compare functions in dbt with those deployed
+      - name: check_tasks
+        type: string
+        description: compare tasks in dbt with those deployed
+      - name: check_streams
+        type: string
+        description: compare streams in dbt with those deployed
+      - name: check_stages
+        type: string
+        description: compare stages in dbt with those deployed
+      - name: check_tables_and_views
+        type: string
+        description: compare views and tables in dbt with those deployed
+      - name: dry_run
+        type: boolean
+        description: specifies if the macro should run in dry run mode
+
+  - name: clean_schemas
+    description: This macro compares dbt schemas with those deployed and removes from snowflake if they no longer exist in dbt.
+    docs:
+      show: true
+    arguments:
+      - name: database
+        type: string
+        description: target database
+      - name: dry_run
+        type: boolean
+        description: specifies if the macro should run in dry run mode
+
+  - name: drop_object
+    description: This macro compares executes 
+    docs:
+      show: false
+    arguments:
+      - name: object_type
+        type: string
+        description: type of objectwhich is being dropped
+      - name: database
+        type: string
+        description: target database
+      - name: items_to_drop
+        type: list
+        description: list of objects to drop
+      - name: dry_run
+        type: boolean
+        description: specifies if the macro should run in dry run mode
+
+  - name: has_matching_nodes
+    description: This macro checks to see if the sql object exists in dbt
+    docs:
+      show: false
+    arguments:
+      - name: nodes
+        type: string
+        description: graph of nodes to check against
+      - name: name_property
+        type: string
+        description: name of the property to check against (name or config.override_name)
+      - name: sql_object_schema
+        type: string
+        description: schema name
+      - name: sql_object_name
+        type: string
+        description: object name
+      - name: sql_arguments
+        type: string
+        description: arguments of the sql object
+
+  - name: clean_stale_models
+    description: This macro removes stale models from snowflake
+    docs:
+      show: true
+    arguments:
+      - name: database
+        type: string
+        description: target database
+      - name: schema
+        type: string
+        description: target schema
+      - name: days
+        type: string
+        description: number of days old 
+      - name: dry_run
+        type: boolean
+        description: specifies if the macro should run in dry run mode
