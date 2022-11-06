@@ -43,7 +43,7 @@
                 {% set new_sql_arguments_list = [] %}
                 
                 {% for argument in sql_arguments_list %}
-                    {% set argument_parts = argument.split(' ') %} 
+                    {% set argument_parts = (argument | trim).split(' ') %}
                     {% do new_sql_arguments_list.append(argument_parts[1]) %}
                 {% endfor %}
                 {% for argument in new_sql_arguments_list %}
