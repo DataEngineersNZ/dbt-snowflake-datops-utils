@@ -1,0 +1,44 @@
+version: 2
+
+macros:
+  - name: first_day_of_month
+    description: This macro generates a date for the first day of the month based on the incoming year and month with a specified month format
+    docs:
+      show: true
+    arguments:
+      - name: s_year
+        description: The year column to be used
+        type: ref
+      - name: s_month
+        description: The month column to be used
+        type: ref
+      - name: month_format
+        description: The format of the month column
+        type: TEXT
+
+  - name: last_day_of_month
+    description: This macro generates a date for the last day of the month based on the incoming year and month with a specified month format
+    docs:
+      show: true
+    arguments:
+      - name: s_year
+        description: The year column to be used
+        type: ref
+      - name: s_month
+        description: The month column to be used
+        type: ref
+      - name: month_format
+        description: The format of the month column
+        type: TEXT
+
+  - name: to_date
+    description: This macro generates a date based on the incoming string with a specified date format
+    docs:
+      show: true
+    arguments:
+      - name: s_date
+        description: The year column to be used
+        type: ref
+      - name: date_format
+        description: The format of the incoming date string
+        type: TEXT

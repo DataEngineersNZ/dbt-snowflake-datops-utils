@@ -4,6 +4,12 @@
 
 * Upgraded project to be compatible with dbt v1.3
 * Removed reliance on dbt logging which is being depricated
+* updated generate_schema_name macro to cater for subfolders in sources for ease of navigating but provides it at the schema level otherwise
+* new macros added:
+    * dimension_id
+    * last_day_month
+    * first_day_month
+    * to_date
 
 ## v0.1.9 2022-09-09
 
