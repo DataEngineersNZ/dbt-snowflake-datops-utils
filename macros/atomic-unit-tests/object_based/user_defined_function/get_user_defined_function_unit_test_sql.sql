@@ -7,9 +7,9 @@
     {% set ns.imports = ns.graph_model.config.get("imports") %}
     {% set ns.target_path = ns.graph_model.config.get("target_path") %}
     {% set ns.runtime_version = ns.graph_model.config.get("runtime_version") %}
-    
-    {% do dbt_dataengineers_utils._create_mock_user_defined_function(target_relation, ns) %}    
-    {% if ns.return_type.startswith("table") %}
+
+    {% do dbt_dataengineers_utils._create_mock_user_defined_function(target_relation, ns) %}
+    {% if ns.return_type.lower().startswith("table") %}
         {% set ns.view_data = "( SELECT * FROM table(" ~ mock_model_relation ~ "()))" %}
     {% else %}
         {% set ns.view_data = "( SELECT " ~ mock_model_relation ~ "() AS result)" %}
