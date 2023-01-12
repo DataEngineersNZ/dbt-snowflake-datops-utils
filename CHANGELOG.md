@@ -1,15 +1,18 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
-## v0.2.0 2022-12-14
+## v0.2.0 2023-01-12
 
-* Upgraded project to be compatible with dbt v1.3
+* Upgraded project to be compatible with dbt v1.3.2
 * Removed reliance on dbt logging which is being depricated
 * updated generate_schema_name macro to cater for subfolders in sources for ease of navigating but provides it at the schema level otherwise
 * new macros added:
     * dimension_id
-    * last_day_month
-    * first_day_month
+    * last_day_of_month
+    * first_day_of_month
     * to_date
+    * string_to_num
+    * num_to_date
+    * null_to_empty_string
 
 ## v0.1.9 2022-09-09
 

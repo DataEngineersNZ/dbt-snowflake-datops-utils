@@ -1,3 +1,3 @@
 {%- macro null_to_empty_string(field) -%}
-COALESCE({{field}}, '')
+    COALESCE({{field}}, '')
 {%- endmacro -%}
