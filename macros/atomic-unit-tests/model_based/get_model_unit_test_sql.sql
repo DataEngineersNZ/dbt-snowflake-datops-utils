@@ -21,7 +21,7 @@
                 {% endif %}
             {% endfor %}
         {% endif %}
-        {% set ns.test_sql = ns.graph_model.raw_sql %}
+        {% set ns.test_sql = ns.graph_model.raw_code %}
 
         {% if input_mapping is not none %}
             {% for k,v in input_mapping.items() %}

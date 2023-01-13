@@ -1,6 +1,6 @@
 {% macro get_object_unit_test_sql(model, input_mapping, input_parameters, test_case_name) %}
     {% set ns=namespace(
-        test_sql="(select 1) raw_sql",
+        test_sql="(select 1) raw_code",
         rendered_keys={},
         graph_model=none,
         preferred_language="sql",
@@ -33,7 +33,7 @@
                 {% endif %}
             {% endfor %}
         {% endif %}
-        {% set ns.test_sql = ns.graph_model.raw_sql %}
+        {% set ns.test_sql = ns.graph_model.raw_code %}
         {% set ns.preferred_language = ns.graph_model.config.get("preferred_language") %}
         {% set ns.return_type = ns.graph_model.config.get("return_type") %} 
         {% set ns.materialized_type = ns.graph_model.config.get("materialized") %} 

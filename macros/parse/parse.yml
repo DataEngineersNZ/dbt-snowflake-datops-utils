@@ -1,0 +1,71 @@
+version: 2
+
+macros:
+  - name: first_day_of_month
+    description: This macro generates a date for the first day of the month based on the incoming year and month with a specified month format
+    docs:
+      show: true
+    arguments:
+      - name: s_year
+        description: The year column to be used
+        type: ref
+      - name: s_month
+        description: The month column to be used
+        type: ref
+      - name: month_format
+        description: The format of the month column
+        type: TEXT
+
+  - name: last_day_of_month
+    description: This macro generates a date for the last day of the month based on the incoming year and month with a specified month format
+    docs:
+      show: true
+    arguments:
+      - name: s_year
+        description: The year column to be used
+        type: ref
+      - name: s_month
+        description: The month column to be used
+        type: ref
+      - name: month_format
+        description: The format of the month column
+        type: TEXT
+
+  - name: to_date
+    description: This macro generates a date based on the incoming string with a specified date format
+    docs:
+      show: true
+    arguments:
+      - name: s_date
+        description: The year column to be used
+        type: ref
+      - name: date_format
+        description: The format of the incoming date string
+        type: TEXT
+
+  - name: num_to_date
+    description: Converts a number in the format of yyyymmdd to a date
+    docs:
+      show: true
+    arguments:
+      - name: date_field
+        type: ref
+        description: The number to convert into a date
+
+  - name: string_to_num
+    description: Converts a string to a number
+    docs:
+      show: true
+    arguments:
+      - name: field
+        type: ref
+        description: The field containing the string to convert
+
+  - name: null_to_empty_string
+    description: Converts a null value to an empty string
+    docs:
+      show: true
+    arguments:
+      - name: field
+        type: ref
+        description: The field containing the string to check

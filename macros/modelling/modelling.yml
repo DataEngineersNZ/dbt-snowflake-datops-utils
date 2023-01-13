@@ -51,3 +51,12 @@ macros:
       - name: TimeKey
         type: string
         description: The Name of the TimeKey Column.
+
+  - name: dimension_id
+    description: This macro concatinates the specified columns into a single column and is designed to create a unique ID for a dimension.
+    docs:
+      show: true
+    arguments:
+      - name: field_list
+        type: Array
+        description: The list of fields to be concatenated.
