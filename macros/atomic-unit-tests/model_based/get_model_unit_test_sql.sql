@@ -7,7 +7,7 @@
 
     {% for k in input_mapping.keys() %}
         {# doing this outside the execute block allows dbt to infer the proper dependencies #}
-        c
+        {% do ns.rendered_keys.update({k: "{{ " + k + " }}" }) %}
     {% endfor %}
 
     {% if execute %}
