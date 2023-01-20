@@ -18,7 +18,7 @@
     {% if input_mapping is not none %}
         {% for k in input_mapping.keys() %}
             {# doing this outside the execute block allows dbt to infer the proper dependencies #}
-            {% do ns.rendered_keys.update({k: render("{{ " + k + " }}")}) %}
+            {% do ns.rendered_keys.update({k: "{{ " + k + " }}" }) %}
         {% endfor %}
     {% endif %}
     
@@ -41,9 +41,10 @@
         {% if input_mapping is not none %}
             {% for k,v in input_mapping.items() %}
                 {# render the original sql and replacement key before replacing because v is already rendered when it is passed to this test #}
-                {% set ns.test_sql = render(ns.test_sql)|replace(ns.rendered_keys[k], v) %}
+                {% set ns.test_sql = ns.test_sql|replace(ns.rendered_keys[k], v) %}
             {% endfor %}
         {% endif %}
+        {% set ns.test_sql = render(ns.test_sql) %}
 
         {% if input_parameters is not none %}
             {% for k,v in input_parameters.items() %}
