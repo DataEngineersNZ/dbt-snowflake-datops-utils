@@ -236,3 +236,15 @@ macros:
       - name: values
         type: list
         description: list of values for the columns.
+  - name: get_value_or_null
+    description: used for the atomic unit tests to determine if to use quote on the value or not
+    docs:
+      show: true
+    arguments:
+      - name: value
+        type: column value
+        description: Value to be used for the test
+      - name: inc_quotes
+        type: boolean
+        description: indicates if the value should be quoted or not
+
