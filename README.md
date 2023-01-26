@@ -16,6 +16,7 @@ Add the following to your packages.yml file
 **Atomic Unit Tests**
 
 - unit_test
+- get_value_or_null
 
 **clean**
 
