@@ -1,5 +1,9 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
+## v0.2.1 2023-01-31
+
+* added macro `generate_surrogate_key` so that it doesn't include whitespace which appears in the dbt-utils version
+
 ## v0.2.0 2023-01-12
 
 * Upgraded project to be compatible with dbt v1.3.2
