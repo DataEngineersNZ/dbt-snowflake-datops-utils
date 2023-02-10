@@ -1,5 +1,9 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
+## v0.2.2 2023-02-10
+
+* updated macro `clean_objects` so that it is able to remove file formats and alerts from snowflake
+
 ## v0.2.1 2023-01-31
 
 * added macro `generate_surrogate_key` so that it doesn't include whitespace which appears in the dbt-utils version
