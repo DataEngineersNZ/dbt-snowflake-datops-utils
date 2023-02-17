@@ -66,6 +66,12 @@ macros:
       - name: check_tables_and_views
         type: string
         description: compare views and tables in dbt with those deployed
+      - name: check_alerts
+        type: string
+        description: compare alerts in dbt with those deployed
+      - name: check_file_formats
+        type: string
+        description: compare file formats in dbt with those deployed
       - name: dry_run
         type: boolean
         description: specifies if the macro should run in dry run mode
