@@ -1,5 +1,10 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
+## v0.2.3 2023-04-19
+
+* updated macro `clean_objects` so to enable easier configuration instead of boolean flags
+* updated unit test macros to process null's correctly
+
 ## v0.2.2 2023-02-10
 
 * updated macro `clean_objects` so that it is able to remove file formats and alerts from snowflake
