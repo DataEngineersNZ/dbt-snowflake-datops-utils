@@ -1,28 +1,28 @@
-{% macro clean_objects(database=target.database, check_schemas=True, check_functions=True, check_tasks=True, check_streams=True, check_stages=True, check_tables_and_views=True, check_alerts=True, check_file_formats=True, dry_run=True) %}
+{% macro clean_objects(database=target.database, dry_run=True, object_types= ['schemas', 'functions_and_procedures', 'tasks', 'streams', 'stages', 'tables_and_views', 'alerts', 'file_formats']) %}
     {%if execute %}
         {% if flags.WHICH in ('run', 'run-operation') %}
-            {% if check_schemas %}
+            {% if 'schemas' in object_types %}
                 {% do dbt_dataengineers_utils.clean_schemas(database, dry_run) %}
             {% endif %}
-            {% if check_functions %}
+            {% if 'functions_and_procedures' in object_types %}
                 {% do dbt_dataengineers_utils.clean_functions(database, dry_run) %}
             {% endif %}
-            {% if check_tasks %}
+            {% if 'tasks' in object_types %}
                 {% do dbt_dataengineers_utils.clean_generic("TASK", database, dry_run) %}
             {% endif %}
-            {% if check_streams %}
+            {% if 'streams' in object_types %}
                 {% do dbt_dataengineers_utils.clean_generic("STREAM", database, dry_run) %}
             {% endif %}
-            {% if check_stages %}
+             {% if 'stages' in object_types %}
                 {% do dbt_dataengineers_utils.clean_generic("STAGE", database, dry_run) %}
             {% endif %}
-            {% if check_alerts %}
+            {% if 'alerts' in object_types %}
                 {% do dbt_dataengineers_utils.clean_generic("ALERT", database, dry_run) %}
             {% endif %}
-            {% if check_file_formats %}
+            {% if 'file_formats' in object_types %}
                 {% do dbt_dataengineers_utils.clean_generic("FILE FORMAT", database, dry_run) %}
             {% endif %}
-            {% if check_tables_and_views %}
+            {% if 'tables_and_views' in object_types %}
                 {% do dbt_dataengineers_utils.clean_models(database, dry_run) %}
             {% endif %}
         {% endif %}
