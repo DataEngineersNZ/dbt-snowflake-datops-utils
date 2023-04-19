@@ -4,7 +4,7 @@
     {%- set default_null_value = "" %}
 {%- else %}
     {%- set default_null_value = '_dbt_utils_surrogate_key_null_'%}
-{% endif %}
+{%- endif -%}
 
 {%- set fields = [] -%}
 
