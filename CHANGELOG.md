@@ -3,6 +3,7 @@
 ## v0.2.4 2023-05-18
 
  * updated macro `get_merge_statement` to allow the destnation schema to be specified
+ * added macro `get_default_merge_statement` to allow the use of the merge statement which is non vendor specific
 
 ## v0.2.3 2023-04-19
 
