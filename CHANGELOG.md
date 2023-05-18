@@ -1,5 +1,9 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
+## v0.2.4 2023-05-18
+
+ * updated macro `get_merge_statement` to allow the destnation schema to be specified
+
 ## v0.2.3 2023-04-19
 
 * updated macro `clean_objects` so to enable easier configuration instead of boolean flags
