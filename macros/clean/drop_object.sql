@@ -1,10 +1,13 @@
 {% macro drop_object(object_type, database, items_to_drop, dry_run=true) %}
     {% if items_to_drop | length > 0 %}
+        {{ log("dry-run: " ~ dry_run, info=true) }}
+        {% if dry_run %}
+            {{ log("Dry-run statements (not executed)", info=true) }}
+        {% endif %}
         {% for item in items_to_drop %}
             {%- set drop_query -%}
                 DROP {{ object_type }} IF EXISTS {{ database }}.{{ item }}
             {%- endset -%}
-            {{ log("dry-run: " ~ dry_run, info=true) }}
             {% if dry_run %}
                 {{ log(drop_query, info=true) }}
             {% else %}

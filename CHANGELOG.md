@@ -1,5 +1,10 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
+## v0.2.4.1 2023-06-08
+
+* updated marco `clean_generic` to cater for monitorial objects
+* updated macro `drop_objects` to have message about dry run statements
+
 ## v0.2.4 2023-05-18
 
  * updated macro `get_merge_statement` to allow the destnation schema to be specified
