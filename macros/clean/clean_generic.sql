@@ -28,6 +28,19 @@
         {% endfor %}
 
         {% if dbt_models | length == 0 %}
+            {% if object_type == "TASK" or object_type == "ALERT" %}
+                {% set matching_nodes = nodes
+                    | selectattr("schema", "equalto", sql_object_schema | lower)
+                    | selectattr("name", "equalto", sql_object_name | lower)
+                    | selectattr("config.materialized", "equalto", "monitorial" | lower)
+                %}
+                {% for node in matching_nodes %}
+                    {% do dbt_models.append(node.schema ~ "." ~ node.name) %}
+                {% endfor %}
+            {% endif%}
+        {% endif %}
+
+        {% if dbt_models | length == 0 %}
             {% do snowflake_objects_to_drop.append(sql_object) %}
         {% endif %}
     {% endfor %}
