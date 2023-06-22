@@ -1,5 +1,9 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
+## v0.2.4.2 2023-06-22
+
+* updated macro `clean_objects` to enable a list of environments that should be executed in instead of boolean dry_run flag
+
 ## v0.2.4.1 2023-06-08
 
 * updated marco `clean_generic` to cater for monitorial objects

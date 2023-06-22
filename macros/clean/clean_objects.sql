@@ -1,6 +1,11 @@
-{% macro clean_objects(database=target.database, dry_run=True, object_types= ['schemas', 'functions_and_procedures', 'tasks', 'streams', 'stages', 'tables_and_views', 'alerts', 'file_formats']) %}
+{% macro clean_objects(database=target.database, clean_targets=['local-dev', 'unit-test', 'test', 'prod'], object_types= ['schemas', 'functions_and_procedures', 'tasks', 'streams', 'stages', 'tables_and_views', 'alerts', 'file_formats']) %}
     {%if execute %}
         {% if flags.WHICH in ('run', 'run-operation') %}
+            {% if target.name in clean_targets %}
+                {% set dry_run = false %}
+            {% else %}
+                {% set dry_run = true %}
+            {% endif %}
             {% if 'schemas' in object_types %}
                 {% do dbt_dataengineers_utils.clean_schemas(database, dry_run) %}
             {% endif %}

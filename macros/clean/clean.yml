@@ -48,33 +48,13 @@ macros:
       - name: database
         type: string
         description: target database
-      - name: check_schemas
-        type: string
-        description: compare schemas in dbt with those deployed
-      - name: check_functions
-        type: string
-        description: compare functions in dbt with those deployed
-      - name: check_tasks
-        type: string
-        description: compare tasks in dbt with those deployed
-      - name: check_streams
-        type: string
-        description: compare streams in dbt with those deployed
-      - name: check_stages
-        type: string
-        description: compare stages in dbt with those deployed
-      - name: check_tables_and_views
-        type: string
-        description: compare views and tables in dbt with those deployed
-      - name: check_alerts
-        type: string
-        description: compare alerts in dbt with those deployed
-      - name: check_file_formats
-        type: string
-        description: compare file formats in dbt with those deployed
-      - name: dry_run
-        type: boolean
-        description: specifies if the macro should run in dry run mode
+      - name: clean_targets
+        type: List[string]
+        description: List of environments to clean in
+      - name: object_types
+        type: List[string]
+        description: List of object types to clean up
+     
 
   - name: clean_schemas
     description: This macro compares dbt schemas with those deployed and removes from snowflake if they no longer exist in dbt.
