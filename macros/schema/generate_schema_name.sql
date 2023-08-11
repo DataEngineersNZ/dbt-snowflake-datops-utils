@@ -9,7 +9,7 @@
         {% if split_name[0]|lower == "dm" %}
             {{ split_name[0] | trim }}
         {% elif split_name[0]|lower == "sources" and node.fqn[1:-1]|length == 3 %}
-            {{ split_name[1] | trim }}            
+            {{ split_name[1] | trim }}
         {% elif node.fqn[1:-1]|length == 1 %}
             {{ split_name[0] | trim }}
         {% elif node.fqn[1:-1]|length == 2 %}

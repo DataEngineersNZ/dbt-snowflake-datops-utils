@@ -1,5 +1,10 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
+## v0.2.4.3
+
+* updated macro `get_default_merge_statement` and `get_merge_statement` to cater for the case where the source is not a native dbt component (eg stream)
+* update `dbt_utils` to use version `1.1.1`
+
 ## v0.2.4.2 2023-06-22
 
 * updated macro `clean_objects` to enable a list of environments that should be executed in instead of boolean dry_run flag

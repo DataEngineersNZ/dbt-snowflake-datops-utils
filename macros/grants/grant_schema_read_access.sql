@@ -10,8 +10,8 @@
     {% if include_future_grants %}
     GRANT SELECT ON FUTURE VIEWS IN SCHEMA {{ current }} TO ROLE {{ rolename }};
     GRANT SELECT ON FUTURE MATERIALIZED VIEWS IN SCHEMA {{ current }} TO ROLE {{ rolename }};
-    GRANT SELECT ON FUTURE TABLES IN SCHEMA {{ current }} TO ROLE {{ rolename }};    
-    GRANT SELECT ON FUTURE EXTERNAL TABLES IN SCHEMA {{ current }} TO ROLE {{ rolename }};    
+    GRANT SELECT ON FUTURE TABLES IN SCHEMA {{ current }} TO ROLE {{ rolename }};
+    GRANT SELECT ON FUTURE EXTERNAL TABLES IN SCHEMA {{ current }} TO ROLE {{ rolename }};
     {% endif %}
 {% endfor %}
 {% endmacro %}
