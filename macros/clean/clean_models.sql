@@ -1,6 +1,7 @@
 {% macro clean_models(database=target.database, dry_run=True) %}
     {% set snowflake_views_to_drop = [] %}
     {% set snowflake_tables_to_drop = [] %}
+    {% set snowflake_dynamic_tables_to_drop = [] %}
     {% set snowflake_external_tables_to_drop = [] %}
     {% set nodes = graph.nodes.values() if graph.nodes else [] %}
     {% set sources = graph.sources.values() if graph.sources else [] %}
@@ -9,6 +10,7 @@
         SELECT
             CASE
                 WHEN table_type = 'BASE TABLE' THEN 'TABLE'
+                WHEN table_type IS NULL THEN 'DYNAMIC TABLE'
                 ELSE table_type
             END AS object_type,
             table_schema,
@@ -48,6 +50,8 @@
                 {% do snowflake_tables_to_drop.append(sql_object) %}
             {% elif object_Type == "EXTERNAL TABLE" %}
                 {% do snowflake_external_tables_to_drop.append(sql_object) %}
+            {% elif object_Type == "DYNAMIC TABLE" %}
+                {% do snowflake_dynamic_tables_to_drop.append(sql_object) %}
             {% else %}
                 {% do snowflake_views_to_drop.append(sql_object) %}
             {% endif %}
@@ -57,4 +61,5 @@
     {% do dbt_dataengineers_utils.drop_object("VIEW", database, snowflake_views_to_drop, dry_run) %}
     {% do dbt_dataengineers_utils.drop_object("TABLE", database, snowflake_tables_to_drop, dry_run) %}
     {% do dbt_dataengineers_utils.drop_object("EXTERNAL TABLE", database, snowflake_external_tables_to_drop, dry_run) %}
+    {% do dbt_dataengineers_utils.drop_object("DYNAMIC TABLE", database, snowflake_dynamic_tables_to_drop, dry_run) %}
 {% endmacro %}
