@@ -1,13 +1,13 @@
 This [dbt](https://github.com/dbt-labs/dbt) package contains macros that can be (re)used across dbt projects.
 
-> require-dbt-version: [">=1.3.0", "<2.0.0"]
+> require-dbt-version: [">=1.6.0", "<2.0.0"]
 ----
 
 ## Installation Instructions
 Add the following to your packages.yml file
 ```
   - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-utils.git
-    revision: "0.2.4.3"
+    revision: "0.2.4.5"
 ```
 ----
 

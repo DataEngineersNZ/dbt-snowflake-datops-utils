@@ -1,6 +1,14 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
-## v0.2.4.3
+## v0.2.4.5 2023-09-05
+
+* added macro `target_lag_environment` and `target_warehouse_environment` to enable the ability to target a different environment for the lag and warehouse
+
+## v0.2.4.4 2023-08-16
+
+* updated macro `clean_objects` to remove dynamic tables as necessary
+
+## v0.2.4.3 2023-08-11
 
 * updated macro `get_default_merge_statement` and `get_merge_statement` to cater for the case where the source is not a native dbt component (eg stream)
 * update `dbt_utils` to use version `1.1.1`

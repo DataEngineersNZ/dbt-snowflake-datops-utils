@@ -1,0 +1,21 @@
+version: 2
+
+macros:
+  - name: target_lag_environment
+    description: This macro sets the lag duration for the target environment
+    docs:
+      show: true
+    arguments:
+      - name: duration_prod
+        type: number
+        description: specifies the lag duration for the production environment
+      - name: duration_test
+        type: number
+        description: specifies the lag duration for the test environment
+      - name: duration_other
+        type: number
+        description: specifies the lag duration for other environments
+  - name: target_warehouse_environment
+    description: This macro sets the warehouse to be used for the dynamic table for the target environment
+    docs:
+      show: true
