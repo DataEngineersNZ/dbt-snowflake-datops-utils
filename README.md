@@ -7,7 +7,7 @@ This [dbt](https://github.com/dbt-labs/dbt) package contains macros that can be 
 Add the following to your packages.yml file
 ```
   - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-utils.git
-    revision: "0.2.4.5"
+    revision: "0.2.4.6"
 ```
 ----
 
@@ -33,8 +33,13 @@ Add the following to your packages.yml file
 - depends_on_ref
 - depends_on_source
 
+**dynamic_tables**
+
+- target_lag_environment
+- target_warehouse_environment
+
 **grants**
- 
+
  - grant_database_ownership_access
  - grant_database_usage_access
  - grant_privileges
@@ -63,6 +68,10 @@ Add the following to your packages.yml file
  - num_to_date
  - string_to_num
  - null_to_empty_string
+
+**pre-hooks**
+
+- drop_view_if_exists
 
 **schema**
 

@@ -1,5 +1,9 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
+## v0.2.4.6 2023-10-02
+
+* add macro `drop_view_if_exists` to enable the ability to drop a view if it exists - designed for dynamic tables.
+
 ## v0.2.4.5 2023-09-05
 
 * added macro `target_lag_environment` and `target_warehouse_environment` to enable the ability to target a different environment for the lag and warehouse
