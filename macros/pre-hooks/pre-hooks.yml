@@ -1,0 +1,7 @@
+version: 2
+
+macros:
+  - name: drop_view_if_exists
+    description: This macro is designed to be used as pre-hook for dynamic table objects. It will drop the view if it exists.
+    docs:
+      show: true
