@@ -9,7 +9,7 @@
                 where upper(table_name) = upper('{{ this.name }}')
                 and upper(table_type) = 'BASE TABLE') is not null)
             then
-                drop view if exists {{ this }};
+                drop table if exists {{ this }};
         end if;
     end
     $$;
