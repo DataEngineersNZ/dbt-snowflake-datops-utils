@@ -5,3 +5,11 @@ macros:
     description: This macro is designed to be used as pre-hook for dynamic table objects. It will drop the view if it exists.
     docs:
       show: true
+  - name: drop_table_if_exists
+    description: This macro is designed to be used as pre-hook for dynamic table objects. It will drop the existing table if it exists.
+    docs:
+      show: true
+  - name: drop_views_in_schema_for_snapshots
+    description: This macro is designed to be used as pre-hook for snaphots objects. It will drop the existing views in a given schema.
+    docs:
+      show: true

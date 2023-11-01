@@ -1,5 +1,9 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
+## v0.2.4.7 2023-11-01
+
+* added macro `drop_table_if_exists` to enable the ability to drop a table if it exists - designed for dynamic tables.
+
 ## v0.2.4.6 2023-10-02
 
 * add macro `drop_view_if_exists` to enable the ability to drop a view if it exists - designed for dynamic tables.

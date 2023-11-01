@@ -7,7 +7,7 @@ This [dbt](https://github.com/dbt-labs/dbt) package contains macros that can be 
 Add the following to your packages.yml file
 ```
   - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-utils.git
-    revision: "0.2.4.6"
+    revision: "0.2.4.7"
 ```
 ----
 
@@ -72,6 +72,8 @@ Add the following to your packages.yml file
 **pre-hooks**
 
 - drop_view_if_exists
+- drop_table_if_exists
+- drop_views_in_schema_for_snapshots
 
 **schema**
 
