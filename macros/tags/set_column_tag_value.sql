@@ -1,4 +1,4 @@
-{% macro set_column_tag_value(materlization, model_schema_full, model_name,column_name,tag_name,desired_tag_value) %}
+{% macro set_column_tag_value(materlization, model_schema, model_name,column_name,tag_name,desired_tag_value, existing_tags_for_table) %}
     {% if tag_name.endswith('_type') %}
         {%set tag_name=tag_name|replace("_type", "_data") %}
     {% endif %}
@@ -26,7 +26,6 @@
             {% set result = load_result('set_statement')%}
             {% if result['response']|string == "SUCCESS 1" %}
                 {{ log("OK setting tag " + tag_name + " on column '" + column_name|lower + "' to value' " + desired_tag_value + "' for " + materlization|lower + " model " +  model_schema|lower + "." + model_name|lower + " ............... [" + result["response"]|string  + "]", info=True) }}
-                {{ log(column_name + ' ==> Setting tag ' + tag_name + ' to value '+ desired_tag_value + ' ............... [' + result['response']|string  + ']', info=True) }}
             {% else %}
                 {{ log("ERROR setting tag " + tag_name + " on column '" + column_name|lower + "' to value' " + desired_tag_value + "' for " + materlization|lower + " model " +  model_schema|lower + "." + model_name|lower + " ............... [" + result["response"]|string  + "]", info=True) }}
                 {{ log(result.data, info=True) }}

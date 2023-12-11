@@ -17,7 +17,7 @@
                 {% for column_tag in model.columns[column].meta %}
                     {% if column_tag in tag_names %}
                         {% set desired_tag_value = model.columns[column].meta[column_tag] %}
-                        {{ dbt_dataengineers_utils.set_column_tag_value_if_different(materialization, model_schema, model_alias|upper,column|upper,column_tag,desired_tag_value, existing_tags_for_table)}}
+                        {{ dbt_dataengineers_utils.set_column_tag_value(materialization, model_schema, model_alias|upper,column|upper,column_tag,desired_tag_value, existing_tags_for_table)}}
                     {% endif %}
                 {% endfor %}
             {% endfor %}
