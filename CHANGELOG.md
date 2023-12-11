@@ -1,5 +1,11 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
+## v0.2.4.8 2023-12-12
+
+* added macro `apply_meta_as_tags` to enable the ability to apply meta as tags to a table or a view
+* added macro `model_columns_contains_tag_meta` to enable the ability to check if a model contains meta data for a column
+* added macro `set_column_tag_value` to enable the apply the meta data to a column
+
 ## v0.2.4.7 2023-11-01
 
 * added macro `drop_table_if_exists` to enable the ability to drop a table if it exists - designed for dynamic tables.

@@ -7,7 +7,7 @@ This [dbt](https://github.com/dbt-labs/dbt) package contains macros that can be 
 Add the following to your packages.yml file
 ```
   - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-utils.git
-    revision: "0.2.4.7"
+    revision: "0.2.4.8"
 ```
 ----
 
@@ -83,6 +83,11 @@ Add the following to your packages.yml file
  - ref
  - source
 
+**tags**
+ - apply_meta_as_tags
+ - model_columns_contains_tag_meta
+ - set_column_tag_value
+
 ---
 
 ### Atomic Unit Tests
@@ -147,3 +152,56 @@ If the view has multiple sources then you can add multiple `input_mappings` on s
 The `expected_output` has to be a refernece model instead of a macro as a macro is not currently supported.
 
 
+### Tagging macros
+
+#### dbt_dataengineers_utils.apply_meta_as_tags
+
+This macro applies specific model meta properties as Snowflake tags during `post-hook`. This allows you to apply Snowflake tags as part of your dbt project. Tags should be defined outside dbt and stored in a separate database.
+When dbt re-runs and re-creates the views the tags will be re-applied as they will disappear from the deployed view.
+
+##### Permissions
+
+The users role running the macro must have the `apply tag` permissions on the account. For example if you have a `developers` role:
+```sql
+grant apply tag on account to role developers;
+```
+
+##### Arguments
+
+- tag_names(required): A list of tag names to apply to the model if they exist as part of the metadata. These should be defined in your Snowflake account.
+
+##### Usage
+
+```yaml
+models:
+  - name: your_view_name
+    columns:
+      - name: surname
+        description: surname
+        type: VARCHAR
+        data_type: VARCHAR
+        meta:
+          pii_type: name
+```
+
+The macro must be called as part of post-hook, so add the following to dbt_project.yml:
+
+```yaml
+post-hook: 
+    - "{{ dbt_dataengineers_utils.apply_meta_as_tags(['pii_type']) }}"
+```
+
+The variables must be defined in your dbt_project.yml:
+
+```yaml
+  #########################################
+  ### dbt_dataengineers_utils variables ###
+  #########################################
+  #The database name where tags and masking policies live
+  data_governance_database: "DATA_GOVERNANCE"
+  #The schema name where tags are located
+  tag_store: "TAG_STORE"
+```
+
+##### Tags
+Define your meta data with `_type` at the end and it will apply the tag with the same name but replace `_type` with `_data`.
