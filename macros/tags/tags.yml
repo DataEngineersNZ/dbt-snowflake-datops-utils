@@ -1,0 +1,15 @@
+version: 2
+
+macros:
+  - name: apply_meta_as_tags
+    description: This macro is designed to be used as post-hook for models to apply the relevant meta data as tags on the view or table
+    docs:
+      show: true
+  - name: model_columns_contains_tag_meta
+    description: This macro is designed to check if the meta data element and the associated tag is available on the model definition
+    docs:
+      show: false
+  - name: set_column_tag_value
+    description: This macro is designed to apply a tag to a model if the model contains a column with a given tag meta
+    docs:
+      show: false
