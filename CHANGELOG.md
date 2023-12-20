@@ -1,5 +1,10 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
+## v0.2.4.9 2023-12-20
+
+* corrected naming for `model_contains_tag_meta` macro from `model_columns_contains_tag_meta`
+* updated `get_merge_statement` macro to remove the `begin;` and `commit;` statements as they are not required
+
 ## v0.2.4.8 2023-12-12
 
 * added macro `apply_meta_as_tags` to enable the ability to apply meta as tags to a table or a view

@@ -5,7 +5,7 @@ macros:
     description: This macro is designed to be used as post-hook for models to apply the relevant meta data as tags on the view or table
     docs:
       show: true
-  - name: model_columns_contains_tag_meta
+  - name: model_contains_tag_meta
     description: This macro is designed to check if the meta data element and the associated tag is available on the model definition
     docs:
       show: false
