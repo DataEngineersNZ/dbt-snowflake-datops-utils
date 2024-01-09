@@ -1,4 +1,4 @@
-{% macro enable_dependant_tasks(root_task, enabled_targets) %}
+{% macro enable_dependent_tasks(root_task, enabled_targets) %}
 {{ log("START - Enabling task and dependant tasks for " ~ root_task , info=True) }}
     {%- if execute -%}
         {% if target.name in enabled_targets -%}

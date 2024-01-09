@@ -57,7 +57,7 @@ Add the following to your packages.yml file
 
 **helpers**
 
-- enable_dependant_tasks
+- enable_dependent_tasks
 - get_merge_statement
 
 

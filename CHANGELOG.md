@@ -2,7 +2,7 @@
 
 ## v0.2.5 2024-01-10
 
-* added macro `enable_dependant_tasks` to enable the ability to enable dependant tasks from a root task
+* added macro `enable_dependent_tasks` to enable the ability to enable dependant tasks from a root task
 * added query helper macros:
     - `get_populated_array`
     - `get_populated_array_value_as_string`
