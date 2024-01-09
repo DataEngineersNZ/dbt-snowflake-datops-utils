@@ -7,7 +7,7 @@ This [dbt](https://github.com/dbt-labs/dbt) package contains macros that can be 
 Add the following to your packages.yml file
 ```
   - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-utils.git
-    revision: "0.2.4.8"
+    revision: "0.2.5"
 ```
 ----
 
@@ -17,6 +17,14 @@ Add the following to your packages.yml file
 
 - unit_test
 - get_value_or_null
+
+**Checks**
+
+- get_populated_array
+- get_populated_array_value_as_string
+- get_populated_array_value_as_number
+- get_populated_numeric_value
+- get_populated_string_value
 
 **clean**
 
@@ -40,34 +48,40 @@ Add the following to your packages.yml file
 
 **grants**
 
- - grant_database_ownership_access
- - grant_database_usage_access
- - grant_privileges
- - grant_schema_ownership_access
- - grant_schema_read_access
- - grant_schema_write_access
+- grant_database_ownership_access
+- grant_database_usage_access
+- grant_privileges
+- grant_schema_ownership_access
+- grant_schema_read_access
+- grant_schema_write_access
 
- **helpers**
+**helpers**
 
- - get_merge_statement
+- enable_dependant_tasks
+- get_merge_statement
 
- **modelling**
 
- - date_key
- - datetime_from_dim
- - datetime_to_date_dim
- - datetime_to_time_dim
- - dimension_id
- - time_key
+**modelling**
 
- **parse**
+- date_key
+- datetime_from_dim
+- datetime_to_date_dim
+- datetime_to_time_dim
+- dimension_id
+- generate_surrogate_key
+- time_key
+- unknown_member
 
- - first_day_of_month
- - last_day_of_month
- - to_date
- - num_to_date
- - string_to_num
- - null_to_empty_string
+**parse**
+
+- first_day_of_month
+- last_day_of_month
+- null_to_empty_string
+- num_to_date
+- string_to_num
+- to_date
+- string_epoch_to_timestamp_ltz
+- string_epoch_to_timestamp_ntz
 
 **pre-hooks**
 
@@ -77,16 +91,17 @@ Add the following to your packages.yml file
 
 **schema**
 
- - generate_schema_name
- - model_ref
- - model_source
- - ref
- - source
+- generate_schema_name
+- model_ref
+- model_source
+- ref
+- source
 
 **tags**
- - apply_meta_as_tags
- - model_columns_contains_tag_meta
- - set_column_tag_value
+
+- apply_meta_as_tags
+- model_columns_contains_tag_meta
+- set_column_tag_value
 
 ---
 

@@ -1,0 +1,62 @@
+version: 2
+
+macros:
+  - name: get_populated_array
+     description: This macro returns an array of values based on two input string arrays
+    docs:
+      show: true
+    arguments:
+      - name: col_to_check
+        type: List[string]
+        description: Column to check to see if its populated
+      - name: col_to_fall_back_on
+        type: List[string]
+        description: Column to fall back on if col_to_check is not populated
+
+  - name: get_populated_array_value_as_string
+     description: This macro returns a string of values based on two input string arrays
+    docs:
+      show: true
+    arguments:
+      - name: col_to_check
+        type: List[string]
+        description: Column to check to see if its populated
+      - name: col_to_fall_back_on
+        type: List[string]
+        description: Column to fall back on if col_to_check is not populated
+
+  - name: get_populated_array_value_or_string_as_string
+     description: This macro returns a string of values based on an input string array and a fall back string option
+    docs:
+      show: true
+    arguments:
+      - name: col_to_check
+        type: List[string]
+        description: Column to check to see if its populated
+      - name: col_to_fall_back_on
+        type: text
+        description: Text based Column to fall back on if col_to_check is not populated
+
+  - name: get_populated_numeric_value
+     description: This macro returns a numeric value based on two input numeric inputs. If both are empty, it returns 0
+    docs:
+      show: true
+    arguments:
+      - name: col_to_check
+        type: number
+        description: Column to check to see if its populated
+      - name: col_to_fall_back_on
+        type: number
+        description: Column to fall back on if col_to_check is not populated
+
+  - name: get_populated_string_value
+     description: This macro returns a numeric value based on two input numeric inputs. If both are empty, it returns 0
+    docs:
+      show: true
+    arguments:
+      - name: col_to_check
+        type: text
+        description: Column to check to see if its populated
+      - name: col_to_fall_back_on
+        type: text
+        description: Column to fall back on if col_to_check is not populated

@@ -69,3 +69,22 @@ macros:
       - name: field
         type: ref
         description: The field containing the string to check
+
+
+  - name: string_epoch_to_timestamp_ltz
+    description: Converts a date in the form of a string epoch (eg Date('')) to a timestamp_ltz
+    docs:
+      show: true
+    arguments:
+      - name: given_date
+        type: ref
+        description: The field containing the string to convert
+
+  - name: string_epoch_to_timestamp_ntz
+    description: Converts a date in the form of a string epoch (eg Date('')) to a timestamp_ntz
+    docs:
+      show: true
+    arguments:
+      - name: given_date
+        type: ref
+        description: The field containing the string to convert

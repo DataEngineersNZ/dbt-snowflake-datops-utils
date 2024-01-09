@@ -1,5 +1,18 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
+## v0.2.5 2024-01-10
+
+* added macro `enable_dependant_tasks` to enable the ability to enable dependant tasks from a root task
+* added query helper macros:
+    - `get_populated_array`
+    - `get_populated_array_value_as_string`
+    - `get_populated_array_value_as_number`
+    - `get_populated_numeric_value`
+    - `get_populated_string_value`
+    - `string_epoch_to_timestamp_ltz`
+    - `string_epoch_to_timestamp_ntz`
+    - `unknown_member`
+
 ## v0.2.4.9 2023-12-20
 
 * corrected naming for `model_contains_tag_meta` macro from `model_columns_contains_tag_meta`
