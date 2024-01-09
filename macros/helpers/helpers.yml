@@ -42,3 +42,15 @@ macros:
       - name: predicates
         type: object
         description: any additional columns to use during the merge
+
+ - name: enable_task_dependants
+    description: This macro enables the task dependants of a task
+    docs:
+      show: true
+    arguments:
+      - name: root_task
+        type: string
+        description: the name of the task to enable the dependants of
+      - name: enabled_targets
+        type: List[string]
+        description: List of environments to enable in
