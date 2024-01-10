@@ -2,7 +2,7 @@ version: 2
 
 macros:
   - name: get_populated_array
-     description: This macro returns an array of values based on two input string arrays
+    description: This macro returns an array of values based on two input string arrays
     docs:
       show: true
     arguments:
@@ -14,7 +14,7 @@ macros:
         description: Column to fall back on if col_to_check is not populated
 
   - name: get_populated_array_value_as_string
-     description: This macro returns a string of values based on two input string arrays
+    description: This macro returns a string of values based on two input string arrays
     docs:
       show: true
     arguments:
@@ -26,7 +26,7 @@ macros:
         description: Column to fall back on if col_to_check is not populated
 
   - name: get_populated_array_value_or_string_as_string
-     description: This macro returns a string of values based on an input string array and a fall back string option
+    description: This macro returns a string of values based on an input string array and a fall back string option
     docs:
       show: true
     arguments:
@@ -38,7 +38,7 @@ macros:
         description: Text based Column to fall back on if col_to_check is not populated
 
   - name: get_populated_numeric_value
-     description: This macro returns a numeric value based on two input numeric inputs. If both are empty, it returns 0
+    description: This macro returns a numeric value based on two input numeric inputs. If both are empty, it returns 0
     docs:
       show: true
     arguments:
@@ -50,7 +50,7 @@ macros:
         description: Column to fall back on if col_to_check is not populated
 
   - name: get_populated_string_value
-     description: This macro returns a numeric value based on two input numeric inputs. If both are empty, it returns 0
+    description: This macro returns a numeric value based on two input numeric inputs. If both are empty, it returns 0
     docs:
       show: true
     arguments:
