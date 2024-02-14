@@ -1,26 +1,42 @@
-{% macro grant_schema_ownership_access(schemas, rolename, include_future_grants) %}
-{% for current in schemas %}
-    {% do log("Adding Ownership rights on " + current + " for " + rolename, info=True) %}
-    GRANT USAGE ON SCHEMA {{ current }} TO ROLE {{ rolename }};
-    GRANT OWNERSHIP ON SCHEMA {{ current }} TO ROLE {{ rolename }} REVOKE CURRENT GRANTS;
-    GRANT OWNERSHIP ON ALL TABLES IN SCHEMA {{ current }} TO ROLE {{ rolename }} REVOKE CURRENT GRANTS;
-    GRANT OWNERSHIP ON ALL VIEWS IN SCHEMA {{ current }} TO ROLE {{ rolename }} REVOKE CURRENT GRANTS;
-    GRANT OWNERSHIP ON ALL STAGES IN SCHEMA {{ current }} TO ROLE {{ rolename }} REVOKE CURRENT GRANTS;
-    GRANT OWNERSHIP ON ALL FILE FORMATS IN SCHEMA {{ current }} TO ROLE {{ rolename }} REVOKE CURRENT GRANTS;
-    GRANT OWNERSHIP ON ALL FUNCTIONS IN SCHEMA {{ current }} TO ROLE {{ rolename }} REVOKE CURRENT GRANTS;
-    GRANT OWNERSHIP ON ALL SEQUENCES IN SCHEMA {{ current }} TO ROLE {{ rolename }} REVOKE CURRENT GRANTS;
-    GRANT OWNERSHIP ON ALL EXTERNAL TABLES IN SCHEMA {{ current }} TO ROLE {{ rolename }} REVOKE CURRENT GRANTS;
-    GRANT OWNERSHIP ON ALL MATERIALIZED VIEWS IN SCHEMA {{ current }} TO ROLE {{ rolename }} REVOKE CURRENT GRANTS;
-    GRANT OWNERSHIP ON ALL PROCEDURES IN SCHEMA {{ current }} TO ROLE {{ rolename }} REVOKE CURRENT GRANTS;
-    GRANT OWNERSHIP ON ALL STREAMS IN SCHEMA {{ current }} TO ROLE {{ rolename }} REVOKE CURRENT GRANTS;
-    GRANT OWNERSHIP ON ALL TASKS IN SCHEMA {{ current }} TO ROLE {{ rolename }} REVOKE CURRENT GRANTS;
-    
-    {% if include_future_grants %}
-    GRANT SELECT ON FUTURE VIEWS IN SCHEMA {{ current }} TO ROLE {{ rolename }};
-    GRANT SELECT ON FUTURE MATERIALIZED VIEWS IN SCHEMA {{ current }} TO ROLE {{ rolename }};
-    GRANT SELECT ON FUTURE TABLES IN SCHEMA {{ current }} TO ROLE {{ rolename }};   
-    GRANT SELECT ON FUTURE EXTERNAL TABLES IN SCHEMA {{ current }} TO ROLE {{ rolename }};    
-    GRANT INSERT, UPDATE, DELETE, TRUNCATE ON FUTURE TABLES IN SCHEMA {{ current }} TO ROLE {{ rolename }};
+{% macro grant_schema_ownership_access(exclude_schemas, role_name) %}
+    {% if "INFORMATION_SCHEMA" not in exclude_schemas %}
+        {{ exclude_schemas.append("INFORMATION_SCHEMA") }}
     {% endif %}
-{% endfor %}    
+    {% if flags.WHICH in ['run'] %}
+        {% set query %}
+            show schemas in database {{ target.database }};
+        {% endset %}
+        {% set results = run_query(query) %}
+        {% if execute %}
+            {% for row in results %}
+                {% set schema = row.name %}
+                {% set include_schemas = [] %}
+                {% if schema not in exclude_schemas %}
+                    {{ include_schemas.append(schema) }}
+                {% endif %}
+            {% endfor %}
+            {% if include_schemas | length > 0%}
+                {% for schema in include_schemas %}
+                    {% set grant_query %}
+                        grant usage on schema {{ target.database }}.{{ schema }} to role {{ role_name }};
+                        grant ownership on schema {{ target.database }}.{{ schema }} to role {{ role_name }} revoke current grants;
+                        grant ownership on all views in schema {{ target.database }}.{{ schema }} to role {{ role_name }} revoke current grants;
+                        grant ownership on all materialized views in schema {{ target.database }}.{{ schema }} to role {{ role_name }} revoke current grants;
+                        grant ownership on all tables in schema {{ target.database }}.{{ schema }} to role {{ role_name }} revoke current grants;
+                        grant ownership on all external tables in {{ target.database }}.{{ schema }} to role {{ role_name }} revoke current grants;
+                        grant ownership on all dynamic tables in {{ target.database }}.{{ schema }} to role {{ role_name }} revoke current grants;
+                        grant ownership on all stages in schema {{ target.database }}.{{ schema }} to role {{ role_name }} revoke current grants;
+                        grant ownership on all file formats in schema {{ target.database }}.{{ schema }} to role {{ role_name }} revoke current grants;
+                        grant ownership on all functions in schema {{ target.database }}.{{ schema }} to role {{ role_name }} revoke current grants;
+                        grant ownership on all sequences in schema {{ target.database }}.{{ schema }} to role {{ role_name }} revoke current grants;
+                        grant ownership on all procedures in schema {{ target.database }}.{{ schema }} to role {{ role_name }} revoke current grants;
+                        grant ownership on all streams in schema {{ target.database }}.{{ schema }} to role {{ role_name }} revoke current grants;
+                        grant ownership on all tasks in schema {{ target.database }}.{{ schema }} to role {{ role_name }} revoke current grants;
+                        grant ownership on all masking policies in schema {{ target.database }}.{{ schema }} to role {{ role_name }} revoke current grants;
+                    {% endset %}
+                    {% set grant = run_query(grant_query) %}
+                {% endfor %}
+            {% endif %}
+        {% endif %}
+    {% endif %}
 {% endmacro %}
