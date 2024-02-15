@@ -49,7 +49,7 @@
             {% set grant_query %}
                 grant {{ stm.privilege }} on {{ object_type }} {{ target.database }}.{{ stm.object }} to role {{ stm.role }};
             {% endset %}
-            {% do log(grant_query info=True) %}
+            {% do log(grant_query, info=True) %}
             {% set grant = run_query(grant_query) %}
         {% endfor %}
     {% endif %}
