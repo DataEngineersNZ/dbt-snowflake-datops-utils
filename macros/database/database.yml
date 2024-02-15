@@ -23,7 +23,7 @@ macros:
       - name: new_owner_role
         description: "[Optional] The new owner role of the newly created object"
 
-  - name: drop_database
+  - name: database_destroy
     arguments:
       - name: database_name
         description: Database to drop
