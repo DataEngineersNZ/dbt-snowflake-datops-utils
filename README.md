@@ -7,7 +7,7 @@ This [dbt](https://github.com/dbt-labs/dbt) package contains macros that can be 
 Add the following to your packages.yml file
 ```
   - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-utils.git
-    revision: "0.2.5"
+    revision: "0.3.0"
 ```
 ----
 
@@ -15,93 +15,96 @@ Add the following to your packages.yml file
 
 **Atomic Unit Tests**
 
-- unit_test
-- get_value_or_null
+- `unit_test`
+- `get_value_or_null`
 
 **Checks**
 
-- get_populated_array
-- get_populated_array_value_as_string
-- get_populated_array_value_as_number
-- get_populated_numeric_value
-- get_populated_string_value
+- `get_populated_array`
+- `get_populated_array_value_as_string`
+- `get_populated_array_value_as_number`
+- `get_populated_numeric_value`
+- `get_populated_string_value`
 
 **clean**
 
-- clean_functions
-- clean_generic
-- clean_models
-- clean_objects
-- clean_schemas
-- clean_stale_models
-- drop_object
+- `clean_functions`
+- `clean_generic`
+- `clean_models`
+- `clean_objects`
+- `clean_schemas`
+- `clean_stale_models`
+- `drop_object`
 
 **dependancies**
 
-- depends_on_ref
-- depends_on_source
+- `depends_on_ref`
+- `depends_on_source`
 
 **dynamic_tables**
 
-- target_lag_environment
-- target_warehouse_environment
+- `target_lag_environment`
+- `target_warehouse_environment`
 
 **grants**
 
-- grant_database_ownership_access
-- grant_database_usage_access
-- grant_privileges
-- grant_schema_ownership_access
-- grant_schema_read_access
-- grant_schema_write_access
+- `grant_database_ownership`
+- `grant_database_usage`
+- `grant_database_usage`
+- `grant_object`
+- `grant_privileges`
+- `grant_schema_monitor`
+- `grant_schema_operate`
+- `grant_schema_onwership`
+- `grant_schema_read`
 
 **helpers**
 
-- enable_dependent_tasks
-- get_merge_statement
+- `enable_dependent_tasks`
+- `get_merge_statement`
 
 
 **modelling**
 
-- date_key
-- datetime_from_dim
-- datetime_to_date_dim
-- datetime_to_time_dim
-- dimension_id
-- generate_surrogate_key
-- time_key
-- unknown_member
+- `date_key`
+- `datetime_from_dim`
+- `datetime_to_date_dim`
+- `datetime_to_time_dim`
+- `dimension_id`
+- `generate_surrogate_key`
+- `time_key`
+- `unknown_member`
 
 **parse**
 
-- first_day_of_month
-- last_day_of_month
-- null_to_empty_string
-- num_to_date
-- string_to_num
-- to_date
-- string_epoch_to_timestamp_ltz
-- string_epoch_to_timestamp_ntz
+- `first_day_of_month`
+- `last_day_of_month`
+- `null_to_empty_string`
+- `num_to_date`
+- `string_to_num`
+- `to_date`
+- `string_epoch_to_timestamp_ltz`
+- `string_epoch_to_timestamp_ntz`
 
 **pre-hooks**
 
-- drop_view_if_exists
-- drop_table_if_exists
-- drop_views_in_schema_for_snapshots
+- `drop_view_if_exists`
+- `drop_table_if_exists`
+- `drop_views_in_schema_for_snapshots`
 
 **schema**
 
-- generate_schema_name
-- model_ref
-- model_source
-- ref
-- source
+- `generate_schema_name`
+- `model_ref`
+- `model_source`
+- `ref`
+- `source`
 
 **tags**
 
-- apply_meta_as_tags
-- model_columns_contains_tag_meta
-- set_column_tag_value
+- `apply_meta_as_tags`
+- `model_columns_contains_tag_meta`
+- `set_column_tag_value`
 
 ---
 
