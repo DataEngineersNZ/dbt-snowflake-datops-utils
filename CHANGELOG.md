@@ -1,5 +1,21 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
+## v0.3.0 2024-02-15
+
+* Added the ability to grant and revoke access to a role
+* Macros added:
+    - `grant_database_ownership`
+    - `grant_database_usage`
+    - `grant_object`
+    - `grant_privileges`
+    - `grant_schema_monitor`
+    - `grant_schema_operate`
+    - `grant_schema_onwership`
+    - `grant_schema_read`
+    - `database_clone`
+    - `database_destroy`
+    - `schema_clone`
+
 ## v0.2.5 2024-01-10
 
 * added macro `enable_dependent_tasks` to enable the ability to enable dependant tasks from a root task
@@ -97,3 +113,4 @@
 ## v0.1.7 2022-08-18
 
 * Added ability to create external tables
+

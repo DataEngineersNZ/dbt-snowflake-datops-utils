@@ -1,0 +1,29 @@
+version: 2
+
+macros:
+  - name: database_clone
+    arguments:
+      - name: source_database
+        description: Source database name, i.e. database to be cloned
+      - name: destination_database
+        description: Destination database name, i.e. the new database to be created
+      - name: new_owner_role
+        description: "[Optional] The new owner role of the newly created object"
+
+  - name: schema_clone
+    arguments:
+      - name: source_schema
+        description: Source schema name, i.e. schema to be cloned
+      - name: destination_schema
+        description: Destination schema name, i.e. the new schema to be created
+      - name: source_database
+        description: "[Optional] Source database name. Defaults to target database."
+      - name: destination_database
+        description: "[Optional] Destination database. Defaults to target database."
+      - name: new_owner_role
+        description: "[Optional] The new owner role of the newly created object"
+
+  - name: database_destroy
+    arguments:
+      - name: database_name
+        description: Database to drop

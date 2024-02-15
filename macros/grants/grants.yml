@@ -1,75 +1,144 @@
 version: 2
 
 macros:
-  - name: grant_database_ownership_access
+  - name: grant_database_ownership
     description: This macro grants ownership privileges to the specified rolename on the database.
     docs:
       show: true
     arguments:
       - name: rolename
         type: string
-        description: Name of the role eg- ANALYST
+        description: Name of the role eg- DATAOPS_ADMIN
 
-  - name: grant_database_usage_access
+  - name: grant_database_usage
     description: This macro grants usage privilages to the specified rolename inside the database. To get access on the database, the rolename needs to have usage privilege in the database.
     docs:
       show: true
     arguments:
       - name: rolename
-        type: string
-        description: Name of the role eg- ANALYST
+        type: List[string]
+        description: Name of the roles to apply eg- ['READERS_PROD', 'ANALYST', 'OPS_SUPPORT']
 
-  - name: grant_schema_ownership_access
-    description: This macro grants ownership privilege inside the schema to the specified rolename. 
-    docs:
-      show: true
-    arguments:
-      - name: schemas
-        type: string
-        description: Name of the schema
-      - name: rolename
-        type: string
-        description: Name of the role eg- ANALYST
-      - name: include_future_grants
-        type: bool
-        description: Grants future privilege to the objects FUTURE VIEWS, FUTURE MATERIALIZED VIEWS, FUTURE TABLES, and FUTURE EXTERNAL TABLES. Default is false.
 
-  - name: grant_schema_read_access
-    description: This macro grants read-only access to the specified rolename inside the schema.
+  - name: grant_object
+    description: This macro grants specific object permissions to specific roles.
     docs:
       show: true
     arguments:
-      - name: schemas
+      - name: object_type
         type: string
-        description: Name of the schema
-      - name: rolename
-        type: string
-        description: Name of the role eg- ANALYST
-      - name: include_future_grants
-        type: bool
-        description: Grants future privilege to the objects FUTURE VIEWS, FUTURE MATERIALIZED VIEWS, FUTURE TABLES, and FUTURE EXTERNAL TABLES. Default is false.
-  
-  - name: grant_schema_write_access
-    description: This macro grants write access to the specified rolename inside the schema.
-    docs:
-      show: true
-    arguments:
-      - name: schemas
-        type: string
-        description: Name of the schema
-      - name: rolename
-        type: string
-        description: Name of the role eg- ANALYST
-      - name: include_future_grants
-        type: bool
-        description: Grants future privilege to the objects FUTURE VIEWS, FUTURE MATERIALIZED VIEWS, FUTURE TABLES, and FUTURE EXTERNAL TABLES. Default is false.
+        description: Type of the object eg- TABLE, VIEW, SCHEMA
+      - name: objects
+        type: List(string)
+        description: List of objects to apply the permission to (format = schema.object)
 
   - name: grant_privileges
-    description: This macro runs on the post-hook in dbt. This will apply the grant to the database, schema, table, views, stages, file formats, functions, sequences, external tables, materialized views, procedures, streams, tasks, and future objects(views and tables) with specified rolename.
+    description: This macro is an example of how to grant privileges across environments based on targets
+    docs:
+      show: true
+    arguments:
+      - name: domain_schemas
+        type: List[string]
+        description: List of schemas which are domain specific that should be exposed
+
+  - name: grant_schema_monitor
+    description: This macro grants monitor privilege inside all schemas to the specified rolename.
+    docs:
+      show: true
+    arguments:
+      - name: exclude_schemas
+        type: List[string]
+        description: List of schemas to exclude
+      - name: grant_roles
+        type: "List[string]"
+        description: Name of the roles to apply eg- ['READERS_PROD', 'ANALYST', 'OPS_SUPPORT']
+
+  - name: grant_schema_monitor_specific
+    description: This macro grants monitor privilege inside specific schemas to the specified rolename.
     docs:
       show: true
     arguments:
       - name: schemas
-        type: string
-        description: The schemas defined in the dbt run in a loop and call 4 different macros which are found in the dbt/dbt_packages/dbt_dataengineers_utils/grants.
+        type: List[string]
+        description: List of schemas to include
+      - name: grant_roles
+        type: "List[string]"
+        description: Name of the roles to apply eg- ['READERS_PROD', 'ANALYST', 'OPS_SUPPORT']
+      - name: revoke_current_grants
+        type: "boolean"
+        description: Revoke current grants on the schemas
 
+
+  - name: grant_schema_operate
+    description: This macro grants operator privilege inside all schemas to the specified rolename.
+    docs:
+      show: true
+    arguments:
+      - name: exclude_schemas
+        type: List[string]
+        description: List of schemas to exclude
+      - name: grant_roles
+        type: "List[string]"
+        description: Name of the roles to apply eg- ['READERS_PROD', 'ANALYST', 'OPS_SUPPORT']
+
+  - name: grant_schema_operate_specific
+    description: This macro grants operator privilege inside specific schemas to the specified rolename.
+    docs:
+      show: true
+    arguments:
+      - name: schemas
+        type: List[string]
+        description: List of schemas to include
+      - name: grant_roles
+        type: "List[string]"
+        description: Name of the roles to apply eg- ['READERS_PROD', 'ANALYST', 'OPS_SUPPORT']
+      - name: revoke_current_grants
+        type: "boolean"
+        description: Revoke current grants on the schemas
+
+
+  - name: grant_schema_ownership
+    description: This macro grants ownership privilege inside all schemas to the specified role_name.
+    docs:
+      show: true
+    arguments:
+      - name: exclude_schemas
+        type: List[string]
+        description: List of schemas to exclude
+      - name: role_name
+        type: string
+        description: Name of the role eg- ANALYST
+
+
+  - name: grant_schema_read
+    description: This macro grants usage and select privilege inside all schemas to the specified grant_roles.
+    docs:
+      show: true
+    arguments:
+      - name: exclude_schemas
+        type: List[string]
+        description: List of schemas to exclude
+      - name: grant_roles
+        type: string
+        description: Name of the roles to apply eg- ['READERS_PROD', 'ANALYST', 'OPS_SUPPORT']
+      - name: include_future_grants
+        type: "boolean"
+        description: Specifies if to include future grants or not
+
+  - name: grant_schema_read_specific
+    description: This macro grants usage and select privilege inside the schema to the specified rolenames.
+    docs:
+      show: true
+    arguments:
+      - name: schemas
+        type: List[string]
+        description: List of schemas to include
+      - name: grant_roles
+        type: string
+        description: Name of the roles to apply eg- ['READERS_PROD', 'ANALYST', 'OPS_SUPPORT']
+      - name: include_future_grants
+        type: "boolean"
+        description: Specifies if to include future grants or not
+      - name: revoke_current_grants
+        type: "boolean"
+        description: Specifies if to revoke current grants or not
