@@ -12,6 +12,9 @@
     - `grant_schema_operate`
     - `grant_schema_onwership`
     - `grant_schema_read`
+    - `database_clone`
+    - `database_destroy`
+    - `schema_clone`
 
 ## v0.2.5 2024-01-10
 

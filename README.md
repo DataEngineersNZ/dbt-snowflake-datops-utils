@@ -36,6 +36,12 @@ Add the following to your packages.yml file
 - `clean_stale_models`
 - `drop_object`
 
+**database**
+
+- `database_clone`
+- `database_desctroy`
+- `schema_clone`
+
 **dependancies**
 
 - `depends_on_ref`
