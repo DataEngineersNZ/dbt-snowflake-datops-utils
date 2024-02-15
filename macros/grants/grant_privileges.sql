@@ -3,7 +3,7 @@
         {% if target.name == 'prod' %}
             {{ dbt_dataengineers_utils.grant_database_ownership('DATAOPS_ADMIN') }}
             {{ dbt_dataengineers_utils.grant_database_usage(['READERS_PROD', 'ANALYST', 'OPS_SUPPORT']) }}
-            {{ dbt_dataengineers_utils.grant_schema_ownership('DATAOPS_ADMIN') }}
+            {{ dbt_dataengineers_utils.grant_schema_ownership([], 'DATAOPS_ADMIN') }}
             {{ dbt_dataengineers_utils.grant_schema_operate([], ['OPS_SUPPORT'], false) }}
             {{ dbt_dataengineers_utils.grant_schema_monitor([], ['OPS_SUPPORT'], false) }}
             {{ dbt_dataengineers_utils.grant_schema_read([], ['ANALYST'], false) }}

@@ -6,7 +6,6 @@
 * Macros added:
     - `grant_database_ownership`
     - `grant_database_usage`
-    - `grant_database_usage`
     - `grant_object`
     - `grant_privileges`
     - `grant_schema_monitor`
