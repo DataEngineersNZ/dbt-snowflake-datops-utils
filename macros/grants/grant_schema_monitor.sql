@@ -16,7 +16,7 @@
                 {% endif %}
             {% endfor %}
             {% if include_schemas | length > 0%}
-                {% do grant_schema_monitor_specific(include_schemas, grant_roles, true) %}
+                {% do dbt_dataengineers_utils.grant_schema_monitor_specific(include_schemas, grant_roles, true) %}
             {% endif %}
         {% endif %}
     {% endif %}

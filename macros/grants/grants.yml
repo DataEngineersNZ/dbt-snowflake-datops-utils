@@ -33,7 +33,7 @@ macros:
         description: List of objects to apply the permission to (format = schema.object)
 
   - name: grant_privileges
-     description: This macro is an example of how to grant privileges across environments based on targets
+    description: This macro is an example of how to grant privileges across environments based on targets
     docs:
       show: true
     arguments:
@@ -69,7 +69,7 @@ macros:
         description: Revoke current grants on the schemas
 
 
-  - name: grant_schema_operator
+  - name: grant_schema_operate
     description: This macro grants operator privilege inside all schemas to the specified rolename.
     docs:
       show: true
@@ -81,7 +81,7 @@ macros:
         type: "List[string]"
         description: Name of the roles to apply eg- ['READERS_PROD', 'ANALYST', 'OPS_SUPPORT']
 
-  - name: grant_schema_operator_specific
+  - name: grant_schema_operate_specific
     description: This macro grants operator privilege inside specific schemas to the specified rolename.
     docs:
       show: true

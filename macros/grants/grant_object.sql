@@ -39,17 +39,17 @@
             {%endif%}
         {%endfor%}
         {% for stm in revoke_statements %}
-            {% do log("revoke " ~ stm.privilege ~ " on " ~ stm.object ~ " from role " ~ stm.role, info=True) %}
             {% set grant_query %}
                 revoke {{ stm.privilege }} on {{ object_type }} {{ target.database }}.{{ stm.object }} from role {{ stm.role }};
             {% endset %}
+            {% do log(grant_query, info=True) %}
             {% set grant = run_query(grant_query) %}
         {% endfor %}
         {% for stm in grant_statements %}
-            {% do log("grant " ~ stm.privilege ~ " on " ~ stm.object ~ " from role " ~ stm.role, info=True) %}
             {% set grant_query %}
                 grant {{ stm.privilege }} on {{ object_type }} {{ target.database }}.{{ stm.object }} to role {{ stm.role }};
             {% endset %}
+            {% do log(grant_query info=True) %}
             {% set grant = run_query(grant_query) %}
         {% endfor %}
     {% endif %}
