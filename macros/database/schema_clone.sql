@@ -2,7 +2,7 @@
 -- This macro clones the source schema into the destination schema and
 -- optionally grants ownership over it and its tables and views to a new owner.
 #}
-{% macro clone_schema(source_schema, destination_schema, source_database=target.database, destination_database=target.database, new_owner_role='') %}
+{% macro schema_clone(source_schema, destination_schema, source_database=target.database, destination_database=target.database, new_owner_role='') %}
     {% if source_schema and destination_schema %}
         {{ (log("Cloning existing schema " ~ source_database ~ "." ~ source_schema ~ " into schema " ~ destination_database ~ "." ~ destination_schema, info=True)) }}
         {% call statement('clone_schema', fetch_result=True, auto_begin=False) -%}

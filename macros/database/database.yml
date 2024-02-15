@@ -1,7 +1,7 @@
 version: 2
 
 macros:
-  - name: clone_database
+  - name: database_clone
     arguments:
       - name: source_database
         description: Source database name, i.e. database to be cloned
@@ -10,7 +10,7 @@ macros:
       - name: new_owner_role
         description: "[Optional] The new owner role of the newly created object"
 
-  - name: clone_schema
+  - name: schema_clone
     arguments:
       - name: source_schema
         description: Source schema name, i.e. schema to be cloned

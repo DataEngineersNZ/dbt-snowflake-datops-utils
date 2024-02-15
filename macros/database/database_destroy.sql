@@ -1,4 +1,4 @@
-{% macro drop_database(database_name) %}
+{% macro database_destroy(database_name) %}
 
   {% if database_name %}
 
