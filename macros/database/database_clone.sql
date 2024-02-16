@@ -22,7 +22,7 @@
     {{ log("Grant ownership on " ~ destination_database ~ " to " ~ new_owner_role, info=True)}}
 
     {% call statement('clone_database', fetch_result=True, auto_begin=False) -%}
-        grant ownership on database {{ destination_database }} to role{{ new_owner_role }};
+        grant ownership on database {{ destination_database }} to role {{ new_owner_role }} revoke current grants;
     {%- endcall %}
 
     {% set list_schemas_query %}
