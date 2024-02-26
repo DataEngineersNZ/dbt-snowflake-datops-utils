@@ -42,21 +42,26 @@
         {% set schemata_list = [] %}
     {% endif %}
 
+    {% set queries = [] %}
     {% for schema_name in schemata_list %}
-        grant ownership on schema {{ destination_database }}.{{ schema_name }} to role {{ role_name }} revoke current grants;
-        grant ownership on all views in schema {{ destination_database }}.{{ schema_name }} to role {{ new_owner_role }} revoke current grants;
-        grant ownership on all materialized views in schema {{ destination_database }}.{{ schema_name }} to role {{ new_owner_role }} revoke current grants;
-        grant ownership on all tables in schema {{ destination_database }}.{{ schema_name }} to role {{ new_owner_role }} revoke current grants;
-        grant ownership on all external tables in {{ destination_database }}.{{ schema_name }} to role {{ new_owner_role }} revoke current grants;
-        grant ownership on all dynamic tables in {{ destination_database }}.{{ schema_name }} to role {{ new_owner_role }} revoke current grants;
-        grant ownership on all stages in schema {{ destination_database }}.{{ schema_name }} to role {{ new_owner_role }} revoke current grants;
-        grant ownership on all file formats in schema {{ destination_database }}.{{ schema_name }} to role {{ new_owner_role }} revoke current grants;
-        grant ownership on all functions in schema {{ destination_database }}.{{ schema_name }} to role {{ role_name }} revoke current grants;
-        grant ownership on all sequences in schema {{ destination_database }}.{{ schema_name }} to role {{ new_owner_role }} revoke current grants;
-        grant ownership on all procedures in schema {{ destination_database }}.{{ schema_name }} to role {{ new_owner_role }} revoke current grants;
-        grant ownership on all streams in schema {{ destination_database }}.{{ schema_name }} to role {{ new_owner_role }} revoke current grants;
-        grant ownership on all tasks in schema {{ destination_database }}.{{ schema_name }} to role {{ new_owner_role }} revoke current grants;
-        grant ownership on all masking policies in schema {{ destination_database }}.{{ schema_name }} to role {{ new_owner_role }} revoke current grants;
+        {{ queries.append(" grant ownership on schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role_name ~ "revoke current grants;") }}
+        {{ queries.append(" grant ownership on all views in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role_name ~ "revoke current grants;") }}
+        {{ queries.append(" grant ownership on all materialized views in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role_name ~ "revoke current grants;") }}
+        {{ queries.append(" grant ownership on all tables in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role_name ~ "revoke current grants;") }}
+        {{ queries.append(" grant ownership on all external tables in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role_name ~ "revoke current grants;") }}
+        {{ queries.append(" grant ownership on all dynamic tables in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role_name ~ "revoke current grants;") }}
+        {{ queries.append(" grant ownership on all stages in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role_name ~ "revoke current grants;") }}
+        {{ queries.append(" grant ownership on all file formats in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role_name ~ "revoke current grants;") }}
+        {{ queries.append(" grant ownership on all functions in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role_name ~ "revoke current grants;") }}
+        {{ queries.append(" grant ownership on all sequences in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role_name ~ "revoke current grants;") }}
+        {{ queries.append(" grant ownership on all procedures in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role_name ~ "revoke current grants;") }}
+        {{ queries.append(" grant ownership on all streams in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role_name ~ "revoke current grants;") }}
+        {{ queries.append(" grant ownership on all tasks in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role_name ~ "revoke current grants;") }}
+        {{ queries.append(" grant ownership on all masking policies in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role_name ~ "revoke current grants;") }}
+    {% endfor %}
+    {% for query in queries %}
+        {% do log(query, info=True) %}
+        {% set grant = run_query(query) %}
     {% endfor %}
   {% endif %}
 {% endmacro %}
