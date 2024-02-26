@@ -78,7 +78,7 @@ revoke {{ row.privilege | lower }} on schema {{ target.database | lower }}.{{ sc
                                 {% set revoke_query %}
 revoke {{ row[2] | lower }} on all {{ row[0] | lower }}s in schema {{ target.database | lower }}.{{ row[1] | lower }} from role {{ row[3] | lower }};
                                 {% endset %}
-                                {% do log("Revoking read Grants for objects in schema  " ~ schema | lower, info=True) %}
+                                {% do log(revoke_query, info=True) %}
                                 {% set revoke = run_query(revoke_query) %}
                             {% endif %}
                         {% endif %}
@@ -113,7 +113,7 @@ revoke {{ row[2] | lower }} on all {{ row[0] | lower }}s in schema {{ target.dat
                                     {% set revoke_query %}
 revoke {{ row[2] | lower }} on {{ row[0] | lower }} {{ target.database |lower }}.{{ row[1] | lower }} from role {{ row[3] | lower }};
                                     {% endset %}
-                                    {% do log("Revoking read Grants for objects in schema  " ~ schema | lower, info=True) %}
+                                    {% do log(revoke_query, info=True) %}
                                     {% set revoke = run_query(revoke_query) %}
                                 {% endif %}
                             {% else %}
@@ -125,32 +125,36 @@ revoke {{ row[2] | lower }} on {{ row[0] | lower }} {{ target.database |lower }}
                     {% endfor %}
                 {% endif %}
             {% endif %}
-            {% do log("Granting permissions for tables / views in schema " ~ schema, info=True) %}
             {% for role in grant_roles %}
                 {% if role not in existing_roles %}
-                    {% set grant_query %}
-                        grant usage on schema {{ target.database }}.{{ schema }} to role {{ role }};
-                        grant select on all views in schema {{ target.database }}.{{ schema }} to role {{ role }};
-                        grant select on all materialized views in schema {{ target.database }}.{{ schema }} to role {{ role }};
-                        grant select on all tables in schema {{ target.database }}.{{ schema }} to role {{ role }};
-                        grant rebuild on all tables in schema {{ target.database }}.{{ schema }} to role {{ role }};
-                        grant references on all tables in schema {{ target.database }}.{{ schema }} to role {{ role }};
-                        grant select on all external tables in schema {{ target.database }}.{{ schema }} to role {{ role }};
-                        grant select on all dynamic tables in schema {{ target.database }}.{{ schema }} to role {{ role }};
-                        grant select on all streams in schema {{ target.database }}.{{ schema }} to role {{ role }};
-                    {% endset %}
-                    {% set grant = run_query(grant_query) %}
+                    {% set queries = [] %}
+                    {{ queries.append(" grant usage on schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
+                    {{ queries.append(" grant select on all views in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
+                    {{ queries.append(" grant select on all materialized views in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
+                    {{ queries.append(" grant select on all tables in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
+                    {{ queries.append(" grant rebuild on all tables in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
+                    {{ queries.append(" grant references on all tables in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
+                    {{ queries.append(" grant select on all external tables in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
+                    {{ queries.append(" grant select on all dynamic tables in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
+                    {{ queries.append(" grant select on all streams in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
+                    {% for query in queries %}
+                        {% do log(query, info=True) %}
+                        {% set grant = run_query(query) %}
+                    {% endfor %}
                     {% if include_future_grants %}
-                        {% set grant_query %}
-                            grant usage on schema {{ target.database }}.{{ schema }} to role {{ role }};
-                            grant select on future views in schema {{ target.database }}.{{ schema }} to role {{ role }};
-                            grant select on future materialized views in schema {{ target.database }}.{{ schema }} to role {{ role }};
-                            grant select on future tables in schema {{ target.database }}.{{ schema }} to role {{ role }};
-                            grant select on future external tables in schema {{ target.database }}.{{ schema }} to role {{ role }};
-                            grant select on future dynamic tables in schema {{ target.database }}.{{ schema }} to role {{ role }};
-                            grant select on future streams in schema {{ target.database }}.{{ schema }} to role {{ role }};
-                        {% endset %}
-                        {% set grant = run_query(grant_query) %}
+                        {% set future_queries = [] %}
+                        {{ future_queries.append(" grant select on future views in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
+                        {{ future_queries.append(" grant select on future materialized views in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
+                        {{ future_queries.append(" grant select on future tables in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
+                        {{ future_queries.append(" grant rebuild on future tables in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
+                        {{ future_queries.append(" grant references on future tables in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
+                        {{ future_queries.append(" grant select on future external tables in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
+                        {{ future_queries.append(" grant select on future dynamic tables in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
+                        {{ future_queries.append(" grant select on future streams in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
+                        {% for query in queries %}
+                            {% do log(query, info=True) %}
+                            {% set grant = future_queries(query) %}
+                        {% endfor %}
                     {% endif %}
                 {%endif%}
             {% endfor %}

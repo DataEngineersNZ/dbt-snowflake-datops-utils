@@ -56,13 +56,14 @@
             {%endif%}
             {% for role in grant_roles %}
                 {% if role not in existing_roles %}
-                    {% do log("Adding Monitor Grants (for task and pipes) from schema " ~ schema ~ " from role " ~ row.grantee_name, info=True) %}
-                    {% set grant_query %}
-                        grant usage on schema {{ target.database }}.{{ schema }} to role {{ role }};
-                        grant monitor on all pipes in schema {{ target.database }}.{{ schema }} to role {{ role }};
-                        grant monitor on all tasks in schema {{ target.database }}.{{ schema }} to role {{ role }};
-                    {% endset %}
-                    {% set grant = run_query(grant_query) %}
+                    {% set queries = [] %}
+                    {{ queries.append(" grant usage on schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
+                    {{ queries.append(" grant monitor on all pipes in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
+                    {{ queries.append(" grant monitor on all tasks in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
+                    {% for query in queries %}
+                        {% do log(query, info=True) %}
+                        {% set grant = run_query(query) %}
+                    {% endfor %}
                 {%endif%}
             {% endfor %}
         {%endfor%}
