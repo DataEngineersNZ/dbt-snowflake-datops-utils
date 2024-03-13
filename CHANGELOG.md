@@ -1,5 +1,9 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
+## v0.3.0.1 2024-02-15
+
+* Fixed macros `depends_on_ref` and `depends_on_source` to cater for change in dbt behaviour
+
 ## v0.3.0 2024-02-15
 
 * Added the ability to grant and revoke access to a role
