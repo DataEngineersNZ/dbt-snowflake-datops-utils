@@ -6,6 +6,10 @@
 * added macro `grant_share_read` to enable the ability to grant a share to an account
 * modified `grant_schema_read` to exclude shares when revoking grant_schema_monitor
 
+## v0.3.0.1 2024-02-15
+
+* Fixed macros `depends_on_ref` and `depends_on_source` to cater for change in dbt behaviour
+
 ## v0.3.0 2024-02-15
 
 * Added the ability to grant and revoke access to a role
