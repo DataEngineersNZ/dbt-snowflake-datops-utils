@@ -145,7 +145,22 @@ macros:
         type: "boolean"
         description: Specifies if to revoke current grants or not
 
-  - name: grant_share_views
+  - name: grant_share_read
+    description: This macro grants monitor privilege inside specific schemas to the specified rolename.
+    docs:
+      show: true
+    arguments:
+      - name: view_names
+        type: List[string]
+        description: List of secured views to include [schema.view]
+      - name: grant_shares
+        type: "List[string]"
+        description: Name of the shares to apply
+      - name: revoke_current_grants
+        type: "boolean"
+        description: Revoke current grants on the schemas
+
+  - name: grant_share_read_specific_schema
     description: This macro grants select permissions to the specified view for the shares provided.
     docs:
       show: true
