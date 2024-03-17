@@ -5,7 +5,8 @@
 * added macro `create_share` to enable the ability to create a share
 * added macro `grant_share_read` to enable the ability to grant a share to an account
 * modified `grant_schema_read` to exclude shares when revoking permissions
-* modified `grant_database_ownership` to take into account shares
+* modified `grant_database_usage` to take into account shares
+* modified `grant_database_usage` to specify to revoke grants or not
 
 ## v0.3.0.1 2024-02-15
 

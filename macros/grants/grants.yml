@@ -21,6 +21,9 @@ macros:
       - name: grant_shares
         type: List[string]
         description: Name of the shares to apply database usage to
+      - name: revoke_current_grants
+        type: "boolean"
+        description: Revoke current grants on the schemas
 
   - name: grant_object
     description: This macro grants specific object permissions to specific roles.

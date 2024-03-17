@@ -24,10 +24,12 @@
                     {% set share_desc = run_query("desc share " ~ share.name | lower  ~ ";") %}
                     {% for row in share_desc %}
                         {% if row[0] not in ["DATABASE"] %}
-                            {% if row[0] == "SCHEMA" %}
-                                {{ execute_statements.append("revoke usage on " ~  row[0] | lower ~ " " ~ row[1] | lower ~ " from share " ~ share.name ~ ";") }}
-                            {% else %}
-                                {{ execute_statements.append("revoke select on " ~  row[0] | lower ~ " " ~ row[1] | lower ~ " from share " ~ share.name ~ ";") }}
+                            {% if row[1].split(".")[0] | lower == target.database | lower %}
+                                {% if row[0] == "SCHEMA" %}
+                                    {{ execute_statements.append("revoke usage on " ~  row[0] | lower ~ " " ~ row[1] | lower ~ " from share " ~ share.name ~ ";") }}
+                                {% else %}
+                                    {{ execute_statements.append("revoke select on " ~  row[0] | lower ~ " " ~ row[1] | lower ~ " from share " ~ share.name ~ ";") }}
+                                {% endif %}
                             {% endif %}
                         {% endif %}
                     {% endfor %}
@@ -74,15 +76,17 @@
                     {% set share_desc = run_query("desc share " ~ share | lower  ~ ";") %}
                     {% for row in share_desc %}
                         {% if row[0] not in ["DATABASE", "SCHEMA"] %}
-                            {% if row[1].split(".")[1] | lower == schema_name | lower %}
-                                {% if share not in grant_shares or row[1].split(".")[2] |lower not in view_names  %}
-                                    {{ execute_statements.append("revoke select on " ~  row[0] ~ " " ~ row[1] ~ " from share " ~ share ~ ";") }}
+                            {% if row[1].split(".")[0] | lower == target.database | lower %}
+                                {% if row[1].split(".")[1] | lower == schema_name | lower %}
+                                    {% if share not in grant_shares or row[1].split(".")[2] |lower not in view_names  %}
+                                        {{ execute_statements.append("revoke select on " ~  row[0] ~ " " ~ row[1] ~ " from share " ~ share ~ ";") }}
+                                    {% endif %}
                                 {% endif %}
                             {% endif %}
                         {% endif %}
                     {% endfor %}
                 {% endfor %}
-               
+
             {% endif %}
             {% for share in grant_shares %}
                 {{ execute_statements.append("grant usage on schema " ~ target.database ~ "." ~ schema_name ~ " to share " ~ share ~ ";") }}
