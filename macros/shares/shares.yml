@@ -3,14 +3,15 @@ version: 2
 macros:
   - name: create_share
     description: This macro grants creates a share and grants usage on the associated accounts
+    docs:
       show: true
     arguments:
       - name: share_name
         type: string
         description: Name of the share to be created or updated
-  - name: accounts
-    description: List of accounts to grant usage on the share
-    type: List[string]
-  - environments:
-      type: string
-      description: The environments to include the share
+      - name: accounts
+        description: List of accounts to grant usage on the share
+        type: List[string]
+      - name: environments
+        type: string
+        description: The environments to include the share
