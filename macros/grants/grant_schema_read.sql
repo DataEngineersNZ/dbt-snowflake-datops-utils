@@ -44,7 +44,7 @@
             {% set results = run_query(query) %}
             {% if execute %}
                 {% for row in results %}
-                    {% if row.privilege in ["USAGE"] %}
+                    {% if row.privilege in ["USAGE"] and row.granted_to in ["ROLE"] %}
                         {% if row.grantee_name not in grant_roles %}
                             {% if revoke_current_grants %}
                                 {% if row.grantee_name in snowflake_roles %}

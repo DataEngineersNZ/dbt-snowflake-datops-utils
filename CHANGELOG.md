@@ -1,10 +1,11 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
-## v0.3.1 2024-03-08
+## v0.3.1 2024-03-17
 
 * added macro `create_share` to enable the ability to create a share
 * added macro `grant_share_read` to enable the ability to grant a share to an account
-* modified `grant_schema_read` to exclude shares when revoking grant_schema_monitor
+* modified `grant_schema_read` to exclude shares when revoking permissions
+* modified `grant_database_ownership` to take into account shares
 
 ## v0.3.0.1 2024-02-15
 

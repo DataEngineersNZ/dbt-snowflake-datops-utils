@@ -6,7 +6,7 @@ macros:
     docs:
       show: true
     arguments:
-      - name: rolename
+      - name: role_name
         type: string
         description: Name of the role eg- DATAOPS_ADMIN
 
@@ -15,10 +15,12 @@ macros:
     docs:
       show: true
     arguments:
-      - name: rolename
+      - name: grant_roles
         type: List[string]
         description: Name of the roles to apply eg- ['READERS_PROD', 'ANALYST', 'OPS_SUPPORT']
-
+      - name: grant_shares
+        type: List[string]
+        description: Name of the shares to apply database usage to
 
   - name: grant_object
     description: This macro grants specific object permissions to specific roles.
@@ -139,6 +141,24 @@ macros:
       - name: include_future_grants
         type: "boolean"
         description: Specifies if to include future grants or not
+      - name: revoke_current_grants
+        type: "boolean"
+        description: Specifies if to revoke current grants or not
+
+  - name: grant_share_views
+    description: This macro grants select permissions to the specified view for the shares provided.
+    docs:
+      show: true
+    arguments:
+      - name: schema_name
+        type: string
+        description: Name of the schema to include
+      - name: view_names
+        type: List[string]
+        description: List of views to include
+      - name: grant_shares
+        type: string
+        description: Name of the shares to apply
       - name: revoke_current_grants
         type: "boolean"
         description: Specifies if to revoke current grants or not
