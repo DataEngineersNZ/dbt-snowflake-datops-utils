@@ -26,6 +26,16 @@
     {% if flags.WHICH in ['run', 'run-operation'] %}
         {% set existing_roles = [] %}
         {% set execute_statements = [] %}
+        {% set snowflake_roles = [] %}
+        {% set query_roles %}
+            show roles
+        {% endset %}
+        {% set role_results = run_query(query_roles) %}
+        {% for role in role_results %}
+            {% if role.name not in snowflake_roles %}
+                {{ snowflake_roles.append(role.name) }}
+            {% endif %}
+        {% endfor %}
         {% for schema in schemas %}
             {% do log("====> Processing Schema Reads for " ~ schema | lower, info=True) %}
             {% set query %}
@@ -34,10 +44,12 @@
             {% set results = run_query(query) %}
             {% if execute %}
                 {% for row in results %}
-                    {% if row.privilege in ["USAGE"] %}
+                    {% if row.privilege in ["USAGE"] and row.granted_to in ["ROLE"] %}
                         {% if row.grantee_name not in grant_roles %}
                             {% if revoke_current_grants %}
-                                {{ execute_statements.append("revoke " ~ row.privilege | lower  ~ " on schema " ~ target.database ~ "." ~ schema | lower ~ " from role " ~ row.grantee_name | lower ~ ";") }}
+                                {% if row.grantee_name in snowflake_roles %}
+                                    {{ execute_statements.append("revoke " ~ row.privilege | lower  ~ " on schema " ~ target.database ~ "." ~ schema | lower ~ " from role " ~ row.grantee_name | lower ~ ";") }}
+                                {% endif %}
                             {% endif %}
                         {%endif%}
                     {%endif%}
@@ -67,7 +79,9 @@
                     {% for row in results %}
                         {% if row[2] in ["SELECT", "REFERENCES", "REBUILD"] %}
                             {% if revoke_current_grants %}
-                                {{ execute_statements.append("revoke " ~ row[2] | lower  ~ " on all " ~ row[0] | lower ~ "s in schema " ~ target.database ~ "." ~ row[1] | lower ~ " from role " ~ row[3] | lower ~ ";") }}
+                                {% if row[3] in snowflake_roles %}
+                                    {{ execute_statements.append("revoke " ~ row[2] | lower  ~ " on all " ~ row[0] | lower ~ "s in schema " ~ target.database ~ "." ~ row[1] | lower ~ " from role " ~ row[3] | lower ~ ";") }}
+                                {% endif %}
                             {% endif %}
                         {% endif %}
                     {% endfor %}
@@ -78,7 +92,9 @@
                         {% if row[2] in ["SELECT", "REFERENCES", "REBUILD"] %}
                             {% if row[3] not in grant_roles %}
                                 {% if revoke_current_grants %}
-                                    {{ execute_statements.append("revoke " ~ row[2] | lower  ~ " on all " ~ row[0] | lower ~ "s in schema " ~ target.database ~ "." ~ row[1] | lower ~ " from role " ~ row[3] | lower ~ ";") }}
+                                    {% if row[3] in snowflake_roles %}
+                                        {{ execute_statements.append("revoke " ~ row[2] | lower  ~ " on all " ~ row[0] | lower ~ "s in schema " ~ target.database ~ "." ~ row[1] | lower ~ " from role " ~ row[3] | lower ~ ";") }}
+                                    {% endif %}
                                 {% endif %}
                             {%endif%}
                         {%endif%}
