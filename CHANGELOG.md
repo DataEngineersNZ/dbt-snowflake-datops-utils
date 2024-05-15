@@ -1,5 +1,9 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
+## v0.3.2 2024-05-15
+
+* modified macros `depends_on_ref` and `depends_on_source` to cater for issues found in dbt-core 1.8
+
 ## v0.3.1 2024-03-17
 
 * added macro `create_share` to enable the ability to create a share
