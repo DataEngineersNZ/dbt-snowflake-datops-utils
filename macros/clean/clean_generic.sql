@@ -10,6 +10,8 @@
     {% set get_snowflake_objects_results = run_query(get_snowflake_objects) %}
     {% if object_type == "TASK" %}
         {% set schema_index = 4 %}
+    {% elif object_type == "SECRET" %}
+        {% set schema_index = 2 %}
     {% endif %}
 
     {% for result in get_snowflake_objects_results %}

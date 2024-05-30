@@ -27,6 +27,12 @@
             {% if 'file_formats' in object_types %}
                 {% do dbt_dataengineers_utils.clean_generic("FILE FORMAT", database, dry_run) %}
             {% endif %}
+            {% if 'network_rules' in object_types %}
+                {% do dbt_dataengineers_utils.clean_generic("NETWORK RULE", database, dry_run) %}
+            {% endif %}
+            {% if 'secrets' in object_types %}
+                {% do dbt_dataengineers_utils.clean_generic("SECRET", database, dry_run) %}
+            {% endif %}
             {% if 'tables_and_views' in object_types %}
                 {% do dbt_dataengineers_utils.clean_models(database, dry_run) %}
             {% endif %}

@@ -7,7 +7,7 @@ This [dbt](https://github.com/dbt-labs/dbt) package contains macros that can be 
 Add the following to your packages.yml file
 ```
   - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-utils.git
-    revision: "0.3.2"
+    revision: "0.3.3"
 ```
 ----
 
@@ -55,8 +55,9 @@ Add the following to your packages.yml file
 **grants**
 
 - `grant_database_ownership`
+- `grant_integration_ownership`
 - `grant_database_usage`
-- `grant_database_usage`
+- `grant_integration_usage`
 - `grant_object`
 - `grant_privileges`
 - `grant_schema_monitor`
@@ -115,6 +116,9 @@ Add the following to your packages.yml file
 ---
 
 ### Atomic Unit Tests
+Since dbt 1.8.0, dbt has introduced the ability to run atomic unit tests.
+It is recommended users transition to using the built-in atomic unit tests as they are more efficient and integrated to dbt.
+In a future release the atomic unit tests in this package will be depricated.
 
 The following naming conventions are recommended:
 
