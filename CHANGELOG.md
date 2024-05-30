@@ -6,6 +6,8 @@
 * added macro `grant_integration_usage` to enable the ability to grant usage access to an integration
 * modified macro `grant_schema_read` to include secrets and shares when granting permissions
 * modified macro `grant_schema_ownership` to include network rules, secrets and shares when granting permissions
+* modified macro `clean_objects` to include network rules and secrets when cleaning objects
+* modified macro `clean_generic` to fix schema column positioning for secrets
 
 ## v0.3.2 2024-05-15
 
