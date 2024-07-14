@@ -1,6 +1,6 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
-## v0.3.3 2024-06-14
+## v0.3.3 2024-06-14 - Integration, Network Rules and Secrets
 
 * added macro `grant_integration_ownership` to enable the ability to grant ownership of an integration
 * added macro `grant_integration_usage` to enable the ability to grant usage access to an integration
