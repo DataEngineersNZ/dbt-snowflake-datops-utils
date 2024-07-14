@@ -8,7 +8,7 @@
 * modified macro `grant_schema_ownership` to include network rules, secrets and shares when granting permissions
 * modified macro `clean_objects` to include network rules and secrets when cleaning objects
 * modified macro `clean_generic` to fix schema column positioning for secrets
-* modified `depends_on_ref` and `depends_on_source` to cater for issues found in dbt-core 1.8
+* modified macros `depends_on_ref` and `depends_on_source` to cater for issues found in dbt-core 1.8
 
 ## v0.3.2 2024-05-15
 
