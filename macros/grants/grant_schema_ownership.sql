@@ -32,7 +32,6 @@
                     {{ queries.append(" grant ownership on all streams in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role_name ~ "revoke current grants;") }}
                     {{ queries.append(" grant ownership on all tasks in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role_name ~ "revoke current grants;") }}
                     {{ queries.append(" grant ownership on all masking policies in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role_name ~ "revoke current grants;") }}
-                    {{ queries.append(" grant ownership on all secrets in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role_name ~ "revoke current grants;") }}
                     {{ queries.append(" grant ownership on all network rules in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role_name ~ "revoke current grants;") }}
                     {% for query in queries %}
                         {% do log(query, info=True) %}
