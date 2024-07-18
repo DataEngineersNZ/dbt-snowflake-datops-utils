@@ -10,6 +10,20 @@ macros:
         type: string
         description: Name of the role eg- DATAOPS_ADMIN
 
+
+  - name: grant_integration_ownership
+    description: This macro grants ownership privileges to the specified rolename on the integration.
+    docs:
+      show: true
+    arguments:
+      - name: integration_name
+        type: string
+        description: Name of the integration to grant ownership to
+      - name: role_name
+        type: string
+        description: Name of the role eg- DATAOPS_ADMIN
+
+
   - name: grant_database_usage
     description: This macro grants usage privilages to the specified rolename inside the database. To get access on the database, the rolename needs to have usage privilege in the database.
     docs:
@@ -24,6 +38,19 @@ macros:
       - name: revoke_current_grants
         type: "boolean"
         description: Revoke current grants on the schemas
+
+  - name: grant_integration_usage
+    description: This macro grants usage privileges to the specified rolename on the integration.
+    docs:
+      show: true
+    arguments:
+      - name: integration_name
+        type: string
+        description: Name of the integration to grant usgae to
+      - name: role_name
+        type: string
+        description: Name of the role eg- DEVELOPERS
+
 
   - name: grant_object
     description: This macro grants specific object permissions to specific roles.

@@ -111,6 +111,7 @@
                     {{ execute_statements.append("grant select on all external tables in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
                     {{ execute_statements.append("grant select on all dynamic tables in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
                     {{ execute_statements.append("grant select on all streams in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
+                    {{ execute_statements.append("grant read on all stages in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
                     {% if include_future_grants %}
                         {{ execute_statements.append("grant select on future views in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
                         {{ execute_statements.append("grant select on future materialized views in schema " ~ target.database ~ "." ~ schema ~ " to role " ~ role ~ ";") }}
