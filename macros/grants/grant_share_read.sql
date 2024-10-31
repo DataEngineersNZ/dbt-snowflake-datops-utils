@@ -21,18 +21,20 @@
                 {% set share_results = run_query("show shares;") %}
                 {% set execute_statements = [] %}
                 {% for share in share_results %}
-                    {% set share_desc = run_query("desc share " ~ share.name | lower  ~ ";") %}
-                    {% for row in share_desc %}
-                        {% if row[0] not in ["DATABASE"] %}
-                            {% if row[1].split(".")[0] | lower == target.database | lower %}
-                                {% if row[0] == "SCHEMA" %}
-                                    {{ execute_statements.append("revoke usage on " ~  row[0] | lower ~ " " ~ row[1] | lower ~ " from share " ~ share.name ~ ";") }}
-                                {% else %}
-                                    {{ execute_statements.append("revoke select on " ~  row[0] | lower ~ " " ~ row[1] | lower ~ " from share " ~ share.name ~ ";") }}
+                    {% if share.kind == 'OUTBOUND' %}
+                        {% set share_desc = run_query("desc share " ~ share.name | lower  ~ ";") %}
+                        {% for row in share_desc %}
+                            {% if row[0] not in ["DATABASE"] %}
+                                {% if row[1].split(".")[0] | lower == target.database | lower %}
+                                    {% if row[0] == "SCHEMA" %}
+                                        {{ execute_statements.append("revoke usage on " ~  row[0] | lower ~ " " ~ row[1] | lower ~ " from share " ~ share.name ~ ";") }}
+                                    {% else %}
+                                        {{ execute_statements.append("revoke select on " ~  row[0] | lower ~ " " ~ row[1] | lower ~ " from share " ~ share.name ~ ";") }}
+                                    {% endif %}
                                 {% endif %}
                             {% endif %}
-                        {% endif %}
-                    {% endfor %}
+                        {% endfor %}
+                    {% endif %}
                 {% endfor %}
                 {% for statement in execute_statements %}
                     {% do log(statement, info=True) %}

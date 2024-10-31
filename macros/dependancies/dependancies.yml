@@ -27,3 +27,6 @@ macros:
       - name: model
         type: string
         description: the source model to add
+      - name: include_database
+        type: boolean
+        description: specify if the database name should be included
