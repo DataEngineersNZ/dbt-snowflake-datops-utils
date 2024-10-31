@@ -21,7 +21,7 @@
             {{ dbt_dataengineers_utils.grant_schema_ownership([], 'DATAOPS_ADMIN') }}
             {{ dbt_dataengineers_utils.grant_database_usage(['DEVELOPERS'], []) }}
             {{ dbt_dataengineers_utils.grant_schema_read([], ['DEVELOPERS'], false) }}
-        {% elif target.name == 'dev' %}
+        {% elif target.name in ['dev', 'local-dev'] %}
             {{ dbt_dataengineers_utils.grant_database_ownership('DEVELOPERS') }}
             {{ dbt_dataengineers_utils.grant_schema_ownership([], 'DEVELOPERS') }}
             {{ dbt_dataengineers_utils.grant_database_usage([], []) }}

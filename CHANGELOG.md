@@ -1,5 +1,24 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
+## v0.3.4 2024-10-31 - Privileges Fixes
+
+ * modified macro `grant_database_ownership` - fixed issue with the macro where ownership was not being granted correctly
+ * modified macro `grant_integration_ownership` - fixed issue with the macro where ownership was not being granted correctly
+ * modified macro `grant_integration_usgae` - fixed issue with the macro where ownership was not being granted correctly
+ * modified macro `grant_schema_ownership` - fixed issue with the macro where usage was not being granted correctly
+ * updated `dbt_utils` package to version 1.3.0
+
+## v0.3.3 2024-07-18 - Integration, Network Rules and Secrets
+
+* added macro `grant_integration_ownership` to enable the ability to grant ownership of an integration
+* added macro `grant_integration_usage` to enable the ability to grant usage access to an integration
+* modified macro `grant_schema_read` to include shares when granting permissions
+* modified macro `grant_schema_ownership` to include network rules, secrets and shares when granting permissions
+* modified macro `clean_objects` to include network rules and secrets when cleaning objects
+* modified macro `clean_generic` to fix schema column positioning for secrets
+* modified macros `depends_on_ref` and `depends_on_source` to cater for issues found in dbt-core 1.8
+* modified macro `grant_share_read` to only include `OUTBOUND` shares
+
 ## v0.3.2 2024-05-15
 
 * modified macros `depends_on_ref` and `depends_on_source` to cater for issues found in dbt-core 1.8
