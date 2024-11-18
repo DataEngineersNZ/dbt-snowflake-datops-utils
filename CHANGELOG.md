@@ -1,5 +1,9 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
+## v0.3.5 2024-11-18 - Atomic Unit Test Removed
+
+ * removed the macros relating to the atomic unit test as they are no longer required
+
 ## v0.3.4 2024-10-31 - Privileges Fixes
 
  * modified macro `grant_database_ownership` - fixed issue with the macro where ownership was not being granted correctly
