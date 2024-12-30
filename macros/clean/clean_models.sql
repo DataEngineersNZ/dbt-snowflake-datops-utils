@@ -9,8 +9,9 @@
     {% set get_snowflake_models %}
         SELECT
             CASE
+                WHEN is_dynamic = 'YES' THEN 'DYNAMIC TABLE'
+                WHEN is_iceberg = 'YES' THEN 'ICEBERG TABLE'
                 WHEN table_type = 'BASE TABLE' THEN 'TABLE'
-                WHEN table_type IS NULL THEN 'DYNAMIC TABLE'
                 ELSE table_type
             END AS object_type,
             table_schema,
