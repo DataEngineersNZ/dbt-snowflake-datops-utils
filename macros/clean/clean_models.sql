@@ -7,17 +7,17 @@
     {% set sources = graph.sources.values() if graph.sources else [] %}
 
     {% set get_snowflake_models %}
-        SELECT
-            CASE
-                WHEN is_dynamic = 'YES' THEN 'DYNAMIC TABLE'
-                WHEN is_iceberg = 'YES' THEN 'ICEBERG TABLE'
-                WHEN table_type = 'BASE TABLE' THEN 'TABLE'
-                ELSE table_type
-            END AS object_type,
+        select
+            case
+                when is_dynamic = 'YES' then 'DYNAMIC TABLE'
+                when is_iceberg = 'YES' then 'ICEBERG TABLE'
+                when table_type = 'BASE TABLE' then 'TABLE'
+                else table_type
+            end as object_type,
             table_schema,
             table_name
-        FROM {{ database }}.information_schema.tables
-        WHERE table_schema NOT IN ('INFORMATION_SCHEMA', 'META', 'PUBLIC', 'PUBLIC_META', 'SCHEMACHANGE', 'UNIT_TESTS')
+        from {{ database }}.information_schema.tables
+        where table_schema not in ('INFORMATION_SCHEMA', 'META', 'PUBLIC', 'PUBLIC_META', 'SCHEMACHANGE', 'UNIT_TESTS')
     {% endset %}
 
     {% set snowflake_schema_results = run_query(get_snowflake_models) %}

@@ -2,7 +2,7 @@
     {% if "INFORMATION_SCHEMA" not in exclude_schemas %}
         {{ exclude_schemas.append("INFORMATION_SCHEMA") }}
     {% endif %}
-    {% if flags.WHICH in ['run'] %}
+    {% if flags.WHICH in ['run', 'run-operation'] %}
         {% set query %}
             show schemas in database {{ target.database }};
         {% endset %}

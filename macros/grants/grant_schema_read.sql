@@ -58,8 +58,9 @@
             {% set query %}
                 select distinct
                     case
+                        when is_dynamic = 'YES' then 'DYNAMIC TABLE'
+                        when is_iceberg = 'YES' then 'ICEBERG TABLE'
                         when table_type = 'BASE TABLE' then 'TABLE'
-                        when table_type is null then 'DYNAMIC TABLE'
                         else tables.table_type
                     end as object_type
                     , tables.table_schema
