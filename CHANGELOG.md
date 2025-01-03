@@ -5,6 +5,7 @@
  * removed quote from depends_on_ref statement
  * added in run-operation for monitior grants
  * added in dynamic table into read specifics
+ * updated depends_on_ref and depends_on_source to cater for dbt-core 1.9 changes
 
 ## v0.3.5 2024-11-18 - Atomic Unit Test Removed
 
