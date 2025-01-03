@@ -1,5 +1,11 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
+## v0.3.5.1 - 2025-01-03 - Minor Fixes
+ * updated dynamic table model cleaning
+ * removed quote from depends_on_ref statement
+ * added in run-operation for monitior grants
+ * added in dynamic table into read specifics
+
 ## v0.3.5 2024-11-18 - Atomic Unit Test Removed
 
  * removed the macros relating to the atomic unit test as they are no longer required
