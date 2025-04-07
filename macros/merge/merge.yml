@@ -1,0 +1,44 @@
+version: 2
+
+macros:
+  - name: get_merge_statement
+    description: This macro generates a merge statement based off 2 tables so it can be used for incrementally updating a table.
+    docs:
+      show: true
+    arguments:
+      - name: source
+        type: ref
+        description: where the data is coming from
+      - name: destination_table
+        type: string
+        description: where name of the table the data is going to
+      - name: destination_schema
+        type: string
+        description: where name of the schame for the destination table
+      - name: unique_key
+        type: string
+        description: key to perform the merge on
+      - name: predicates
+        type: object
+        description: any additional columns to use during the merge
+
+  - name: get_default_merge_statement
+    description: This macro generates a merge statement based off 2 tables so it can be used for incrementally updating a table. This macro uses the default version of get_merge_sql marco rather than a specific providers one
+    docs:
+      show: true
+    arguments:
+      - name: source
+        type: ref
+        description: where the data is coming from
+      - name: destination_table
+        type: string
+        description: where name of the table the data is going to
+      - name: destination_schema
+        type: string
+        description: where name of the schame for the destination table
+      - name: unique_key
+        type: string
+        description: key to perform the merge on
+      - name: predicates
+        type: object
+        description: any additional columns to use during the merge

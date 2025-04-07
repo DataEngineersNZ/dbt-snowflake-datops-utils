@@ -1,0 +1,14 @@
+version: 2
+
+macros:
+  - name: enable_dependent_tasks
+    description: This macro enables the task dependants of a task
+    docs:
+      show: true
+    arguments:
+      - name: root_task
+        type: string
+        description: the name of the task to enable the dependants of
+      - name: enabled_targets
+        type: List[string]
+        description: List of environments/targets to enable in
