@@ -23,4 +23,4 @@ macros:
         description: the name of the task to execute
       - name: enabled_targets
         type: List[string]
-        description: List of environments/targets to enable in
+        description: A list of environments or targets (e.g., "dev", "staging", "prod") where the task should be executed.
