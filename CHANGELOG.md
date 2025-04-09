@@ -1,5 +1,9 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
+## v0.3.6 - 2025-04-09 - tasks
+
+ * added macro `execute_task` to enable the ability to execute a task at the end of a run
+
 ## v0.3.5.1 - 2025-01-03 - Minor Fixes
  * updated dynamic table model cleaning
  * removed quote from depends_on_ref statement
