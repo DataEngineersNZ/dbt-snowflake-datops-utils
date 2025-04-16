@@ -12,3 +12,15 @@ macros:
       - name: enabled_targets
         type: List[string]
         description: List of environments/targets to enable in
+
+  - name: execute_task
+    description: This macro executes a task in the context of a target
+    docs:
+      show: true
+    arguments:
+      - name: task_name
+        type: string
+        description: the name of the task to execute
+      - name: enabled_targets
+        type: List[string]
+        description: A list of environments or targets (e.g., "dev", "staging", "prod") where the task should be executed.

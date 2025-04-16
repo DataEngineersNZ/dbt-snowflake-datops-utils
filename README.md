@@ -7,12 +7,11 @@ This [dbt](https://github.com/dbt-labs/dbt) package contains macros that can be 
 Add the following to your packages.yml file
 ```
   - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-utils.git
-    revision: "0.3.5.1"
+    revision: "0.3.6"
 ```
 ----
 
 ## Contents
-
 
 **Checks**
 
@@ -62,9 +61,8 @@ Add the following to your packages.yml file
 - `grant_schema_read`
 - `grant_share_read`
 
-**helpers**
+**merge**
 
-- `enable_dependent_tasks`
 - `get_merge_statement`
 
 **modelling**
@@ -109,6 +107,11 @@ Add the following to your packages.yml file
 - `model_columns_contains_tag_meta`
 - `set_column_tag_value`
 
+**tasks**
+
+- `enable_dependent_tasks`
+- `execute_task`
+
 ---
 
 ### Tagging macros
@@ -146,7 +149,7 @@ models:
 The macro must be called as part of post-hook, so add the following to dbt_project.yml:
 
 ```yaml
-post-hook: 
+post-hook:
     - "{{ dbt_dataengineers_utils.apply_meta_as_tags(['pii_type']) }}"
 ```
 
