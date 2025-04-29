@@ -1,5 +1,9 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
+## v0.3.7 2025-04-30 - Tagging
+
+ * updated macro `apply_meta_as_tags` to enable the ability to apply meta as tags based on definitioins defined within the Monitiorial Data Governance Native App. `_type` is now replaced with `_classification` instead of `_data` and added in mapping of `default_mask` to `default_mask_value`
+
 ## v0.3.6 - 2025-04-09 - tasks
 
  * added macro `execute_task` to enable the ability to execute a task at the end of a run
