@@ -2,11 +2,14 @@
     {% if execute %}
         {% set materialization_map = {"table": "table", "view": "view", "incremental": "table", "snapshot": "table", "immutable_table" : "table", "materialized_view" : "view"} %}
         {% if dbt_dataengineers_utils.model_contains_tag_meta(tag_names, model) %}
+            {% set tag_names_str = tag_names | join(', ') %}
+            {%- set model_database = model.database -%}
             {%- set model_database = model.database -%}
             {%- set model_schema =  model.schema|upper -%}
             {%- set model_schema_full = model_database|upper + '.' + model_schema -%}
             {%- set model_alias = model.alias|upper -%}
             {%- set materialization = materialization_map[model.config.get("materialized")] -%}
+            {{ log("START found tags for model " + model_schema|lower ~ "." ~ model_alias|lower, info=True) }}
             {%- call statement('main', fetch_result=True) -%}
                 select
                     LEVEL,OBJECT_NAME,COLUMN_NAME,UPPER(TAG_NAME) as TAG_NAME,TAG_VALUE
