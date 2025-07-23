@@ -11,7 +11,7 @@
     {% set statements = [] %}
     {% if results | length > 0 %}
         {% for result in results %}
-            {{ statements.append(" grant ownership on schema " ~ target.database ~ "." ~ result.schema_name ~ " to role " ~ role_name ~ " revoke current grants;") }}
+            {{ statements.append(" grant ownership on schema " ~ target.database ~ "." ~ result[0] ~ " to role " ~ role_name ~ " revoke current grants;") }}
         {% endfor %}
     {% endif %}
     {% do return(statements) %}

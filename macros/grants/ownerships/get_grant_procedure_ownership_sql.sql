@@ -18,7 +18,7 @@
                     procedure_name,
                     split(replace(replace(argument_signature, '(', ''), ')', ''), ',') as args
                 from information_schema.procedures
-                where procedure_owner = '{{ role_name | upper }}'
+                where procedure_owner != '{{ role_name | upper }}'
                 and procedure_schema in ({{ schema_list }})
             ),
             lateral flatten(input => args) as f
@@ -30,7 +30,7 @@
     {% set statements = [] %}
     {% if results | length > 0 %}
         {% for result in results %}
-            {{ statements.append(" grant ownership on procedure " ~ target.database ~ "." ~ result.schema_name ~ "." ~ result.procedure_name ~ "(" ~ result.argument_signature ~ ") to role " ~ role_name ~ " revoke current grants;") }}
+            {{ statements.append(" grant ownership on procedure " ~ target.database ~ "." ~ result[1] ~ "." ~ result[2] ~ "(" ~ result[3] ~ ") to role " ~ role_name ~ " revoke current grants;") }}
         {% endfor %}
     {% endif %}
     {% do return(statements) %}
