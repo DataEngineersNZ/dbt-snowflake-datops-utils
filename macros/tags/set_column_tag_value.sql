@@ -6,7 +6,7 @@
     {% elif tag_name == "default_mask" %}
         {%set tag_name="default_mask_value" %}
     {% endif %}
-    {%- set existing_tag_for_column = existing_tags|selectattr('0','equalto','COLUMN')|selectattr('1','equalto',table_name|upper)|selectattr('2','equalto',column_name|upper)|selectattr('3','equalto',tag_name|upper)|list -%}
+    {%- set existing_tag_for_column = existing_tags_for_table|selectattr('0','equalto','COLUMN')|selectattr('1','equalto',table_name|upper)|selectattr('2','equalto',column_name|upper)|selectattr('3','equalto',tag_name|upper)|list -%}
     {% if existing_tag_for_column|length > 0 and existing_tag_for_column[0][4]==desired_tag_value %}
         {{ log(column_name + ' ==> tag ' + tag_name + ' already set to value '+ desired_tag_value + ' ............... [IGNORE]', info=True) }}
     {% elif existing_tag_for_column|length > 0 and desired_tag_value|lower=="none" %}
