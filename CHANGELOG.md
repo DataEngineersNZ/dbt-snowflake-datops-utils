@@ -1,5 +1,9 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
+## v1.3.8 2025-07-25 - Stored Procedure Grants
+
+* updated macro `get_grant_procedure_ownership_sql` to fix issue with parameterless procedure signature not being returned correctly
+
 ## v0.3.8 2025-07-23 - Grant Modifications
 
 * updated `grant_database_ownership` to include the only grant ownership to a role if the role is not already the owner

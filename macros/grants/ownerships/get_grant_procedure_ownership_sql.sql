@@ -4,7 +4,11 @@
             procedure_catalog,
             procedure_schema as schema_name,
             procedure_name,
-            listagg(trim(split_part(arg, ' ', -1)), ',') within group (order by arg) as argument_signature
+            regexp_replace(
+                listagg(trim(split_part(arg, ' ', -1)), ',') within group (order by arg),
+                '^,',
+                ''
+            ) as argument_signature
         from (
             select
                 procedure_catalog,
@@ -22,7 +26,6 @@
                 and procedure_schema in ({{ schema_list }})
             ),
             lateral flatten(input => args) as f
-            where trim(f.value) <> ''
         )
         group by procedure_catalog, procedure_schema, procedure_name;
     {% endset %}
