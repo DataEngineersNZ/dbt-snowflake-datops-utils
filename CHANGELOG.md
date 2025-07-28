@@ -1,5 +1,9 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 
+## v0.3.8.2 2025-08-15 - Stored Procedure Grants Fix
+
+* added additional logging to `grant_object` macro to ensure that the correct parameters are being passed
+
 ## v0.3.8.1 2025-07-25 - Stored Procedure Grants
 
 * updated macro `get_grant_procedure_ownership_sql` to fix issue with parameterless procedure signature not being returned correctly

@@ -5,6 +5,7 @@
         {% set existing_grants = [] %}
 
         {% for object in objects %}
+            {% do log("processing " ~ grant_types ~ " for " ~ object ~ " for " ~ grant_roles, info=True) %}
             {% set query %}
                 show grants on {{ object_type }} {{ target.database }}.{{ object }};
             {% endset %}
