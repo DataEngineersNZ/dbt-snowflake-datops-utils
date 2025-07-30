@@ -1,6 +1,12 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
+This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
-## v0.3.8.2 2025-08-15 - Stored Procedure Grants Fix
+## v0.3.8.3 2025-07-30 - Grant Fixes
+
+* updated macro `get_grant_functions_ownership_sql` to fix issue with parameterless function signature not being returned correctly
+* added additional logging to `grant_object` macro to ensure that the correct parameters are being passed
+
+## v0.3.8.2 2025-07-15 - Grant Fixes
 
 * added additional logging to `grant_object` macro to ensure that the correct parameters are being passed
 

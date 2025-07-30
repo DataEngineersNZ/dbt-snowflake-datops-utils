@@ -4,7 +4,11 @@
             function_catalog,
             function_schema as schema_name,
             function_name,
-            listagg(trim(split_part(arg, ' ', -1)), ',') as argument_signature
+            regexp_replace(
+                listagg(trim(split_part(arg, ' ', -1)), ',') within group (order by arg),
+                '^,',
+                ''
+            ) as argument_signature
         from (
             select
                 function_catalog,
@@ -22,7 +26,6 @@
                 and function_schema in ({{ schema_list }})
             ),
             lateral flatten(input => args) as f
-			where trim(f.value) <> ''
         )
         group by function_catalog, function_schema, function_name;
     {% endset %}

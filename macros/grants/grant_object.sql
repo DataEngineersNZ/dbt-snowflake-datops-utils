@@ -3,9 +3,10 @@
         {% set revoke_statements = [] %}
         {% set grant_statements = [] %}
         {% set existing_grants = [] %}
+        {% set execute_statements = [] %}
 
         {% for object in objects %}
-            {% do log("processing " ~ grant_types ~ " for " ~ object ~ " for " ~ grant_roles, info=True) %}
+            {% do log("====> Processing " ~ object_type ~ " for " ~ object, info=True) %}
             {% set query %}
                 show grants on {{ object_type }} {{ target.database }}.{{ object }};
             {% endset %}
@@ -40,18 +41,20 @@
             {%endif%}
         {%endfor%}
         {% for stm in revoke_statements %}
-            {% set grant_query %}
-                revoke {{ stm.privilege }} on {{ object_type }} {{ target.database }}.{{ stm.object }} from role {{ stm.role }};
-            {% endset %}
-            {% do log(grant_query, info=True) %}
-            {% set grant = run_query(grant_query) %}
+            {{ execute_statements.append("revoke " ~ stm.privilege ~ " on " ~ object_type ~ " " ~ target.database ~ "." ~ stm.object ~ " from role " ~ stm.role ~ ";") }}
         {% endfor %}
         {% for stm in grant_statements %}
-            {% set grant_query %}
-                grant {{ stm.privilege }} on {{ object_type }} {{ target.database }}.{{ stm.object }} to role {{ stm.role }};
-            {% endset %}
-            {% do log(grant_query, info=True) %}
-            {% set grant = run_query(grant_query) %}
+            {{ execute_statements.append("grant " ~ stm.privilege ~ " on " ~ object_type ~ " " ~ target.database ~ "." ~ stm.object ~ " to role " ~ stm.role ~ ";") }}
         {% endfor %}
+        {% if execute_statements | length > 0 %}
+            {% do log("Executing privilege grants and revokes for " ~ object_type ~"s...", info=True) %}
+            {% for statement in execute_statements %}
+                {% do log(statement, info=True) %}
+                {% set grant = run_query(statement) %}
+            {% endfor %}
+            {% do log("Privilege grants and revokes executed successfully for " ~ object_type ~ "s.", info=True) %}
+        {% else %}
+            {% do log("No privilege grants or revokes to execute for " ~ object_type ~ "s.", info=True) %}
+        {% endif %}
     {% endif %}
 {% endmacro %}
