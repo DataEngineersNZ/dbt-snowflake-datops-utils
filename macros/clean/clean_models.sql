@@ -1,5 +1,6 @@
 {% macro clean_models(database=target.database, dry_run=True) %}
     {% set snowflake_views_to_drop = [] %}
+    {% set snowflake_materialized_views_to_drop = [] %}
     {% set snowflake_tables_to_drop = [] %}
     {% set snowflake_dynamic_tables_to_drop = [] %}
     {% set snowflake_external_tables_to_drop = [] %}
@@ -53,12 +54,15 @@
                 {% do snowflake_external_tables_to_drop.append(sql_object) %}
             {% elif object_Type == "DYNAMIC TABLE" %}
                 {% do snowflake_dynamic_tables_to_drop.append(sql_object) %}
+            {% elif object_Type == "MATERIALIZED VIEW" %}
+                {% do snowflake_materialized_views_to_drop.append(sql_object) %}
             {% else %}
                 {% do snowflake_views_to_drop.append(sql_object) %}
             {% endif %}
         {% endif %}
     {% endfor %}
 
+    {% do dbt_dataengineers_utils.drop_object("MATERIALIZED VIEW", database, snowflake_materialized_views_to_drop, dry_run) %}
     {% do dbt_dataengineers_utils.drop_object("VIEW", database, snowflake_views_to_drop, dry_run) %}
     {% do dbt_dataengineers_utils.drop_object("TABLE", database, snowflake_tables_to_drop, dry_run) %}
     {% do dbt_dataengineers_utils.drop_object("EXTERNAL TABLE", database, snowflake_external_tables_to_drop, dry_run) %}
