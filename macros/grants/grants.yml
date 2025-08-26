@@ -79,6 +79,33 @@ macros:
         type: List[string]
         description: List of application roles to grant usage privileges to
 
+  - name: grant_database_usage_to_application
+    description: This macro grants usage privileges on a database to a specific application role.
+    docs:
+      show: false
+    arguments:
+      - name: grant_applications
+        type: List[string]
+        description: List of application roles to grant usage privileges to
+      - name: target_database
+        type: string
+        description: target database
+
+  - name: grant_schema_usage_to_application
+    description: This macro grants usage privileges on a schema to a specific application role.
+    docs:
+      show: false
+    arguments:
+      - name: grant_applications
+        type: List[string]
+        description: List of application roles to grant usage privileges to
+      - name: target_database
+        type: string
+        description: target database
+      - name: schemas
+        type: List[string]
+        description: List of schemas to grant usage privileges on
+
   - name: grant_privileges
     description: This macro is an example of how to grant privileges across environments based on targets
     docs:
