@@ -25,7 +25,6 @@
             {% if execute %}
                 {% for row in results %}
                     {% if row.privilege not in ["OWNERSHIP", "SELECT", "REFERENCES", "REBUILD"] %}
-                        {% do log("processing " ~ object[2] ~ " for " ~ row.grantee_name ~ " for privilege " ~ row.privilege, info=True) %}
                         {% if row.privilege in grant_types %}
                             {% if row.grantee_name not in grant_applications %}
                                 {{ revoke_statements.append({ "privilege" : row.privilege, "role" : row.grantee_name, "object" : object[2] }) }}
