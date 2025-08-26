@@ -75,7 +75,7 @@ macros:
       - name: prefix
         type: string
         description: Prefix for the objects to apply the permission to (format = schema.object)
-      - grant_applications:
+      - name: grant_applications
         type: List[string]
         description: List of application roles to grant usage privileges to
 
