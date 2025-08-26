@@ -23,7 +23,7 @@
         {% set matching_nodes = nodes
             | selectattr("schema", "equalto", sql_object_schema | lower)
             | selectattr("name", "equalto", sql_object_name | lower)
-            | selectattr("config.materialized", "equalto", object_type | lower)
+            | selectattr("config.materialized", "equalto", object_type | lower | replace(" ", "_"))
         %}
         {% for node in matching_nodes %}
             {% do dbt_models.append(node.schema ~ "." ~ node.name) %}

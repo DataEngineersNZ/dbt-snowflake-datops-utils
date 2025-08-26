@@ -60,6 +60,7 @@ Add the following to your packages.yml file
 - `grant_schema_onwership`
 - `grant_schema_read`
 - `grant_share_read`
+- `grant_usage_to_application`
 
 **merge**
 

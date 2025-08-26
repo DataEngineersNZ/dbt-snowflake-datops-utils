@@ -64,6 +64,21 @@ macros:
         type: List(string)
         description: List of objects to apply the permission to (format = schema.object)
 
+  - name: grant_usage_to_application
+    description: This macro grants usage privileges on specific objects to a specific application role.
+    docs:
+      show: true
+    arguments:
+      - name: object_type
+        type: string
+        description: Type of the object eg- TABLE, VIEW, SCHEMA
+      - name: prefix
+        type: string
+        description: Prefix for the objects to apply the permission to (format = schema.object)
+      - grant_applications:
+        type: List[string]
+        description: List of application roles to grant usage privileges to
+
   - name: grant_privileges
     description: This macro is an example of how to grant privileges across environments based on targets
     docs:

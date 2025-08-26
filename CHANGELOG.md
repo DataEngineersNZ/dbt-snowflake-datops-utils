@@ -1,6 +1,11 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v0.3.8.5 2025-08-25 - Grant Usage to Application
+
+* added grant usage to application for `sp_sync_` in the `grant_privileges` macro
+* fixed issue with `clean_generic` macro not handling `file formats` and `network rules` correctly causing them to be dropped at the end of a dbt run
+
 ## v0.3.8.4 2025-08-22 - Materialized View Handling
 
 * added handling for materialized views in the `clean_models` macro
