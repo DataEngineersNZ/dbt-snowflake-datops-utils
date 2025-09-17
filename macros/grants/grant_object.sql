@@ -6,7 +6,7 @@
         {% set execute_statements = [] %}
 
         {% for object in objects %}
-            {% do log("====> Processing " ~ object_type ~ " for " ~ object, info=True) %}
+            {% do log("====> Processing " ~ object_type ~ " for " ~ object ~ " with grants " ~ grant_types | join(", ") ~ " and roles " ~ grant_roles | join(", "), info=True) %}
             {% set query %}
                 show grants on {{ object_type }} {{ target.database }}.{{ object }};
             {% endset %}
@@ -26,13 +26,16 @@
                     {% endif %}
                 {% endfor %}
                 {% for role in grant_roles %}
+                    {% do log("====> Checking " ~ object_type ~ " for " ~ object ~ " with role " ~ role, info=True) %}
                     {% set existing_role_grants = [] %}
                     {% for existing_grant in existing_grants %}
                         {% if existing_grant.role == role %}
                             {{ existing_role_grants.append(existing_grant.privilege) }}
                         {% endif %}
                     {% endfor %}
+                    {% do log("====> Checking " ~ object_type ~ " for " ~ object ~ " with role " ~ role ~ " : existing_role_grants - " ~ existing_role_grants | join(", "), info=True) %}
                     {% for privilege in grant_types %}
+                        {% do log("====> Checking " ~ object_type ~ " for " ~ object ~ " with privilege " ~ privilege, info=True) %}
                         {% if privilege not in existing_role_grants %}
                             {{ grant_statements.append({ "privilege" : privilege, "role" : role, "object" : object }) }}
                         {% endif %}
