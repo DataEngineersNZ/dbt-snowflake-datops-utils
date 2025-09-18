@@ -2,7 +2,7 @@ version: 2
 
 macros:
   - name: get_merge_statement
-    description: This macro generates a merge statement based off 2 tables so it can be used for incrementally updating a table.
+    description: Generate a MERGE statement between source and destination for incremental upsert logic.
     docs:
       show: true
     arguments:
@@ -23,7 +23,7 @@ macros:
         description: any additional columns to use during the merge
 
   - name: get_default_merge_statement
-    description: This macro generates a merge statement based off 2 tables so it can be used for incrementally updating a table. This macro uses the default version of get_merge_sql marco rather than a specific providers one
+    description: Same as get_merge_statement but forces use of the default adapter macro implementation.
     docs:
       show: true
     arguments:

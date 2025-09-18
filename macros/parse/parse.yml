@@ -32,7 +32,7 @@ macros:
         type: TEXT
 
   - name: to_date
-    description: This macro generates a date based on the incoming string with a specified date format
+    description: Parse a string into a date using the supplied format pattern.
     docs:
       show: true
     arguments:
@@ -44,7 +44,7 @@ macros:
         type: TEXT
 
   - name: num_to_date
-    description: Converts a number in the format of yyyymmdd to a date
+    description: Convert a numeric yyyymmdd value to a date.
     docs:
       show: true
     arguments:
@@ -53,7 +53,7 @@ macros:
         description: The number to convert into a date
 
   - name: string_to_num
-    description: Converts a string to a number
+    description: Convert a numeric-looking string to a number.
     docs:
       show: true
     arguments:
@@ -62,7 +62,7 @@ macros:
         description: The field containing the string to convert
 
   - name: null_to_empty_string
-    description: Converts a null value to an empty string
+    description: Replace NULL with empty string for the given expression.
     docs:
       show: true
     arguments:
@@ -72,7 +72,7 @@ macros:
 
 
   - name: string_epoch_to_timestamp_ltz
-    description: Converts a date in the form of a string epoch (eg Date('')) to a timestamp_ltz
+    description: Convert a string epoch (e.g. Date('...')) to TIMESTAMP_LTZ.
     docs:
       show: true
     arguments:
@@ -81,7 +81,7 @@ macros:
         description: The field containing the string to convert
 
   - name: string_epoch_to_timestamp_ntz
-    description: Converts a date in the form of a string epoch (eg Date('')) to a timestamp_ntz
+    description: Convert a string epoch (e.g. Date('...')) to TIMESTAMP_NTZ.
     docs:
       show: true
     arguments:

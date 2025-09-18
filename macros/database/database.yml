@@ -2,6 +2,7 @@ version: 2
 
 macros:
   - name: database_clone
+    description: Clone (zero-copy) a source database into a new destination database optionally transferring ownership.
     arguments:
       - name: source_database
         description: Source database name, i.e. database to be cloned
@@ -11,6 +12,7 @@ macros:
         description: "[Optional] The new owner role of the newly created object"
 
   - name: schema_clone
+    description: Clone (zero-copy) a source schema into a destination schema; database defaults to target if not supplied.
     arguments:
       - name: source_schema
         description: Source schema name, i.e. schema to be cloned
@@ -24,6 +26,7 @@ macros:
         description: "[Optional] The new owner role of the newly created object"
 
   - name: database_destroy
+    description: Drop the supplied database (destructive operation).
     arguments:
       - name: database_name
         description: Database to drop

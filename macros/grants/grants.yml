@@ -1,5 +1,13 @@
 version: 2
 
+# NOTE (refactor summary - do not alter macro interfaces):
+# Ownership and grant macros have been refactored for consistency:
+# - Top-level action macros now log summaries instead of returning data
+# - Ownership helper macros implement early exits (flags.WHICH + execute) and structured logging
+# - Statement construction is standardized; duplicate privilege accumulation removed
+# - Argument signatures remain unchanged; only documentation clarified below where list types were previously marked as string
+# - Set var('grants_dry_run', true) in a dbt invocation to log all statements without executing them for newly refactored macros
+
 macros:
   - name: grant_database_ownership
     description: This macro grants ownership privileges to the specified rolename on the database.
@@ -25,13 +33,13 @@ macros:
 
 
   - name: grant_database_usage
-    description: This macro grants usage privilages to the specified rolename inside the database. To get access on the database, the rolename needs to have usage privilege in the database.
+    description: This macro grants usage privileges to the specified roles and/or shares inside the database.
     docs:
       show: true
     arguments:
       - name: grant_roles
         type: List[string]
-        description: Name of the roles to apply eg- ['READERS_PROD', 'ANALYST', 'OPS_SUPPORT']
+        description: List of roles to apply eg- ['READERS_PROD', 'ANALYST', 'OPS_SUPPORT']
       - name: grant_shares
         type: List[string]
         description: Name of the shares to apply database usage to
@@ -61,7 +69,7 @@ macros:
         type: string
         description: Type of the object eg- TABLE, VIEW, SCHEMA
       - name: objects
-        type: List(string)
+        type: List[string]
         description: List of objects to apply the permission to (format = schema.object)
 
   - name: grant_usage_to_application
@@ -193,8 +201,8 @@ macros:
         type: List[string]
         description: List of schemas to exclude
       - name: grant_roles
-        type: string
-        description: Name of the roles to apply eg- ['READERS_PROD', 'ANALYST', 'OPS_SUPPORT']
+        type: List[string]
+        description: List of roles to apply eg- ['READERS_PROD', 'ANALYST', 'OPS_SUPPORT']
       - name: include_future_grants
         type: "boolean"
         description: Specifies if to include future grants or not
@@ -208,8 +216,8 @@ macros:
         type: List[string]
         description: List of schemas to include
       - name: grant_roles
-        type: string
-        description: Name of the roles to apply eg- ['READERS_PROD', 'ANALYST', 'OPS_SUPPORT']
+        type: List[string]
+        description: List of roles to apply eg- ['READERS_PROD', 'ANALYST', 'OPS_SUPPORT']
       - name: include_future_grants
         type: "boolean"
         description: Specifies if to include future grants or not
@@ -226,8 +234,8 @@ macros:
         type: List[string]
         description: List of secured views to include [schema.view]
       - name: grant_shares
-        type: "List[string]"
-        description: Name of the shares to apply
+        type: List[string]
+        description: List of shares to apply
       - name: revoke_current_grants
         type: "boolean"
         description: Revoke current grants on the schemas
@@ -249,3 +257,15 @@ macros:
       - name: revoke_current_grants
         type: "boolean"
         description: Specifies if to revoke current grants or not
+
+  - name: grants_smoke_test
+    description: Lightweight validation macro that exercises a subset of grant macros (monitor, operate, read, share) – intended for CI dry-run verification.
+    docs:
+      show: true
+    arguments:
+      - name: role
+        type: string
+        description: Role to test with
+      - name: sample_schema
+        type: string
+        description: Schema to scope sample grant operations to

@@ -2,14 +2,14 @@ version: 2
 
 macros:
   - name: apply_meta_as_tags
-    description: This macro is designed to be used as post-hook for models to apply the relevant meta data as tags on the view or table
+    description: Post-hook macro to apply selected model/column meta entries as Snowflake tags.
     docs:
       show: true
   - name: model_contains_tag_meta
-    description: This macro is designed to check if the meta data element and the associated tag is available on the model definition
+    description: Helper: check if the model contains a compatible meta entry for a tag.
     docs:
       show: false
   - name: set_column_tag_value
-    description: This macro is designed to apply a tag to a model if the model contains a column with a given tag meta
+    description: Helper: apply a tag to a column if a matching meta key exists.
     docs:
       show: false

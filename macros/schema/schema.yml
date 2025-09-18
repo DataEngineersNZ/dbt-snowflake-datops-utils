@@ -41,7 +41,7 @@ macros:
         description: Include database name if model exists in another snowflake database. Default is false.
 
   - name: model_ref
-    description: This macro generates an model reference but doesn't leave a dependancy
+    description: Return a model relation without creating an explicit dependency node.
     docs:
       show: true
     arguments:
@@ -50,7 +50,7 @@ macros:
         description: Name of the model
 
   - name: model_source
-    description: This macro generates a source reference but doesn't leave a dependancy
+    description: Return a source relation without creating an explicit dependency node.
     docs:
       show: true
     arguments:

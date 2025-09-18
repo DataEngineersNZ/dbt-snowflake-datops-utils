@@ -2,7 +2,7 @@ version: 2
 
 macros:
   - name: clean_functions
-    description: This macro compares dbt user defined functions with those deployed and removes from snowflake if they no longer exist in dbt.
+    description: Reconcile dbt-defined user defined functions vs deployed; drop any orphaned in Snowflake.
     docs:
       show: true
     arguments:
@@ -14,7 +14,7 @@ macros:
         description: specifies if the macro should run in dry run mode
 
   - name: clean_generic
-    description: This macro compares dbt streams or tasks with those deployed and removes from snowflake if they no longer exist in dbt.
+    description: Reconcile streams / tasks / stages vs dbt definitions; drop those no longer present.
     docs:
       show: true
     arguments:
@@ -29,7 +29,7 @@ macros:
         description: specifies if the macro should run in dry run mode
 
   - name: clean_models
-    description: This macro compares dbt tables, external tables and views with those deployed and removes from snowflake if they no longer exist in dbt.
+    description: Reconcile dbt tables, external tables & views with deployed objects; remove orphans.
     docs:
       show: true
     arguments:
@@ -41,7 +41,7 @@ macros:
         description: specifies if the macro should run in dry run mode
 
   - name: clean_objects
-    description: This macro runs all the other clean macros and should be used on a post-hook event
+    description: Convenience orchestrator to run all clean_* macros (suitable for post-hook usage).
     docs:
       show: true
     arguments:
@@ -57,7 +57,7 @@ macros:
      
 
   - name: clean_schemas
-    description: This macro compares dbt schemas with those deployed and removes from snowflake if they no longer exist in dbt.
+    description: Reconcile schema list vs dbt; drop schemas no longer defined.
     docs:
       show: true
     arguments:
@@ -108,7 +108,7 @@ macros:
         description: arguments of the sql object
 
   - name: clean_stale_models
-    description: This macro removes stale models from snowflake
+    description: Drop models in a schema older than N days (stale artifact cleanup).
     docs:
       show: true
     arguments:
