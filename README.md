@@ -61,6 +61,8 @@ Below is a catalogue of publicly supported macros grouped by domain. Internal he
 - `grant_schema_operate`
 - `grant_schema_operate_specific`
 - `grant_schema_ownership`
+- `grant_schema_procedure_usage`
+- `grant_schema_procedure_usage_specific`
 - `grant_schema_read`
 - `grant_schema_read_specific`
 - `grant_share_read`
@@ -160,6 +162,7 @@ High-level macro intent summary:
 - `grant_schema_read*`: Ensures read usage, SELECT/REFERENCE privileges, optional future grants.
 - `grant_schema_monitor*`: Grants MONITOR on tasks/pipes + schema usage.
 - `grant_schema_operate*`: Grants OPERATE on tasks/pipes + schema usage.
+- `grant_schema_procedure_usage*`: Grants USAGE on all procedures + schema usage, with future grants.
 - `grant_share_read*`: Manages secure view exposure to outbound shares (revokes unmanaged, grants managed).
 - `grant_object`: Reconciles privilege sets on specific objects (TABLE/VIEW/PROCEDURE/FUNCTION/etc).
 - `grant_privileges`: Environment-aware bundle orchestrator.

@@ -269,3 +269,33 @@ macros:
       - name: sample_schema
         type: string
         description: Schema to scope sample grant operations to
+
+  - name: grant_schema_procedure_usage
+    description: Grant USAGE privilege on all procedures in all schemas to specified roles.
+    docs:
+      show: true
+    arguments:
+      - name: exclude_schemas
+        type: List[string]
+        description: List of schemas to exclude from procedure grants
+      - name: grant_roles
+        type: List[string]
+        description: List of roles to grant procedure usage to
+
+  - name: grant_schema_procedure_usage_specific
+    description: Grant USAGE privilege on all procedures in specific schemas to specified roles.
+    docs:
+      show: true
+    arguments:
+      - name: schemas
+        type: List[string]
+        description: List of schemas to include for procedure grants
+      - name: grant_roles
+        type: List[string]
+        description: List of roles to grant procedure usage to
+      - name: revoke_current_grants
+        type: boolean
+        description: Whether to revoke existing grants from roles not in grant_roles
+      - name: dry_run
+        type: boolean
+        description: Whether to run in dry-run mode (log statements without executing)
