@@ -33,7 +33,8 @@ These ideas intentionally deferred to keep current refactor incremental.
     {% if list_values | length == 0 %}
         {% do return('') %}
     {% endif %}
-    {% set formatted = "'" ~ (list_values | join("', '")) ~ "'" %}
+    {% set escaped_list = list_values | map('replace', "'", "''") | list %}
+    {% set formatted = "'" ~ (escaped_list | join("', '")) ~ "'" %}
     {% do return(formatted) %}
 {% endmacro %}
 
