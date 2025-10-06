@@ -49,7 +49,7 @@
 
         {% if execute and proc_results %}
             {% for row in proc_results %}
-                {% set full_proc_name = row.routine_name %}
+                {% set full_proc_name = row[3] %}
                 {% do procedures.append(full_proc_name) %}
             {% endfor %}
         {% endif %}
