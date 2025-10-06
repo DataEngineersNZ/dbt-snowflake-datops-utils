@@ -38,7 +38,7 @@ Below is a catalogue of publicly supported macros grouped by domain. Internal he
 - `database_destroy` – drop database
 - `schema_clone` – zero-copy clone a schema
 
-**dependancies** (non-lineage referencing)
+**dependencies** (non-lineage referencing)
 
 - `depends_on_ref` – commented reference to model
 - `depends_on_source` – commented reference to source
