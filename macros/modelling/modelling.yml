@@ -53,7 +53,7 @@ macros:
         description: The Name of the TimeKey Column.
 
   - name: dimension_id
-    description: This macro concatinates the specified columns into a single column and is designed to create a unique ID for a dimension.
+    description: Concatenate the specified columns into a single surrogate identifier suitable for a dimension primary key.
     docs:
       show: true
     arguments:

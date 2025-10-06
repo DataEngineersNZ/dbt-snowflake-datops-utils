@@ -2,7 +2,7 @@ version: 2
 
 macros:
   - name: depends_on_ref
-    description: This macro adds a commented refrence to a reference model
+    description: This macro adds a commented reference to a reference model so downstream lineage remains implicit.
     docs:
       show: true
     arguments:
@@ -14,7 +14,7 @@ macros:
         description: the reference model to add
 
   - name: depends_on_source
-    description: This macro adds a commented refrence to a source model
+    description: This macro adds a commented reference to a source model so downstream lineage remains implicit.
     docs:
       show: true
     arguments:

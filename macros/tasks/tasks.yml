@@ -2,7 +2,7 @@ version: 2
 
 macros:
   - name: enable_dependent_tasks
-    description: This macro enables the task dependants of a task
+    description: Enable all dependent (downstream) tasks for a given root task when target allowed.
     docs:
       show: true
     arguments:
@@ -14,7 +14,7 @@ macros:
         description: List of environments/targets to enable in
 
   - name: execute_task
-    description: This macro executes a task in the context of a target
+    description: Execute a task for the current target if the environment is enabled.
     docs:
       show: true
     arguments:
