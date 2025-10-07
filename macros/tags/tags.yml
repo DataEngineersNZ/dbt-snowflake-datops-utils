@@ -6,10 +6,10 @@ macros:
     docs:
       show: true
   - name: model_contains_tag_meta
-    description: Helper: check if the model contains a compatible meta entry for a tag.
+    description: check if the model contains a compatible meta entry for a tag.
     docs:
       show: false
   - name: set_column_tag_value
-    description: Helper: apply a tag to a column if a matching meta key exists.
+    description: apply a tag to a column if a matching meta key exists.
     docs:
       show: false
