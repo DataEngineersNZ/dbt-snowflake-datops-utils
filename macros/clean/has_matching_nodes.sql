@@ -5,7 +5,7 @@
         %}
 
         {% for node in matching_nodes %}
-            -- Ensure there are no line breaks in the arguments
+            {# Ensure there are no line breaks in the arguments #}
             {% set dbt_arguments = node.config.parameters | lower | replace("string", "varchar") | replace('\n', '') | replace('\r', '') %}
 
             {% if name_property == "config.override_name" %}

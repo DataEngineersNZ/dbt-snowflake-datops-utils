@@ -4,13 +4,13 @@ This file contains the changelog for the Data Engineers Snowflake DataOps Utils 
 ## v0.3.10 - 2026-02-10 - Grant Shares
 
 * added macro `grant_internal_share_read` to apply `select` permissions on all tables and views
-* added macro `create_internal_share` which will create a share which allows unsecured objects and grant reference usages on downstream databases
+* added macro `create_internal_share` which will create a share that allows unsecured objects and grants reference usage on downstream databases
 * updated macro `has_matching_nodes` to cater for line breaks in the arguments being passed in
 * updated version of `dbt_utils` to 1.3.3
 
 ## v0.3.9.1 2025-07-10 - Tag Doc Fix
 
-* fixed issue hwhen
+* fixed issue where tag documentation was not being rendered correctly
 
 ## v0.3.9 2025-06-10 - Grant Object For Procedures
 
