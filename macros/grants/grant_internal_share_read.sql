@@ -4,6 +4,10 @@
   {% do log("Granting SELECT on all tables and views in all schemas for share: " ~ share_name, info=True) %}
   {% for schema in schemas %}
     {# Get all tables in the schema #}
+    {% set schema_query %}
+      grant usage on schema {{ database }}.{{ schema }} to share {{ share_name }};
+    {% endset %}
+    {% do run_query(schema_query) %}
     {% set tables_query %}
       show tables in schema {{ database }}.{{ schema }};
     {% endset %}
