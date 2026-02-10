@@ -2,14 +2,55 @@ version: 2
 
 macros:
   - name: apply_meta_as_tags
-    description: Post-hook macro to apply selected model/column meta entries as Snowflake tags.
+    description: |
+      Post-hook macro to apply selected model/column meta entries as Snowflake tags.
+      Iterates over columns in a model and applies tags based on provided tag_names, using set_column_tag_value for each match.
     docs:
       show: true
+    arguments:
+      - name: tag_names
+        type: List[string]
+        description: List of tag names to apply to columns if present in meta
+
   - name: model_contains_tag_meta
-    description: check if the model contains a compatible meta entry for a tag.
+    description: |
+      Checks if the model contains any compatible meta entry for the provided tag names.
+      Returns True if any column meta matches a tag name, otherwise False.
     docs:
       show: false
+    arguments:
+      - name: tag_names
+        type: List[string]
+        description: List of tag names to check for in column meta
+      - name: model_node
+        type: object
+        description: The model node to inspect for meta tags
+
   - name: set_column_tag_value
-    description: apply a tag to a column if a matching meta key exists.
+    description: |
+      Applies or unsets a tag on a column if a matching meta key exists and the value is not public/none.
+      Handles tag name mapping and executes the appropriate ALTER statement for the column.
     docs:
       show: false
+    arguments:
+      - name: materlization
+        type: string
+        description: The materialization type (table, view, etc.)
+      - name: model_schema
+        type: string
+        description: The schema of the model
+      - name: model_name
+        type: string
+        description: The name of the model
+      - name: column_name
+        type: string
+        description: The column to apply the tag to
+      - name: tag_name
+        type: string
+        description: The tag name to apply
+      - name: desired_tag_value
+        type: string
+        description: The value to set for the tag
+      - name: existing_tags_for_table
+        type: object
+        description: Existing tags for the table, used to check current tag state

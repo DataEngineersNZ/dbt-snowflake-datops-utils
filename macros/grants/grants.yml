@@ -9,6 +9,21 @@ version: 2
 # - Set var('grants_dry_run', true) in a dbt invocation to log all statements without executing them for newly refactored macros
 
 macros:
+  - name: grant_internal_share_read
+    description: Grants SELECT on all tables and views in all schemas of the target database to the specified share. Executes grant statements for each table and view found.
+    docs:
+      show: true
+    arguments:
+      - name: share_name
+        type: string
+        description: Name of the share to grant SELECT privileges to
+      - name: exclude_schemas
+        type: List[string]
+        description: Optional list of schemas to exclude from granting (defaults to an empty list)
+      - name: dry_run
+        type: "boolean"
+        description: If true, log all grant statements without executing them
+
   - name: grant_database_ownership
     description: This macro grants ownership privileges to the specified rolename on the database.
     docs:
@@ -61,16 +76,24 @@ macros:
 
 
   - name: grant_object
-    description: This macro grants specific object permissions to specific roles.
+    description: |
+      Grants specified privileges on objects (TABLE, VIEW, SCHEMA, etc.) to the provided roles.
+      Handles both granting and revoking privileges based on current state, logging a summary of actions taken.
     docs:
       show: true
     arguments:
       - name: object_type
         type: string
-        description: Type of the object eg- TABLE, VIEW, SCHEMA
+        description: Type of the object (e.g., TABLE, VIEW, SCHEMA)
       - name: objects
         type: List[string]
         description: List of objects to apply the permission to (format = schema.object)
+      - name: grant_types
+        type: List[string]
+        description: List of privilege types to grant (e.g., SELECT, REFERENCES)
+      - name: grant_roles
+        type: List[string]
+        description: List of roles to grant privileges to
 
   - name: grant_usage_to_application
     description: This macro grants usage privileges on specific objects to a specific application role.
@@ -115,7 +138,9 @@ macros:
         description: List of schemas to grant usage privileges on
 
   - name: grant_privileges
-    description: This macro is an example of how to grant privileges across environments based on targets
+    description: |
+      Grants a bundle of privileges across environments based on target context.
+      Calls multiple grant macros for database, schema, and role management, orchestrating environment-specific grants.
     docs:
       show: true
     arguments:
@@ -124,7 +149,9 @@ macros:
         description: List of schemas which are domain specific that should be exposed
 
   - name: grant_schema_monitor
-    description: This macro grants monitor privilege inside all schemas to the specified rolename.
+    description: |
+      Grants MONITOR privilege on all objects in all schemas to the specified roles, excluding any schemas listed.
+      Uses grant_schema_monitor_specific for per-schema operations and supports dry-run mode.
     docs:
       show: true
     arguments:
@@ -132,8 +159,8 @@ macros:
         type: List[string]
         description: List of schemas to exclude
       - name: grant_roles
-        type: "List[string]"
-        description: Name of the roles to apply eg- ['READERS_PROD', 'ANALYST', 'OPS_SUPPORT']
+        type: List[string]
+        description: List of roles to apply (e.g., ['READERS_PROD', 'ANALYST', 'OPS_SUPPORT'])
 
   - name: grant_schema_monitor_specific
     description: This macro grants monitor privilege inside specific schemas to the specified rolename.
@@ -226,7 +253,10 @@ macros:
         description: Specifies if to revoke current grants or not
 
   - name: grant_share_read
-    description: This macro grants monitor privilege inside specific schemas to the specified rolename.
+    description: |
+      Grants SELECT on specified views to the provided shares, and optionally revokes unmanaged grants.
+      Handles both granting and revoking privileges for views in schemas, based on the view_names and grant_shares arguments.
+      Uses grant_share_read_specific_schema for per-schema operations.
     docs:
       show: true
     arguments:
@@ -237,8 +267,8 @@ macros:
         type: List[string]
         description: List of shares to apply
       - name: revoke_current_grants
-        type: "boolean"
-        description: Revoke current grants on the schemas
+        type: boolean
+        description: Whether to revoke unmanaged grants before applying new ones
 
   - name: grant_share_read_specific_schema
     description: This macro grants select permissions to the specified view for the shares provided.

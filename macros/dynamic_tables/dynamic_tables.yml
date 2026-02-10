@@ -2,20 +2,26 @@ version: 2
 
 macros:
   - name: target_lag_environment
-    description: Set the dynamic table target lag duration based on the active target (prod/test/other) to tune freshness vs cost.
+    description: |
+      Returns the lag duration for a dynamic table based on the current target environment.
+      Accepts durations for prod, test, and other environments, and returns the appropriate value.
     docs:
       show: true
     arguments:
       - name: duration_prod
-        type: number
-        description: specifies the lag duration for the production environment
+        type: any
+        description: Lag duration for the production environment
       - name: duration_test
-        type: number
-        description: specifies the lag duration for the test environment
+        type: any
+        description: Lag duration for the test environment
       - name: duration_other
-        type: number
-        description: specifies the lag duration for other environments
+        type: any
+        description: Lag duration for other environments
+
   - name: target_warehouse_environment
-    description: Select the warehouse to be used for dynamic tables based on target environment (e.g. smaller warehouse for dev/test).
+    description: |
+      Returns the warehouse name to be used for dynamic tables based on the current target environment.
+      Uses DEV_WH for local-dev, otherwise DATAOPS_WH.
     docs:
       show: true
+    arguments: []

@@ -2,16 +2,35 @@ version: 2
 
 macros:
   - name: create_share
-    description: This macro grants creates a share and grants usage on the associated accounts
+    description: |
+      Creates or updates a Snowflake share and grants usage to specified accounts.
+      This macro is used to provision secure data sharing between Snowflake accounts.
+      It creates the share if it does not exist, and grants usage privileges to the target database and reference usage to additional databases for the listed accounts.
+      Only runs in specified environments.
+    docs:
+      show: true
+    arguments:
+      - name: share_name
+        type: string
+        description: The name of the share to be created or updated.
+      - name: accounts
+        type: List[string]
+        description: List of Snowflake accounts to grant usage on the share.
+      - name: environments
+        type: List[string]
+        description: List of environments in which the macro should run.
+
+  - name: create_internal_share
+    description: Creates or updates a Snowflake share, grants usage on the target database, and reference usage on additional databases. Only runs in specified environments.
     docs:
       show: true
     arguments:
       - name: share_name
         type: string
         description: Name of the share to be created or updated
-      - name: accounts
-        description: List of accounts to grant usage on the share
+      - name: reference_databases
         type: List[string]
+        description: List of databases to grant reference usage to the share
       - name: environments
-        type: string
-        description: The environments to include the share
+        type: List[string]
+        description: List of environments in which the macro should run

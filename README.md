@@ -54,6 +54,7 @@ Below is a catalogue of publicly supported macros grouped by domain. Internal he
 - `grant_integration_ownership`
 - `grant_database_usage`
 - `grant_integration_usage`
+- `grant_internal_share_read`
 - `grant_object`
 - `grant_privileges`
 - `grant_schema_monitor`
@@ -110,6 +111,11 @@ Below is a catalogue of publicly supported macros grouped by domain. Internal he
 - `model_source`
 - `ref` (enhanced include_database)
 - `source` (enhanced include_database)
+
+**shares**
+
+- `create_internal_share`
+- `create_share`
 
 **tags**
 
