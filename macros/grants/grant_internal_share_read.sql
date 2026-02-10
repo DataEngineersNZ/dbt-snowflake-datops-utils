@@ -2,7 +2,11 @@
   {% if flags.WHICH in ['run', 'run-operation'] %}
     {% if execute %}
       {% set database = target.database %}
-      {% if exclude_schemas is not iterable %}
+      {% if exclude_schemas is none %}
+        {% set exclude_schemas = [] %}
+      {% elif exclude_schemas is string %}
+        {% set exclude_schemas = [exclude_schemas] %}
+      {% elif exclude_schemas is not iterable %}
         {% set exclude_schemas = [] %}
       {% endif %}
       {% set schemas = dbt_dataengineers_utils._grants_collect_schemas(exclude_schemas) %}
