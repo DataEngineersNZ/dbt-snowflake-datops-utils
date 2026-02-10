@@ -19,7 +19,10 @@ macros:
         description: Name of the share to grant SELECT privileges to
       - name: exclude_schemas
         type: List[string]
-        description: List of schemas to exclude from granting
+        description: Optional list of schemas to exclude from granting (defaults to an empty list)
+      - name: dry_run
+        type: "boolean"
+        description: If true, log all grant statements without executing them
 
   - name: grant_database_ownership
     description: This macro grants ownership privileges to the specified rolename on the database.
