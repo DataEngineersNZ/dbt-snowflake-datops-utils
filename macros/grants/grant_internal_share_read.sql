@@ -12,6 +12,14 @@
       {% set schemas = dbt_dataengineers_utils._grants_collect_schemas(exclude_schemas) %}
       {% do log("Granting SELECT on all tables and views in all schemas for share: " ~ share_name ~ " (dry_run=" ~ dry_run ~ ")", info=True) %}
       {% for schema in schemas %}
+        {% set grant_usage %}
+          grant usage on schema {{ database }}.{{ schema }} to share {{ share_name }};
+        {% endset %}
+        {% if dry_run %}
+          {% do log(grant_usage, info=True) %}
+        {% else %}
+          {% do run_query(grant_usage) %}
+        {% endif %}
         {# Grant SELECT on all tables in schema #}
         {% set grant_tables_sql %}
           grant select on all tables in schema {{ database }}.{{ schema }} to share {{ share_name }};
