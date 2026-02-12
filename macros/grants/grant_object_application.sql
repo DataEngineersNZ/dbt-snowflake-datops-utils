@@ -20,7 +20,7 @@
     {% set grant_statements = [] %}
 
     {% for object in objects %}
-        {% set existing_role_priv_map = {} %} {# key role -> list of privs #}
+        {% set existing_application_priv_map = {} %} {# key applications -> list of privs #}
         {% do log('====> Processing ' ~ object_type ~ ' ' ~ object ~ ' with desired privileges ' ~ (grant_types | join(', ')) ~ ' for applications ' ~ (grant_applications | join(', ')), info=True) %}
         {% set query %}
             show grants on {{ object_type }} {{ target.database }}.{{ object }};
@@ -30,24 +30,24 @@
             {% for row in results %}
                 {% if row.granted_to == 'APPLICATION' and row.privilege not in excluded_privs %}
                     {# classify existing privilege #}
-                    {% set _role = row.grantee_name %}
+                    {% set _application = row.grantee_name %}
                     {% set _priv = row.privilege %}
                     {% if _priv in grant_types %}
-                        {% if _role not in grant_applications %}
-                            {{ revoke_statements.append('revoke ' ~ _priv | lower ~ ' on ' ~ object_type ~ ' ' ~ target.database ~ '.' ~ object ~ ' from application ' ~ _role | lower ~ ';') }}
+                        {% if _application not in grant_applications %}
+                            {% do revoke_statements.append('revoke ' ~ _priv | lower ~ ' on ' ~ object_type ~ ' ' ~ target.database ~ '.' ~ object ~ ' from application ' ~ _application | lower ~ ';') %}
                         {% else %}
                             {# track existing desired priv #}
-                            {% if existing_role_priv_map.get(_role) is none %}
-                                {% set _ = existing_role_priv_map.update({_role: []}) %}
+                            {% if existing_application_priv_map.get(_application) is none %}
+                                {% set _ = existing_application_priv_map.update({_application: []}) %}
                             {% endif %}
-                            {% if _priv not in existing_role_priv_map.get(_role) %}
-                                {% set __ = existing_role_priv_map.get(_role).append(_priv) %}
+                            {% if _priv not in existing_application_priv_map.get(_application) %}
+                                {% set __ = existing_application_priv_map.get(_application).append(_priv) %}
                             {% endif %}
                         {% endif %}
                     {% else %}
-                        {# privilege not desired -> revoke if granted to managed roles #}
-                        {% if _role in grant_applications or _priv in revokable_read_privs %}
-                            {{ revoke_statements.append('revoke ' ~ _priv | lower ~ ' on ' ~ object_type ~ ' ' ~ target.database ~ '.' ~ object ~ ' from application ' ~ _role | lower ~ ';') }}
+                        {# privilege not desired -> revoke if granted to managed applications #}
+                        {% if _application in grant_applications or _priv in revokable_read_privs %}
+                            {% do revoke_statements.append('revoke ' ~ _priv | lower ~ ' on ' ~ object_type ~ ' ' ~ target.database ~ '.' ~ object ~ ' from application ' ~ _application | lower ~ ';') %}
                         {% endif %}
                     {% endif %}
                 {% endif %}
@@ -56,11 +56,11 @@
 
         {# Determine grants needed #}
         {% for application in grant_applications %}
-            {% set existing_for_application = existing_role_priv_map.get(application) if existing_role_priv_map.get(application) is not none else [] %}
+            {% set existing_for_application = existing_application_priv_map.get(application) if existing_application_priv_map.get(application) is not none else [] %}
             {% do log('====> Existing grants for application ' ~ application ~ ' on ' ~ object ~ ' : ' ~ (existing_for_application | join(', ')), info=True) %}
             {% for privilege in grant_types %}
                 {% if privilege not in existing_for_application %}
-                    {{ grant_statements.append('grant ' ~ privilege | lower ~ ' on ' ~ object_type ~ ' ' ~ target.database ~ '.' ~ object ~ ' to application ' ~ application | lower ~ ';') }}
+                    {% do grant_statements.append('grant ' ~ privilege | lower ~ ' on ' ~ object_type ~ ' ' ~ target.database ~ '.' ~ object ~ ' to application ' ~ application | lower ~ ';') %}
                 {% endif %}
             {% endfor %}
         {% endfor %}
