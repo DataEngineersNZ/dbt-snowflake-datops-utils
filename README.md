@@ -56,6 +56,7 @@ Below is a catalogue of publicly supported macros grouped by domain. Internal he
 - `grant_integration_usage`
 - `grant_internal_share_read`
 - `grant_object`
+- `grant_object_application`
 - `grant_privileges`
 - `grant_schema_monitor`
 - `grant_schema_monitor_specific`

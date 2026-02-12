@@ -75,6 +75,7 @@
                 and table_privileges.table_catalog = tables.table_catalog
             where tables.table_schema = '{{ schema }}'
               and table_privileges.privilege_type in ('SELECT','REFERENCES','REBUILD')
+              and granted_to = 'ROLE'
         {% endset %}
         {% set tbl_privs = run_query(priv_query) %}
         {% if tbl_privs %}
