@@ -50,7 +50,7 @@
             {% for row in grants_results %}
                 {% if row.privilege == 'USAGE' and row.granted_to == 'ROLE' %}
                     {% if row.grantee_name not in grant_roles and revoke_current_grants and row.grantee_name in snowflake_roles %}
-                        {{ execute_statements.append('revoke usage on schema ' ~ target.database ~ '.' ~ schema ~ ' from role ' ~ row.grantee_name | lower ~ ';') }}
+                        {% do execute_statements.append('revoke usage on schema ' ~ target.database ~ '.' ~ schema ~ ' from role ' ~ row.grantee_name | lower ~ ';') %}
                     {% endif %}
                 {% endif %}
             {% endfor %}
@@ -85,32 +85,32 @@
                 {% set priv = row[2] %}
                 {% set grantee = row[3] %}
                 {% if priv in revoke_table_privs and grantee not in grant_roles and revoke_current_grants and grantee in snowflake_roles %}
-                    {{ execute_statements.append('revoke ' ~ priv | lower ~ ' on all ' ~ obj_type | lower ~ 's in schema ' ~ target.database ~ '.' ~ sch | lower ~ ' from role ' ~ grantee | lower ~ ';') }}
+                    {% do execute_statements.append('revoke ' ~ priv | lower ~ ' on all ' ~ obj_type | lower ~ 's in schema ' ~ target.database ~ '.' ~ sch | lower ~ ' from role ' ~ grantee | lower ~ ';') %}
                 {% endif %}
             {% endfor %}
         {% endif %}
 
         {# Build grant statements #}
         {% for role in grant_roles %}
-            {{ execute_statements.append('grant usage on schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') }}
-            {{ execute_statements.append('grant select on all views in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') }}
-            {{ execute_statements.append('grant select on all materialized views in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') }}
-            {{ execute_statements.append('grant select on all tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') }}
-            {{ execute_statements.append('grant rebuild on all tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') }}
-            {{ execute_statements.append('grant references on all tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') }}
-            {{ execute_statements.append('grant select on all external tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') }}
-            {{ execute_statements.append('grant select on all dynamic tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') }}
-            {{ execute_statements.append('grant select on all streams in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') }}
-            {{ execute_statements.append('grant read on all stages in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') }}
+            {% do execute_statements.append('grant usage on schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+            {% do execute_statements.append('grant select on all views in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+            {% do execute_statements.append('grant select on all materialized views in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+            {% do execute_statements.append('grant select on all tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+            {% do execute_statements.append('grant rebuild on all tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+            {% do execute_statements.append('grant references on all tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+            {% do execute_statements.append('grant select on all external tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+            {% do execute_statements.append('grant select on all dynamic tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+            {% do execute_statements.append('grant select on all streams in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+            {% do execute_statements.append('grant read on all stages in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
             {% if include_future_grants %}
-                {{ execute_statements.append('grant select on future views in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') }}
-                {{ execute_statements.append('grant select on future materialized views in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') }}
-                {{ execute_statements.append('grant select on future tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') }}
-                {{ execute_statements.append('grant rebuild on future tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') }}
-                {{ execute_statements.append('grant references on future tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') }}
-                {{ execute_statements.append('grant select on future external tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') }}
-                {{ execute_statements.append('grant select on future dynamic tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') }}
-                {{ execute_statements.append('grant select on future streams in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') }}
+                {% do execute_statements.append('grant select on future views in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+                {% do execute_statements.append('grant select on future materialized views in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+                {% do execute_statements.append('grant select on future tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+                {% do execute_statements.append('grant rebuild on future tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+                {% do execute_statements.append('grant references on future tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+                {% do execute_statements.append('grant select on future external tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+                {% do execute_statements.append('grant select on future dynamic tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+                {% do execute_statements.append('grant select on future streams in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
             {% endif %}
         {% endfor %}
     {% endfor %}

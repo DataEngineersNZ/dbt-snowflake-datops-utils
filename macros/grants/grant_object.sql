@@ -34,7 +34,7 @@
                     {% set _priv = row.privilege %}
                     {% if _priv in grant_types %}
                         {% if _role not in grant_roles %}
-                            {{ revoke_statements.append('revoke ' ~ _priv | lower ~ ' on ' ~ object_type ~ ' ' ~ target.database ~ '.' ~ object ~ ' from role ' ~ _role | lower ~ ';') }}
+                            {% do revoke_statements.append('revoke ' ~ _priv | lower ~ ' on ' ~ object_type ~ ' ' ~ target.database ~ '.' ~ object ~ ' from role ' ~ _role | lower ~ ';') %}
                         {% else %}
                             {# track existing desired priv #}
                             {% if existing_role_priv_map.get(_role) is none %}
@@ -47,7 +47,7 @@
                     {% else %}
                         {# privilege not desired -> revoke if granted to managed roles #}
                         {% if _role in grant_roles or _priv in revokable_read_privs %}
-                            {{ revoke_statements.append('revoke ' ~ _priv | lower ~ ' on ' ~ object_type ~ ' ' ~ target.database ~ '.' ~ object ~ ' from role ' ~ _role | lower ~ ';') }}
+                            {% do revoke_statements.append('revoke ' ~ _priv | lower ~ ' on ' ~ object_type ~ ' ' ~ target.database ~ '.' ~ object ~ ' from role ' ~ _role | lower ~ ';') %}
                         {% endif %}
                     {% endif %}
                 {% endif %}
@@ -60,7 +60,7 @@
             {% do log('====> Existing grants for role ' ~ role ~ ' on ' ~ object ~ ' : ' ~ (existing_for_role | join(', ')), info=True) %}
             {% for privilege in grant_types %}
                 {% if privilege not in existing_for_role %}
-                    {{ grant_statements.append('grant ' ~ privilege | lower ~ ' on ' ~ object_type ~ ' ' ~ target.database ~ '.' ~ object ~ ' to role ' ~ role | lower ~ ';') }}
+                    {% do grant_statements.append('grant ' ~ privilege | lower ~ ' on ' ~ object_type ~ ' ' ~ target.database ~ '.' ~ object ~ ' to role ' ~ role | lower ~ ';') %}
                 {% endif %}
             {% endfor %}
         {% endfor %}
