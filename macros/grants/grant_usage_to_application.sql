@@ -20,7 +20,7 @@
         {% for object in objects %}
             {% set existing_grants = [] %}
             {% if object[1] not in grant_schemas %}
-                {{ grant_schemas.append(object[1]) }}
+                {% do grant_schemas.append(object[1]) %}
             {% endif %}
             {% set query %}
                 show grants on {{ object_type }} {{ target.database }}.{{ object[2] }};
@@ -31,12 +31,12 @@
                     {% if row.privilege not in ["OWNERSHIP", "SELECT", "REFERENCES", "REBUILD"] %}
                         {% if row.privilege in grant_types %}
                             {% if row.grantee_name not in grant_applications %}
-                                {{ revoke_statements.append({ "privilege" : row.privilege, "role" : row.grantee_name, "schema" : object[1], "object" : object[2] }) }}
+                                {% do revoke_statements.append({ "privilege" : row.privilege, "role" : row.grantee_name, "schema" : object[1], "object" : object[2] }) %}
                             {% else %}
-                                {{ existing_grants.append({ "privilege" : row.privilege, "role" : row.grantee_name, "schema" : object[1], "object" : object[2] }) }}
+                                {% do existing_grants.append({ "privilege" : row.privilege, "role" : row.grantee_name, "schema" : object[1], "object" : object[2] }) %}
                             {%endif%}
                         {% else %}
-                            {{ revoke_statements.append({ "privilege" : row.privilege, "role" : row.grantee_name, "schema" : object[1], "object" : object[2] }) }}
+                            {% do revoke_statements.append({ "privilege" : row.privilege, "role" : row.grantee_name, "schema" : object[1], "object" : object[2] }) %}
                         {%endif%}
                     {% endif %}
                 {% endfor %}
@@ -45,22 +45,22 @@
                     {% set existing_role_grants = [] %}
                     {% for existing_grant in existing_grants %}
                         {% if existing_grant.role == application %}
-                            {{ existing_role_grants.append(existing_grant.privilege) }}
+                            {% do existing_role_grants.append(existing_grant.privilege) %}
                         {% endif %}
                     {% endfor %}
                     {% for privilege in grant_types %}
                         {% if privilege not in existing_role_grants %}
-                            {{ grant_statements.append({ "privilege" : privilege, "role" : application, "schema" : object[1], "object" : object[2] }) }}
+                            {% do grant_statements.append({ "privilege" : privilege, "role" : application, "schema" : object[1], "object" : object[2] }) %}
                         {% endif %}
                     {% endfor %}
                 {% endfor %}
             {%endif%}
         {%endfor%}
         {% for stm in revoke_statements %}
-            {{ execute_statements.append("revoke " ~ stm.privilege ~ " on " ~ object_type ~ " " ~ target.database ~ "." ~ stm.object ~ " from application " ~ stm.role ~ ";") }}
+            {% do execute_statements.append("revoke " ~ stm.privilege ~ " on " ~ object_type ~ " " ~ target.database ~ "." ~ stm.object ~ " from application " ~ stm.role ~ ";") %}
         {% endfor %}
         {% for stm in grant_statements %}
-            {{ execute_statements.append("grant " ~ stm.privilege ~ " on " ~ object_type ~ " " ~ target.database ~ "." ~ stm.object ~ " to application " ~ stm.role ~ ";") }}
+            {% do execute_statements.append("grant " ~ stm.privilege ~ " on " ~ object_type ~ " " ~ target.database ~ "." ~ stm.object ~ " to application " ~ stm.role ~ ";") %}
         {% endfor %}
 
         {% do dbt_dataengineers_utils.grant_database_usage_to_application(grant_applications, target.database) %}
@@ -93,11 +93,11 @@
     {% endset %}
     {% set objects = run_query(matching_objects) %}
     {% for object in objects %}
-        {{ existing_database_usage.append(object[1]) }}
+        {% do existing_database_usage.append(object[1]) %}
     {% endfor %}
     {% for application_name in grant_applications %}
         {% if application_name not in existing_database_usage %}
-            {{ execute_statements.append("grant usage on database " ~ target_database ~ " to application " ~ application_name ~ ";") }}
+            {% do execute_statements.append("grant usage on database " ~ target_database ~ " to application " ~ application_name ~ ";") %}
         {% endif %}
     {% endfor %}
     {% if execute_statements | length > 0 %}
@@ -128,11 +128,11 @@
         {% endset %}
         {% set objects = run_query(matching_objects) %}
         {% for object in objects %}
-            {{ existing_schema_usage.append(object[1]) }}
+            {% do existing_schema_usage.append(object[1]) %}
         {% endfor %}
         {% for application_name in grant_applications %}
             {% if application_name not in existing_schema_usage %}
-                {{ execute_statements.append("grant usage on schema " ~ target_database ~ "." ~ schema ~ " to application " ~ application_name ~ ";") }}
+                {% do execute_statements.append("grant usage on schema " ~ target_database ~ "." ~ schema ~ " to application " ~ application_name ~ ";") %}
             {% endif %}
         {% endfor %}
     {% endfor %}

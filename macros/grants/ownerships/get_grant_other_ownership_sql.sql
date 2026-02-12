@@ -18,7 +18,9 @@
     {% set statements = [] %}
     {% if results and results | length > 0 %}
         {% for r in results %}
-            {{ statements.append('grant ownership on ' ~ r[0] ~ ' ' ~ target.database ~ '.' ~ r[2] ~ '.' ~ r[3] ~ ' to role ' ~ role_name ~ ' revoke current grants;') }}
+            {% if not r[3].startswith('temp_file_format') %}
+                {% do statements.append('grant ownership on ' ~ r[0] ~ ' ' ~ target.database ~ '.' ~ r[2] ~ '.' ~ r[3] ~ ' to role ' ~ role_name ~ ' revoke current grants;') %}
+            {% endif %}
         {% endfor %}
         {% do log('get_grant_other_ownership_sql: generated ' ~ (statements | length) ~ ' statements', info=True) %}
     {% else %}

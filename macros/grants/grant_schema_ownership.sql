@@ -26,14 +26,14 @@
     {% set queries = [] %}
     {% do log('Verifying Ownership rights across ' ~ (include_schemas | length) ~ ' schemas in ' ~ target.database ~ ' for role ' ~ role_name, info=True) %}
 
-    {{ queries.extend(dbt_dataengineers_utils.get_grant_schema_ownership_sql(formatted_schema_list, role_name)) }}
-    {{ queries.extend(dbt_dataengineers_utils.get_grant_model_ownership_sql(formatted_schema_list, role_name)) }}
-    {{ queries.extend(dbt_dataengineers_utils.get_grant_task_ownership_sql(formatted_schema_list, role_name)) }}
-    {{ queries.extend(dbt_dataengineers_utils.get_grant_functions_ownership_sql(formatted_schema_list, role_name)) }}
-    {{ queries.extend(dbt_dataengineers_utils.get_grant_procedure_ownership_sql(formatted_schema_list, role_name)) }}
-    {{ queries.extend(dbt_dataengineers_utils.get_grant_stream_ownership_sql(formatted_schema_list, role_name)) }}
-    {{ queries.extend(dbt_dataengineers_utils.get_grant_network_rule_ownership_sql(formatted_schema_list, role_name)) }}
-    {{ queries.extend(dbt_dataengineers_utils.get_grant_other_ownership_sql(formatted_schema_list, role_name)) }}
+    {% do queries.extend(dbt_dataengineers_utils.get_grant_schema_ownership_sql(formatted_schema_list, role_name)) %}
+    {% do queries.extend(dbt_dataengineers_utils.get_grant_model_ownership_sql(formatted_schema_list, role_name)) %}
+    {% do queries.extend(dbt_dataengineers_utils.get_grant_task_ownership_sql(formatted_schema_list, role_name)) %}
+    {% do queries.extend(dbt_dataengineers_utils.get_grant_functions_ownership_sql(formatted_schema_list, role_name)) %}
+    {% do queries.extend(dbt_dataengineers_utils.get_grant_procedure_ownership_sql(formatted_schema_list, role_name)) %}
+    {% do queries.extend(dbt_dataengineers_utils.get_grant_stream_ownership_sql(formatted_schema_list, role_name)) %}
+    {% do queries.extend(dbt_dataengineers_utils.get_grant_network_rule_ownership_sql(formatted_schema_list, role_name)) %}
+    {% do queries.extend(dbt_dataengineers_utils.get_grant_other_ownership_sql(formatted_schema_list, role_name)) %}
 
     {% if queries | length == 0 %}
         {% do log('No ownership grant statements generated (all objects already owned by ' ~ role_name ~ ')', info=True) %}

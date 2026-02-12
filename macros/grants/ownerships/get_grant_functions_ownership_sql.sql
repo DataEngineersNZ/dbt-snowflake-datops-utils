@@ -33,7 +33,7 @@
     {% set statements = [] %}
     {% if results and results | length > 0 %}
         {% for r in results %}
-            {{ statements.append('grant ownership on function ' ~ target.database ~ '.' ~ r[1] ~ '.' ~ r[2] ~ '(' ~ r[3] ~ ') to role ' ~ role_name ~ ' revoke current grants;') }}
+            {% do statements.append('grant ownership on function ' ~ target.database ~ '.' ~ r[1] ~ '.' ~ r[2] ~ '(' ~ r[3] ~ ') to role ' ~ role_name ~ ' revoke current grants;') %}
         {% endfor %}
         {% do log('get_grant_functions_ownership_sql: generated ' ~ (statements | length) ~ ' statements', info=True) %}
     {% else %}
