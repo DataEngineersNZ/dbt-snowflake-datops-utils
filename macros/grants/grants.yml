@@ -329,3 +329,25 @@ macros:
       - name: dry_run
         type: boolean
         description: Whether to run in dry-run mode (log statements without executing)
+
+  - name: grant_schema_object_privileges
+    description: |
+      Enhanced macro that grants privileges on all objects of a specific type within a schema using bulk operations.
+      Takes individual parameters instead of lists and automatically discovers objects in the schema.
+      Uses bulk GRANT statements (GRANT privilege ON ALL objectS IN SCHEMA) for efficiency.
+      Revokes are handled individually per object for precision. Supports comma-separated values for permissions and roles.
+    docs:
+      show: true
+    arguments:
+      - name: object_type
+        type: string
+        description: Type of the object (e.g., TAdBLE, VIEW, FUNCTION, PROCEDURE)
+      - name: schema_name
+        type: string
+        description: Name of the schema to process objects in
+      - name: permissions
+        type: string
+        description: Comma-separated list of privilege types to grant (e.g., 'SELECT,REFERENCES' or single value)
+      - name: roles
+        type: string
+        description: Comma-separated list of roles to grant privileges to (e.g., 'ROLE1,ROLE2' or single value)

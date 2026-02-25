@@ -1,6 +1,10 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v0.3.10.2 - 2026-02-26 - Bulk Grants
+
+* added macro `grant_schema_object_privileges` to be able to apply permissions to all objects within a schema to a role
+
 ## v0.3.10.1 - 2026-02-12 - Grant Application Select
 
 * added macro `grant_object_application` to apply the required permissions on the provided object to an application

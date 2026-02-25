@@ -60,6 +60,7 @@ Below is a catalogue of publicly supported macros grouped by domain. Internal he
 - `grant_privileges`
 - `grant_schema_monitor`
 - `grant_schema_monitor_specific`
+- `grant_schema_object_privileges`
 - `grant_schema_operate`
 - `grant_schema_operate_specific`
 - `grant_schema_ownership`
