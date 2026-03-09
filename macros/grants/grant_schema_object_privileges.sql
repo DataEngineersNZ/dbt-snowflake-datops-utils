@@ -26,31 +26,29 @@
     {% do log('====> Target permissions: ' ~ (permission_list | join(', ')), info=True) %}
     {% do log('====> Target roles: ' ~ (role_list | join(', ')), info=True) %}
 
-    {# Discover objects of the specified type in the schema #}
-    {% set objects_query %}
-            show {{ object_type }}s in schema {{ target.database }}.{{ schema_name }};
-    {% endset %}
 
-    {% set objects_results = run_query(objects_query) %}
     {% set discovered_objects = [] %}
+    {% if object_type.upper() in ['FUNCTION', 'PROCEDURE'] %}
+        {% set objects = [] %}
+        {% if object_type.upper() == 'FUNCTION' %}
+            {% do discovered_objects.extend(dbt_dataengineers_utils.get_functions(formatted_schema_list)) %}
+        {% elif object_type.upper() == 'PROCEDURE' %}
+            {% do discovered_objects.extend(dbt_dataengineers_utils.get_procedures(formatted_schema_list)) %}
+        {% endif %}
+    {% else %}
 
-    {% if objects_results %}
-        {% for row in objects_results %}
-            {% if object_type.upper() in ['TABLE', 'VIEW'] %}
-                {% set object_name = schema_name ~ '.' ~ row[1] %}  {# name column is usually second #}
-            {% elif object_type.upper() in ['FUNCTION', 'PROCEDURE'] %}
-                {% set object_name = schema_name ~ '.' ~ row[1] ~ row[10] %}  {# name + arguments #}
-            {% else %}
+        {# Discover objects of the specified type in the schema #}
+        {% set objects_query %}
+                show {{ object_type }}s in schema {{ target.database }}.{{ schema_name }};
+        {% endset %}
+        {% set objects_results = run_query(objects_query) %}
+
+        {% if objects_results %}
+            {% for row in objects_results %}
                 {% set object_name = schema_name ~ '.' ~ row[1] %}  {# default to name column #}
-            {% endif %}
-            {% if object_type.upper() in ['FUNCTION', 'PROCEDURE'] %}
-                {% if row[3] == 'N' %}
-                    {% do discovered_objects.append(object_name) %}
-                {% endif %}
-            {% else %}
                 {% do discovered_objects.append(object_name) %}
-            {% endif %}
-        {% endfor %}
+            {% endfor %}
+        {% endif %}
     {% endif %}
 
     {% if discovered_objects | length == 0 %}
@@ -58,7 +56,7 @@
         {% do return(none) %}
     {% endif %}
 
-    {% do log('====> Found ' ~ (discovered_objects | length) ~ ' ' ~ object_type ~ ' objects: ' ~ (discovered_objects | join(', ')), info=True) %}
+    {% do log('====> Found ' ~ (discovered_objects | length) ~ ' ' ~ object_type ~ 's', info=True) %}
 
     {# Enhanced logic with bulk grants and individual revokes #}
     {% set excluded_privs = ['OWNERSHIP'] %} {# Always ignore these for grant/revoke logic #}
