@@ -28,7 +28,7 @@
 
     {# Discover objects of the specified type in the schema #}
     {% set objects_query %}
-        show {{ object_type }}s in schema {{ target.database }}.{{ schema_name }};
+            show {{ object_type }}s in schema {{ target.database }}.{{ schema_name }};
     {% endset %}
 
     {% set objects_results = run_query(objects_query) %}
@@ -43,7 +43,13 @@
             {% else %}
                 {% set object_name = schema_name ~ '.' ~ row[1] %}  {# default to name column #}
             {% endif %}
-            {% do discovered_objects.append(object_name) %}
+            {% if object_type.upper() in ['FUNCTION', 'PROCEDURE'] %}
+                {% if row[3] == 'N' %}
+                    {% do discovered_objects.append(object_name) %}
+                {% endif %}
+            {% else %}
+                {% do discovered_objects.append(object_name) %}
+            {% endif %}
         {% endfor %}
     {% endif %}
 
