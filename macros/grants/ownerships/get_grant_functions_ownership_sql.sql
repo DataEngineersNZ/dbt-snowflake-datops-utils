@@ -15,19 +15,21 @@
                 function_catalog,
                 function_schema,
                 function_name,
+                function_number,
                 trim(split_part(f.value, ' ', -1)) as arg
             from (
                 select
                     function_catalog,
                     function_schema,
                     function_name,
-                    split(replace(replace(argument_signature, '(', ''), ')', ''), ',') as args
+                    split(replace(replace(argument_signature, '(', ''), ')', ''), ',') as args,
+                    row_number() over (order by function_name) as function_number
                 from information_schema.functions
                 where function_owner != '{{ role_name | upper }}'
                   and function_schema in ({{ schema_list }})
             ), lateral flatten(input => args) as f
         )
-        group by function_catalog, function_schema, function_name
+        group by function_catalog, function_schema, function_name, function_number
     {% endset %}
     {% set results = run_query(query) %}
     {% set statements = [] %}

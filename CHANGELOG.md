@@ -1,6 +1,12 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+
+## v0.3.10.5 - 2026-03-10 - Function / Procedure Bulk Grant fix
+
+* modified macro `grant_schema_object_privileges` to to esnure schema is passed correct to the helper macros
+* modified macro `get_functions` and `get_procuedures` to ensure the correct handling of arguments
+
 ##v0.3.10.4 - 2026-03-09 - Function / Procedure Bulk Grant fix
 
 * modified macro `grant_schema_object_privileges` to correct append arguments to functions and procedures

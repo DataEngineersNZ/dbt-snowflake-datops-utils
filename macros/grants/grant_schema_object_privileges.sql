@@ -31,9 +31,9 @@
     {% if object_type.upper() in ['FUNCTION', 'PROCEDURE'] %}
         {% set objects = [] %}
         {% if object_type.upper() == 'FUNCTION' %}
-            {% do discovered_objects.extend(dbt_dataengineers_utils.get_functions(formatted_schema_list)) %}
+            {% do discovered_objects.extend(dbt_dataengineers_utils.get_functions("'" ~ schema_name ~ "'")) %}
         {% elif object_type.upper() == 'PROCEDURE' %}
-            {% do discovered_objects.extend(dbt_dataengineers_utils.get_procedures(formatted_schema_list)) %}
+            {% do discovered_objects.extend(dbt_dataengineers_utils.get_procedures("'" ~ schema_name ~ "'")) %}
         {% endif %}
     {% else %}
 

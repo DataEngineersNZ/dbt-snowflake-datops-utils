@@ -7,7 +7,7 @@
             procedure_schema as schema_name,
             procedure_name,
             regexp_replace(
-                listagg(trim(split_part(arg, ' ', -1)), ',') within group (order by arg),
+                listagg(trim(split_part(arg, ' ', -1)), ',') within group (order by 1),
                 '^,',''
             ) as argument_signature
         from (
@@ -15,19 +15,21 @@
                 procedure_catalog,
                 procedure_schema,
                 procedure_name,
+                procedure_number,
                 trim(split_part(f.value, ' ', -1)) as arg
             from (
                 select
                     procedure_catalog,
                     procedure_schema,
                     procedure_name,
-                    split(replace(replace(argument_signature, '(', ''), ')', ''), ',') as args
+                    split(replace(replace(argument_signature, '(', ''), ')', ''), ',') as args,
+                    row_number() over (order by procedure_name) as procedure_number
                 from information_schema.procedures
                 where procedure_owner != '{{ role_name | upper }}'
                   and procedure_schema in ({{ schema_list }})
             ), lateral flatten(input => args) as f
         )
-        group by procedure_catalog, procedure_schema, procedure_name
+        group by procedure_catalog, procedure_schema, procedure_name, procedure_number
     {% endset %}
     {% set results = run_query(query) %}
     {% set statements = [] %}
