@@ -45,7 +45,7 @@
 
         {% if objects_results %}
             {% for row in objects_results %}
-                {% set object_name = schema_name ~ '.' ~ row[1] %}  {# default to name column #}
+                {% set object_name = target.database ~ '.' ~ schema_name ~ '.' ~ row[1] %}  {# default to name column #}
                 {% do discovered_objects.append(object_name) %}
             {% endfor %}
         {% endif %}
@@ -71,7 +71,7 @@
         {% do log('====> Processing ' ~ object_type ~ ' ' ~ object ~ ' with desired privileges ' ~ (permission_list | join(', ')) ~ ' for roles ' ~ (role_list | join(', ')), info=True) %}
 
         {% set query %}
-            show grants on {{ object_type }} {{ target.database }}.{{ object }};
+            show grants on {{ object_type }} {{ object }};
         {% endset %}
         {% set results = run_query(query) %}
 
