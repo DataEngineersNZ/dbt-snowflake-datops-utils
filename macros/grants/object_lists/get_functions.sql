@@ -17,7 +17,7 @@
                 function_name,
                 function_number,
                 trim(split_part(f.value, ' ', -1)) as arg,
-                row_number() over (order by function_name, arg) as arg_number
+                row_number() over (order by 1) as arg_number
             from (
                 select
                     function_catalog,

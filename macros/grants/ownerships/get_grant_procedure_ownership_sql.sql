@@ -17,7 +17,7 @@
                 procedure_name,
                 procedure_number,
                 trim(split_part(f.value, ' ', -1)) as arg,
-                row_number() over (order by procedure_name, arg) as arg_number
+                row_number() over (order by 1) as arg_number
             from (
                 select
                     procedure_catalog,
