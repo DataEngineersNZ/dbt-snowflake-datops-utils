@@ -7,7 +7,7 @@
             procedure_schema as schema_name,
             procedure_name,
             regexp_replace(
-                listagg(trim(split_part(arg, ' ', -1)), ',') within group (order by 1),
+                listagg(trim(split_part(arg, ' ', -1)), ',') within group (order by arg_number),
                 '^,',''
             ) as argument_signature
         from (
@@ -16,7 +16,8 @@
                 procedure_schema,
                 procedure_name,
                 procedure_number,
-                trim(split_part(f.value, ' ', -1)) as arg
+                trim(split_part(f.value, ' ', -1)) as arg,
+                row_number() over (order by procedure_name, arg) as arg_number
             from (
                 select
                     procedure_catalog,

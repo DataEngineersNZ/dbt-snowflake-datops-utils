@@ -7,7 +7,7 @@
             function_schema as schema_name,
             function_name,
             regexp_replace(
-                listagg(trim(split_part(arg, ' ', -1)), ',') within group (order by 1),
+                listagg(trim(split_part(arg, ' ', -1)), ',') within group (order by arg_number),
                 '^,',''
             ) as argument_signature
         from (
@@ -16,7 +16,8 @@
                 function_schema,
                 function_name,
                 function_number,
-                trim(split_part(f.value, ' ', -1)) as arg
+                trim(split_part(f.value, ' ', -1)) as arg,
+                row_number() over (order by function_name, arg) as arg_number
             from (
                 select
                     function_catalog,
