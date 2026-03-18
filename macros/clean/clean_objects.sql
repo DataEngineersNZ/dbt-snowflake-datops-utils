@@ -1,4 +1,4 @@
-{% macro clean_objects(database=target.database, clean_targets=['local-dev', 'unit-test', 'test', 'prod'], object_types= ['schemas', 'functions_and_procedures', 'tasks', 'streams', 'stages', 'tables_and_views', 'alerts', 'file_formats']) %}
+{% macro clean_objects(database=target.database, clean_targets=['local-dev', 'unit-test', 'test', 'prod'], object_types= ['schemas', 'functions_and_procedures', 'tasks', 'streams', 'stages', 'tables_and_views', 'alerts', 'file_formats', 'semantic_views', 'agents']) %}
     {%if execute %}
         {% if flags.WHICH in ('run', 'run-operation') %}
             {% if target.name in clean_targets %}
@@ -32,6 +32,12 @@
             {% endif %}
             {% if 'secrets' in object_types %}
                 {% do dbt_dataengineers_utils.clean_generic("SECRET", database, dry_run) %}
+            {% endif %}
+            {% if 'semantic_views' in object_types %}
+                {% do dbt_dataengineers_utils.clean_generic("SEMANTIC VIEW", database, dry_run) %}
+            {% endif %}
+            {% if 'agents' in object_types %}
+                {% do dbt_dataengineers_utils.clean_generic("AGENT", database, dry_run) %}
             {% endif %}
             {% if 'tables_and_views' in object_types %}
                 {% do dbt_dataengineers_utils.clean_models(database, dry_run) %}

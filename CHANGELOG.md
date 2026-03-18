@@ -1,6 +1,9 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v0.3.10.6 - 2026-03-19 - Clean up Semantic Views/Agents
+
+* modified macro `clean_objects` to cater for removing Semantic Views and Snowflake Agents
 
 ## v0.3.10.5 - 2026-03-10 - Function / Procedure Bulk Grant fix
 

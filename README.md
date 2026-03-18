@@ -7,7 +7,7 @@ This [dbt](https://github.com/dbt-labs/dbt) package contains macros that can be 
 Add the following to your packages.yml file
 ```
   - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-utils.git
-    revision: "0.3.10.1"
+    revision: "0.3.10.6"
 ```
 ----
 
@@ -26,7 +26,7 @@ Below is a catalogue of publicly supported macros grouped by domain. Internal he
 **clean**
 
 - `clean_functions` – drop orphaned UDFs
-- `clean_generic` – drop orphaned streams/tasks/stages
+- `clean_generic` – drop orphaned streams/tasks/stages/file formats/semantic views/agents
 - `clean_models` – drop orphaned tables/views/external tables
 - `clean_objects` – orchestrate all clean macros
 - `clean_schemas` – drop schemas not in project
