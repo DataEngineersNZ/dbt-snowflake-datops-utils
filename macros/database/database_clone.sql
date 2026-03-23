@@ -1,11 +1,11 @@
-{% macro database_clone(source_database, destination_database, new_owner_role='', comment='') %}
+{% macro database_clone(source_database, destination_database, new_owner_role='', comment='', include_internal_stages=false) %}
 
   {% if source_database and destination_database %}
 
     {{ (log("Cloning existing database " ~ source_database ~ " into database " ~ destination_database, info=True)) }}
 
     {% call statement('clone_database', fetch_result=True, auto_begin=False) -%}
-        create or replace database {{ destination_database }} clone {{ source_database }} comment = '{{ comment }}';
+        create or replace database {{ destination_database }} clone {{ source_database }}{% if include_internal_stages %} include_internal_stages = true{% endif %} comment = '{{ comment }}';
     {%- endcall %}
 
     {%- set result = load_result('clone_database') -%}
