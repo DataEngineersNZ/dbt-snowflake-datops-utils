@@ -5,7 +5,7 @@
     {{ (log("Cloning existing database " ~ source_database ~ " into database " ~ destination_database, info=True)) }}
 
     {% call statement('clone_database', fetch_result=True, auto_begin=False) -%}
-        create or replace database {{ destination_database }} clone {{ source_database }}{% if include_internal_stages %} include_internal_stages = true{% endif %} comment = '{{ comment }}';
+        create or replace database {{ destination_database }} clone {{ source_database }}{% if include_internal_stages %} include internal stages{% endif %} comment = '{{ comment }}';
     {%- endcall %}
 
     {%- set result = load_result('clone_database') -%}

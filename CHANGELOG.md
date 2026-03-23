@@ -3,7 +3,7 @@ This file contains the changelog for the Data Engineers Snowflake DataOps Utils 
 
 ## v0.3.11 - 2026-03-24 - External Share Permissions & Internal Stage Cloning
 
-- refactor the _grants_collect_schemas macro to accept schema_names and is_exclude_list parameters, and updates related grant macros for consistency and improved functionality.
+- refactored the _grants_collect_schemas macro to accept schema_names and is_exclude_list parameters, and updated related grant macros for consistency and improved functionality.
 - added new macro `grant_external_share_read`  to apply `select` permissions on all tables and views for specified schemas
 - modified the macro `database_clone` to optionally allow for the cloning of internal stages
 
