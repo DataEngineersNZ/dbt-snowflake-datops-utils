@@ -7,13 +7,13 @@ Potential future consolidation ideas (kept as comments to avoid interface change
 These ideas intentionally deferred to keep current refactor incremental.
 #}
 
-{% macro _grants_collect_schemas(exclude_schemas) %}
+{% macro _grants_collect_schemas(schema_names, is_exclude_list=true) %}
     {% set include_schemas = [] %}
-    {% if exclude_schemas is not iterable %}
-        {% set exclude_schemas = [] %}
+    {% if schema_names is not iterable %}
+        {% set schema_names = [] %}
     {% endif %}
-    {% if "INFORMATION_SCHEMA" not in exclude_schemas %}
-        {% do exclude_schemas.append("INFORMATION_SCHEMA") %}
+    {% if "INFORMATION_SCHEMA" not in schema_names and is_exclude_list %}
+        {% do schema_names.append("INFORMATION_SCHEMA") %}
     {% endif %}
     {% set query %}
         show schemas in database {{ target.database }};
@@ -21,8 +21,16 @@ These ideas intentionally deferred to keep current refactor incremental.
     {% set results = run_query(query) %}
     {% if execute and results %}
         {% for row in results %}
-            {% if row.name not in exclude_schemas and row.name not in include_schemas %}
-                {% do include_schemas.append(row.name) %}
+            {% if row.name not in include_schemas %}
+                {% if is_exclude_list %}
+                    {% if row.name not in schema_names %}
+                        {% do include_schemas.append(row.name) %}
+                    {% endif %}
+                {% else %}
+                    {% if row.name in schema_names %}
+                        {% do include_schemas.append(row.name) %}
+                    {% endif %}
+                {% endif %}
             {% endif %}
         {% endfor %}
     {% endif %}

@@ -17,7 +17,7 @@
     {% if 'INFORMATION_SCHEMA' not in exclude_schemas %}
         {% do exclude_schemas.append('INFORMATION_SCHEMA') %}
     {% endif %}
-    {% set include_schemas = dbt_dataengineers_utils._grants_collect_schemas(exclude_schemas) %}
+    {% set include_schemas = dbt_dataengineers_utils._grants_collect_schemas(exclude_schemas, is_exclude_list=true) %}
     {% if include_schemas | length == 0 %}
         {% do log('grant_semantic_views_privileges: no schemas to process', info=True) %}
         {% do return(none) %}

@@ -2,7 +2,7 @@
     {% if flags.WHICH not in ['run','run-operation'] %}{% do log('grant_schema_monitor: skip (context)', info=True) %}{% do return(none) %}{% endif %}
     {% set dry_run = var('grants_dry_run', false) %}
     {% if 'INFORMATION_SCHEMA' not in exclude_schemas %}{% do exclude_schemas.append('INFORMATION_SCHEMA') %}{% endif %}
-    {% set include_schemas = dbt_dataengineers_utils._grants_collect_schemas(exclude_schemas) %}
+    {% set include_schemas = dbt_dataengineers_utils._grants_collect_schemas(exclude_schemas, is_exclude_list=true) %}
     {% if include_schemas | length == 0 %}{% do log('grant_schema_monitor: no schemas to process', info=True) %}{% do return(none) %}{% endif %}
     {% do log('grant_schema_monitor: processing ' ~ (include_schemas | length) ~ ' schemas for roles: ' ~ (grant_roles | join(', ')), info=True) %}
     {% do dbt_dataengineers_utils.grant_schema_monitor_specific(include_schemas, grant_roles, true, dry_run) %}
