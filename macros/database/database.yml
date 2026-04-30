@@ -10,6 +10,8 @@ macros:
         description: Destination database name, i.e. the new database to be created
       - name: new_owner_role
         description: "[Optional] The new owner role of the newly created object"
+      - name: include_internal_stages
+        description: "[Optional] When true, includes internal stages in the clone. Defaults to false."
 
   - name: schema_clone
     description: Clone (zero-copy) a source schema into a destination schema; database defaults to target if not supplied.

@@ -1,15 +1,19 @@
-{% macro grant_internal_share_read(share_name, exclude_schemas=none, dry_run=false) %}
+{% macro grant_external_share_read(share_name, include_schemas, dry_run=false) %}
   {% if flags.WHICH in ['run', 'run-operation'] %}
     {% if execute %}
       {% set database = target.database %}
-      {% if exclude_schemas is none %}
-        {% set exclude_schemas = [] %}
-      {% elif exclude_schemas is string %}
-        {% set exclude_schemas = [exclude_schemas] %}
-      {% elif exclude_schemas is not iterable %}
-        {% set exclude_schemas = [] %}
+      {% if include_schemas is none %}
+        {% set include_schemas = [] %}
+      {% elif include_schemas is string %}
+        {% set include_schemas = [include_schemas] %}
+      {% elif include_schemas is not iterable %}
+        {% set include_schemas = [] %}
       {% endif %}
-      {% set schemas = dbt_dataengineers_utils._grants_collect_schemas(exclude_schemas, is_exclude_list=true) %}
+      {% if include_schemas | length == 0 %}
+        {% do log("No schemas to grant for share: " ~ share_name, info=True) %}
+        {% do return(none) %}
+      {% endif %}
+      {% set schemas = dbt_dataengineers_utils._grants_collect_schemas(include_schemas, is_exclude_list=false) %}
       {% do log("Granting SELECT on all tables and views in all schemas for share: " ~ share_name ~ " (dry_run=" ~ dry_run ~ ")", info=True) %}
       {% for schema in schemas %}
         {% set grant_usage %}

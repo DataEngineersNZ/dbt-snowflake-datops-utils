@@ -16,7 +16,7 @@
         {% endfor %}
     {% else %}
         {% if revoke_current_grants and execute %}
-            {% set share_results = run_query('show shares;') %}
+            {% set share_results = run_query('show shares ->> select * from $1 where lower("database_name") = \'' ~ target.database | lower ~ '\';') %}
             {% set execute_statements = [] %}
             {% for share in share_results %}
                 {% if share.kind == 'OUTBOUND' %}
@@ -46,7 +46,7 @@
     {% set execute_statements = [] %}
     {% set snowflake_shares = [] %}
     {% if execute %}
-        {% set share_results = run_query('show shares;') %}
+        {% set share_results = run_query('show shares ->> select * from $1 where lower("database_name") = \'' ~ target.database | lower ~ '\';') %}
         {% set current_account = run_query('select current_account();') %}
         {% for share in share_results %}
             {% if share.kind == 'OUTBOUND' and share.name not in snowflake_shares %}{% do snowflake_shares.append(share.name) %}{% endif %}

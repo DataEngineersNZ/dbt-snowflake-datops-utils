@@ -1,6 +1,16 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v0.3.12 - 2026-04-30 - Share Reads
+
+- Limiting the macro `grant_share_read` to the current database
+
+## v0.3.11 - 2026-03-24 - External Share Permissions & Internal Stage Cloning
+
+- refactored the _grants_collect_schemas macro to accept schema_names and is_exclude_list parameters, and updated related grant macros for consistency and improved functionality.
+- added new macro `grant_external_share_read`  to apply `select` permissions on all tables and views for specified schemas
+- modified the macro `database_clone` to optionally allow for the cloning of internal stages
+
 ## v0.3.10.6 - 2026-03-19 - Clean up Semantic Views/Agents
 
 * modified macro `clean_objects` to cater for removing Semantic Views and Snowflake Agents
