@@ -13,3 +13,13 @@ macros:
     description: This macro is designed to be used as pre-hook for snaphots objects. It will drop the existing views in a given schema.
     docs:
       show: true
+    arguments:
+      - name: schema_name
+        type: string
+        description: The schema to search for views to drop
+      - name: dry_run
+        type: boolean
+        description: If true, log statements without executing (default false)
+      - name: database
+        type: string
+        description: Target database (defaults to target.database)

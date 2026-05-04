@@ -1,213 +1,257 @@
-This [dbt](https://github.com/dbt-labs/dbt) package contains macros that can be (re)used across dbt projects.
+# dbt_dataengineers_utils
 
-> require-dbt-version: [">=1.8.0", "<2.0.0"]
-----
+A macro-only [dbt](https://github.com/dbt-labs/dbt) package for Snowflake DataOps. Provides utilities for object lifecycle management, RBAC grant orchestration, dimensional modelling helpers, tagging, shares, and more.
 
-## Installation Instructions
-Add the following to your packages.yml file
-```
-  - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-utils.git
-    revision: "0.3.12"
-```
-----
-
-## Contents
-
-Below is a catalogue of publicly supported macros grouped by domain. Internal helpers (those with docs.show: false or purely supportive behavior) are intentionally excluded. Where helpful, a short description is inlined; consult the YAML files for full argument metadata.
-
-**checks**
-
-- `get_populated_array` – first non-empty array from two candidates
-- `get_populated_array_value_as_string` – join first non-empty array
-- `get_populated_array_value_or_string_as_string` – array joined or fallback string
-- `get_populated_numeric_value` – first numeric else 0
-- `get_populated_string_value` – first string else ''
-
-**clean**
-
-- `clean_functions` – drop orphaned UDFs
-- `clean_generic` – drop orphaned streams/tasks/stages/file formats/semantic views/agents
-- `clean_models` – drop orphaned tables/views/external tables
-- `clean_objects` – orchestrate all clean macros
-- `clean_schemas` – drop schemas not in project
-- `clean_stale_models` – drop models older than N days
-
-**database**
-
-- `database_clone` – zero-copy clone a database
-- `database_destroy` – drop database
-- `schema_clone` – zero-copy clone a schema
-
-**dependencies** (non-lineage referencing)
-
-- `depends_on_ref` – commented reference to model
-- `depends_on_source` – commented reference to source
-
-**dynamic_tables**
-
-- `target_lag_environment` – lag by environment
-- `target_warehouse_environment` – warehouse by environment
-
-**grants** (see refactored patterns section below)
-
-- `grant_database_ownership`
-- `grant_integration_ownership`
-- `grant_database_usage`
-- `grant_integration_usage`
-- `grant_internal_share_read`
-- `grant_object`
-- `grant_object_application`
-- `grant_privileges`
-- `grant_schema_monitor`
-- `grant_schema_monitor_specific`
-- `grant_schema_object_privileges`
-- `grant_schema_operate`
-- `grant_schema_operate_specific`
-- `grant_schema_ownership`
-- `grant_schema_procedure_usage`
-- `grant_schema_procedure_usage_specific`
-- `grant_schema_read`
-- `grant_schema_read_specific`
-- `grant_share_read`
-- `grant_share_read_specific_schema`
-- `grant_usage_to_application`
-- `grants_smoke_test` – CI/dry-run validation harness
-
-**merge**
-
-- `get_merge_statement`
-- `get_default_merge_statement`
-
-**modelling**
-
-- `date_key`
-- `datetime_from_dim`
-- `datetime_to_date_dim`
-- `datetime_to_time_dim`
-- `dimension_id`
-- `generate_surrogate_key`
-- `time_key`
-- `unknown_member`
-
-**parse**
-
-- `first_day_of_month`
-- `last_day_of_month`
-- `null_to_empty_string`
-- `num_to_date`
-- `string_to_num`
-- `to_date`
-- `string_epoch_to_timestamp_ltz`
-- `string_epoch_to_timestamp_ntz`
-
-**pre-hooks**
-
-- `drop_view_if_exists`
-- `drop_table_if_exists`
-- `drop_views_in_schema_for_snapshots`
-
-**schema**
-
-- `generate_schema_name` (override)
-- `model_ref`
-- `model_source`
-- `ref` (enhanced include_database)
-- `source` (enhanced include_database)
-
-**shares**
-
-- `create_internal_share`
-- `create_share`
-
-**tags**
-
-- `apply_meta_as_tags`
-
-**tasks**
-
-- `enable_dependent_tasks`
-- `execute_task`
-
-### Grants Management (Refactored Patterns)
-
-Recent refactors introduced a consistent pattern across grant-related macros for clarity, auditability, and safety:
-
-Key characteristics:
-- Early exit guards: macros skip execution outside `run` / `run-operation` contexts.
-- Logging only for top-level macros: operational macros write human-readable summaries instead of returning data structures.
-- Statement batching with consistent formatting and explicit counts (revokes vs grants).
-- Ownership helper macros still return statement lists internally (consumed by `grant_schema_ownership`).
-- Optional dry-run mode to preview changes.
-
-Dry-run mode:
-Set a project or CLI var `grants_dry_run: true` to log all statements without executing them for the following macros:
-`grant_schema_monitor`, `grant_schema_operate`, `grant_share_read`, `grant_share_read_specific_schema`, `grant_privileges`.
-
-Example CLI usage:
-```
-dbt run-operation grant_schema_operate --args '{"exclude_schemas": [], "grant_roles": ["OPS_SUPPORT"]}' --vars '{"grants_dry_run": true}'
-```
-
-Example project-level configuration (`dbt_project.yml`):
-```yaml
-vars:
-  grants_dry_run: true  # disable to allow execution
-```
-
-Sample log output pattern:
-```
-grant_schema_operate: processing 5 schemas for roles: OPS_SUPPORT
-revoke operate on TASK in schema MY_DB.MY_SCHEMA.MY_TASK from role OLD_ROLE;
-grant operate on all tasks in schema MY_DB.MY_SCHEMA to role ops_support;
-grant_schema_operate_specific summary: 1 revokes, 2 grants (dry_run=True)
-```
-
-Recommended workflow:
-1. Run with `grants_dry_run: true` and review logs in CI.
-2. Approve changes, re-run with dry-run disabled to apply.
-
-High-level macro intent summary:
-- `grant_schema_read*`: Ensures read usage, SELECT/REFERENCE privileges, optional future grants.
-- `grant_schema_monitor*`: Grants MONITOR on tasks/pipes + schema usage.
-- `grant_schema_operate*`: Grants OPERATE on tasks/pipes + schema usage.
-- `grant_schema_procedure_usage*`: Grants USAGE on all procedures + schema usage, with future grants.
-- `grant_share_read*`: Manages secure view exposure to outbound shares (revokes unmanaged, grants managed).
-- `grant_object`: Reconciles privilege sets on specific objects (TABLE/VIEW/PROCEDURE/FUNCTION/etc).
-- `grant_privileges`: Environment-aware bundle orchestrator.
-
-Notes:
-- Privilege diffing avoids redundant grants.
-- Revokes are only issued for privileges outside desired scope (or for unmanaged grantees when revocation is enabled).
-- Ownership grants always use `revoke current grants` to move ownership cleanly.
-
-Future enhancement ideas (not yet implemented):
-- Generic unified privilege macro parameterized by privilege type.
-- Aggregated dry-run report macro producing a JSON artifact.
-- Caching of SHOW results across macros within a single run-operation invocation.
-
-Contributions welcome. Keep macro signatures stable to avoid breaking downstream usage.
+- **Version**: 1.0.0
+- **dbt**: `>=1.3.0, <3.0.0`
+- **Dependencies**: None (zero external package dependencies)
+- **dbt Fusion**: Compatible
 
 ---
 
-### Tagging macros
+## Installation
 
-#### dbt_dataengineers_utils.apply_meta_as_tags
+Add the following to your `packages.yml`:
 
-This macro applies specific model meta properties as Snowflake tags during `post-hook`. This allows you to apply Snowflake tags as part of your dbt project. Tags should be defined outside dbt and stored in a separate database.
-When dbt re-runs and re-creates the views the tags will be re-applied as they will disappear from the deployed view.
+```yaml
+packages:
+  - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-utils.git
+    revision: "1.0.0"
+```
 
-##### Permissions
+Then run `dbt deps`.
 
-The users role running the macro must have the `apply tag` permissions on the account. For example if you have a `developers` role:
+---
+
+## dbt Fusion Compatibility
+
+All macros in this package are compatible with dbt Fusion. The package uses only standard dbt-core Jinja APIs (`flags.WHICH`, `run_query()`, `adapter.get_relation()`, `dbt.concat()`, `dbt.type_string()`, `graph.nodes`). No third-party packages are required.
+
+---
+
+## Project Variables
+
+The following `vars` can be set in your `dbt_project.yml` or via `--vars` on the CLI:
+
+| Variable | Default | Used By | Description |
+|---|---|---|---|
+| `data_governance_database` | `"DATA_GOVERNANCE"` | `apply_meta_as_tags` | Database where tags and masking policies are stored |
+| `tag_store` | `"TAG_STORE"` | `apply_meta_as_tags` | Schema where tags are located |
+| `unknown_member_surrogate_key` | *(required)* | `unknown_member` | Surrogate key value for the unknown member row |
+| `surrogate_key_treat_nulls_as_empty_strings` | `false` | `generate_surrogate_key` | When true, NULLs become `''` instead of a sentinel string |
+| `grants_dry_run` | `false` | Grant macros | When true, log all grant/revoke statements without executing |
+
+---
+
+## Macro Reference
+
+### checks
+
+| Macro | Description |
+|---|---|
+| `get_populated_array(col_to_check, col_to_fall_back_on)` | Return the first non-empty array among two candidates |
+| `get_populated_array_value_as_string(col_to_check, col_to_fall_back_on)` | Join the first non-empty array into a delimited string |
+| `get_populated_array_value_or_string_as_string(col_to_check, col_to_fall_back_on)` | Return array contents as string if present, else fall back to provided string |
+| `get_populated_numeric_value(col_to_check, col_to_fall_back_on)` | Return first non-null numeric value, else 0 |
+| `get_populated_string_value(col_to_check, col_to_fall_back_on)` | Return first non-empty string value, else empty string |
+
+### clean
+
+| Macro | Description |
+|---|---|
+| `clean_objects(database, clean_targets, object_types)` | Orchestrate all clean macros for specified object types and environments |
+| `clean_schemas(database, dry_run)` | Drop schemas not defined in the dbt project |
+| `clean_models(database, dry_run)` | Drop orphaned tables/views/dynamic tables/external tables/materialized views |
+| `clean_functions(database, dry_run)` | Drop orphaned UDFs and stored procedures |
+| `clean_generic(object_type, database, dry_run)` | Drop orphaned tasks/streams/stages/alerts/file formats/network rules/secrets/semantic views/agents |
+| `clean_stale_models(database, schema, days, dry_run)` | Drop models older than N days from a specific schema |
+
+### database
+
+| Macro | Description |
+|---|---|
+| `database_clone(source_database, destination_database, new_owner_role, comment, include_internal_stages)` | Zero-copy clone a database with optional ownership transfer and internal stage cloning |
+| `database_destroy(database_name)` | Drop the supplied database |
+| `schema_clone(source_schema, destination_schema, source_database, destination_database, new_owner_role)` | Zero-copy clone a schema with optional ownership transfer |
+
+### dependencies
+
+| Macro | Description |
+|---|---|
+| `depends_on_ref(include_for, model)` | Add a commented reference to a model for implicit lineage. `include_for`: `docs`, `run`, or `all` |
+| `depends_on_source(include_for, schema, model, include_database)` | Add a commented reference to a source for implicit lineage |
+
+### dynamic_tables
+
+| Macro | Description |
+|---|---|
+| `target_lag_environment(duration_prod, duration_test, duration_other)` | Return lag duration based on the current target environment |
+| `target_warehouse_environment()` | Return warehouse name based on the current target environment (DEV_WH for local-dev, DATAOPS_WH otherwise) |
+
+### grants
+
+| Macro | Description |
+|---|---|
+| `grant_database_ownership(role_name)` | Grant ownership on the target database to a role |
+| `grant_database_usage(grant_roles, grant_shares, revoke_current_grants)` | Grant/revoke USAGE on the target database to roles and shares |
+| `grant_integration_ownership(integration_name, role_name)` | Grant ownership on an integration to a role |
+| `grant_integration_usage(integration_name, role_name)` | Grant USAGE on an integration to a role |
+| `grant_schema_ownership(exclude_schemas, role_name)` | Grant ownership on all schema objects to a role |
+| `grant_schema_read(exclude_schemas, grant_roles, include_future_grants)` | Grant USAGE + SELECT across all schemas to roles |
+| `grant_schema_read_specific(schemas, grant_roles, include_future_grants, revoke_current_grants)` | Grant USAGE + SELECT on specific schemas to roles |
+| `grant_schema_monitor(exclude_schemas, grant_roles)` | Grant MONITOR on tasks/pipes across all schemas |
+| `grant_schema_monitor_specific(schemas, grant_roles, revoke_current_grants)` | Grant MONITOR on tasks/pipes in specific schemas |
+| `grant_schema_operate(exclude_schemas, grant_roles)` | Grant OPERATE on tasks/pipes across all schemas |
+| `grant_schema_operate_specific(schemas, grant_roles, revoke_current_grants)` | Grant OPERATE on tasks/pipes in specific schemas |
+| `grant_schema_procedure_usage(exclude_schemas, grant_roles)` | Grant USAGE on all procedures across all schemas |
+| `grant_schema_procedure_usage_specific(schemas, grant_roles, revoke_current_grants, dry_run)` | Grant USAGE on all procedures in specific schemas |
+| `grant_schema_object_privileges(object_type, schema_name, permissions, roles)` | Bulk grant privileges on all objects of a type within a schema |
+| `grant_object(object_type, objects, grant_types, grant_roles)` | Reconcile privilege sets on specific objects for roles |
+| `grant_object_application(object_type, objects, grant_types, grant_applications)` | Reconcile privilege sets on specific objects for applications |
+| `grant_usage_to_application(object_type, prefix, grant_applications)` | Grant USAGE on objects matching a prefix to applications |
+| `grant_share_read(view_names, grant_shares, revoke_current_grants)` | Manage secure view exposure to outbound shares |
+| `grant_share_read_specific_schema(schema_name, view_names, grant_shares, revoke_current_grants)` | Grant SELECT on views in a specific schema to shares |
+| `grant_internal_share_read(share_name, exclude_schemas, dry_run)` | Grant SELECT on all tables/views to an internal share |
+| `grant_external_share_read(share_name, include_schemas, dry_run)` | Grant SELECT on all tables/views in specified schemas to an external share |
+| `grant_agent_usage(schema_name, grant_roles, revoke_roles)` | Grant/revoke USAGE on AGENT views in a schema |
+| `grant_semantic_views_privileges(exclude_schemas, grant_roles, include_future_grants)` | Grant SELECT on semantic views across all schemas |
+| `grant_privileges(domain_schemas)` | Environment-aware orchestrator that calls multiple grant macros |
+| `grants_smoke_test(role, sample_schema)` | CI/dry-run validation harness for grant macros |
+
+### merge
+
+| Macro | Description |
+|---|---|
+| `get_merge_statement(source, destination_table, destination_schema, unique_key, predicates)` | Generate a MERGE statement using adapter methods |
+| `get_default_merge_statement(source, destination_table, destination_schema, unique_key, predicates)` | Generate a MERGE statement using the default adapter implementation |
+
+### modelling
+
+| Macro | Description |
+|---|---|
+| `date_key(DateKey)` | Convert a date column to `YYYYMMDD` format string |
+| `time_key(TimeKey)` | Convert a time column to `HHMI` format string |
+| `datetime_from_dim(dateKey, timeKey, dt_format)` | Reconstruct a timestamp from date/time dimension keys |
+| `datetime_to_date_dim(col)` | Extract a `YYYYMMDD` date key from a datetime column |
+| `datetime_to_time_dim(col)` | Extract a `HHMI` time key from a datetime column |
+| `dimension_id(field_list)` | Concatenate fields into a surrogate identifier for a dimension PK |
+| `generate_surrogate_key(field_list)` | MD5 hash of concatenated fields, with configurable NULL handling |
+| `unknown_member(model_name)` | Generate an "unknown member" row for a dimension table based on column metadata in the dbt graph |
+
+### parse
+
+| Macro | Description |
+|---|---|
+| `first_day_of_month(s_year, s_month, month_format)` | Generate a date for the first day of the month |
+| `last_day_of_month(s_year, s_month, month_format)` | Generate a date for the last day of the month |
+| `to_date(s_date, date_format)` | Parse a string into a date using the supplied format |
+| `num_to_date(date_field)` | Convert a numeric `yyyymmdd` value to a date |
+| `string_to_num(field)` | Convert a numeric-looking string to a number |
+| `null_to_empty_string(field)` | Replace NULL with empty string |
+| `string_epoch_to_timestamp_ltz(given_date)` | Convert a `/Date(...)` epoch string to TIMESTAMP_LTZ |
+| `string_epoch_to_timestamp_ntz(given_date)` | Convert a `/Date(...)` epoch string to TIMESTAMP_NTZ |
+
+### pre-hooks
+
+| Macro | Description |
+|---|---|
+| `drop_view_if_exists()` | Drop the existing view before creating a dynamic table (pre-hook) |
+| `drop_table_if_exists()` | Drop the existing table before creating a dynamic table (pre-hook) |
+| `drop_views_in_schema_for_snapshots(schema_name, dry_run, database)` | Drop views in a schema that match snapshot nodes (pre-hook for snapshots) |
+
+### schema
+
+| Macro | Description |
+|---|---|
+| `generate_schema_name(custom_schema_name, node)` | Override: derives schema name from folder structure |
+| `ref(model_name, include_database)` | Enhanced ref with optional `include_database` parameter for cross-database references |
+| `source(schema_name, model_name, include_database)` | Enhanced source with optional `include_database` parameter |
+| `model_ref(model_name)` | Return a model relation without creating a dependency node |
+| `model_source(schema_name, model_name, include_database)` | Return a source relation without creating a dependency node |
+
+### shares
+
+| Macro | Description |
+|---|---|
+| `create_share(share_name, accounts, environments)` | Create/update a Snowflake share and grant usage to accounts |
+| `create_internal_share(share_name, reference_databases, environments)` | Create/update a share with unsecured objects and reference usage on additional databases |
+
+### tags
+
+| Macro | Description |
+|---|---|
+| `apply_meta_as_tags(tag_names)` | Post-hook: apply column meta entries as Snowflake tags |
+
+### tasks
+
+| Macro | Description |
+|---|---|
+| `enable_dependent_tasks(root_task, enabled_targets)` | Enable all dependent tasks for a root task in allowed environments |
+| `execute_task(task_name, enabled_targets)` | Execute a task in allowed environments |
+
+---
+
+## Grants Management
+
+### Patterns
+
+Grant macros follow a consistent pattern:
+
+- **Early exit guards**: macros skip execution outside `run` / `run-operation` contexts
+- **Privilege diffing**: avoids redundant grants; only issues changes
+- **Revoke safety**: revokes only for privileges outside desired scope
+- **Logging**: top-level macros write human-readable summaries
+- **Dry-run mode**: set `grants_dry_run: true` to preview all statements
+
+### Dry-Run Mode
+
+Set via CLI or `dbt_project.yml`:
+
+```bash
+dbt run-operation grant_schema_operate \
+  --args '{"exclude_schemas": [], "grant_roles": ["OPS_SUPPORT"]}' \
+  --vars '{"grants_dry_run": true}'
+```
+
+```yaml
+# dbt_project.yml
+vars:
+  grants_dry_run: true
+```
+
+### Macro Intent Summary
+
+| Macro Pattern | Purpose |
+|---|---|
+| `grant_schema_read*` | USAGE + SELECT/REFERENCES, optional future grants |
+| `grant_schema_monitor*` | MONITOR on tasks/pipes + schema usage |
+| `grant_schema_operate*` | OPERATE on tasks/pipes + schema usage |
+| `grant_schema_procedure_usage*` | USAGE on all procedures + schema usage |
+| `grant_share_read*` | Secure view exposure to outbound shares |
+| `grant_object` | Per-object privilege reconciliation for roles |
+| `grant_object_application` | Per-object privilege reconciliation for applications |
+| `grant_privileges` | Environment-aware bundle orchestrator |
+
+### Recommended Workflow
+
+1. Run with `grants_dry_run: true` and review logs in CI
+2. Approve changes, re-run with dry-run disabled to apply
+
+---
+
+## Tagging
+
+### apply_meta_as_tags
+
+Applies column-level meta properties as Snowflake tags during `post-hook`. Tags are defined outside dbt in a governance database.
+
+**Permissions required:**
+
 ```sql
 grant apply tag on account to role developers;
 ```
 
-##### Arguments
-
-- tag_names(required): A list of tag names to apply to the model if they exist as part of the metadata. These should be defined in your Snowflake account.
-
-##### Usage
+**Model YAML:**
 
 ```yaml
 models:
@@ -215,30 +259,33 @@ models:
     columns:
       - name: surname
         description: surname
-        type: VARCHAR
-        data_type: VARCHAR
         meta:
           pii_type: name
 ```
 
-The macro must be called as part of post-hook, so add the following to dbt_project.yml:
+**dbt_project.yml:**
 
 ```yaml
 post-hook:
-    - "{{ dbt_dataengineers_utils.apply_meta_as_tags(['pii_type']) }}"
-```
+  - "{{ dbt_dataengineers_utils.apply_meta_as_tags(['pii_type']) }}"
 
-The variables must be defined in your dbt_project.yml:
-
-```yaml
-  #########################################
-  ### dbt_dataengineers_utils variables ###
-  #########################################
-  #The database name where tags and masking policies live
+vars:
   data_governance_database: "DATA_GOVERNANCE"
-  #The schema name where tags are located
   tag_store: "TAG_STORE"
 ```
 
-##### Tags
-Define your meta data with `_type` at the end and it will apply the tag with the same name but replace `_type` with `_data`.
+Meta keys ending with `_type` are mapped to tags with `_classification`. The `default_mask` key is mapped to `default_mask_value`.
+
+---
+
+## Object Lifecycle (clean macros)
+
+The `clean_objects` macro orchestrates removal of Snowflake objects not defined in the dbt project. Use it as a post-hook or via `run-operation`:
+
+```bash
+dbt run-operation clean_objects --args '{"clean_targets": ["prod"], "object_types": ["schemas", "tables_and_views", "functions_and_procedures"]}'
+```
+
+Supported `object_types`: `schemas`, `functions_and_procedures`, `tasks`, `streams`, `stages`, `tables_and_views`, `alerts`, `file_formats`, `semantic_views`, `agents`.
+
+All clean macros support `dry_run` mode (default: `true`) to preview drops before executing.

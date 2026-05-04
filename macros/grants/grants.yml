@@ -95,6 +95,26 @@ macros:
         type: List[string]
         description: List of roles to grant privileges to
 
+  - name: grant_object_application
+    description: |
+      Grants specified privileges on objects (TABLE, VIEW, SCHEMA, etc.) to the provided applications.
+      Handles both granting and revoking privileges based on current state, logging a summary of actions taken.
+    docs:
+      show: true
+    arguments:
+      - name: object_type
+        type: string
+        description: Type of the object (e.g., TABLE, VIEW, SCHEMA)
+      - name: objects
+        type: List[string]
+        description: List of objects to apply the permission to (format = schema.object)
+      - name: grant_types
+        type: List[string]
+        description: List of privilege types to grant (e.g., SELECT, USAGE)
+      - name: grant_applications
+        type: List[string]
+        description: List of application names to grant privileges to
+
   - name: grant_usage_to_application
     description: This macro grants usage privileges on specific objects to a specific application role.
     docs:
@@ -351,3 +371,69 @@ macros:
       - name: roles
         type: string
         description: Comma-separated list of roles to grant privileges to (e.g., 'ROLE1,ROLE2' or single value)
+
+  - name: grant_external_share_read
+    description: |
+      Grants SELECT on all tables and views in specified schemas to an external share.
+      Grants schema USAGE, then bulk SELECT on tables, then individual SELECT on views.
+      Supports dry-run mode.
+    docs:
+      show: true
+    arguments:
+      - name: share_name
+        type: string
+        description: Name of the external share to grant SELECT privileges to
+      - name: include_schemas
+        type: List[string]
+        description: List of schemas to include for granting
+      - name: dry_run
+        type: boolean
+        description: If true, log all grant statements without executing them (default false)
+
+  - name: grant_agent_usage
+    description: |
+      Grants USAGE privilege on all AGENT views in a given schema to specified roles
+      and revokes USAGE from other roles that currently have it.
+    docs:
+      show: true
+    arguments:
+      - name: schema_name
+        type: string
+        description: Schema containing the AGENT views
+      - name: grant_roles
+        type: List[string]
+        description: List of roles to grant USAGE to
+      - name: revoke_roles
+        type: List[string]
+        description: List of roles to revoke USAGE from
+
+  - name: grant_semantic_views_privileges
+    description: |
+      Grants SELECT on all semantic views across all schemas (excluding specified ones) to the provided roles.
+      Delegates to grant_semantic_views_privileges_specific for per-schema operations.
+    docs:
+      show: true
+    arguments:
+      - name: exclude_schemas
+        type: List[string]
+        description: List of schemas to exclude from granting
+      - name: grant_roles
+        type: List[string]
+        description: List of roles to grant SELECT to
+      - name: include_future_grants
+        type: boolean
+        description: Whether to include future grants
+
+  - name: grant_semantic_views_privileges_specific
+    description: |
+      Grants SELECT on all semantic views in specified schemas to the provided roles
+      and revokes SELECT from roles that should no longer have it.
+    docs:
+      show: false
+    arguments:
+      - name: schema_name
+        type: List[string]
+        description: List of schemas to process
+      - name: grant_roles
+        type: List[string]
+        description: List of roles to grant SELECT to
