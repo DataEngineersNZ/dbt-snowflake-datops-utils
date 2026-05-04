@@ -39,28 +39,25 @@ jobs:
           SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
         run: |
-          PASSPHRASE_LINE=""
-          if [ -n "$SNOWFLAKE_PRIVATE_KEY_PASSPHRASE" ]; then
-            PASSPHRASE_LINE="          private_key_passphrase: \"${SNOWFLAKE_PRIVATE_KEY_PASSPHRASE}\""
-          fi
-
-          cat > integration_tests/profiles.yml <<YAML
-          integration_tests:
-            target: ci
-            outputs:
-              ci:
-                type: snowflake
-                account: "${SNOWFLAKE_ACCOUNT}"
-                user: "${SNOWFLAKE_USER}"
-                authenticator: snowflake_jwt
-                private_key_path: /tmp/rsa_key.p8
-          ${PASSPHRASE_LINE}
-                role: "${SNOWFLAKE_ROLE}"
-                warehouse: "${SNOWFLAKE_WAREHOUSE}"
-                database: "${SNOWFLAKE_DATABASE}"
-                schema: DBT_CI_TESTS
-                threads: 4
-          YAML
+          {
+            echo "integration_tests:"
+            echo "  target: ci"
+            echo "  outputs:"
+            echo "    ci:"
+            echo "      type: snowflake"
+            echo "      account: \"${SNOWFLAKE_ACCOUNT}\""
+            echo "      user: \"${SNOWFLAKE_USER}\""
+            echo "      authenticator: snowflake_jwt"
+            echo "      private_key_path: /tmp/rsa_key.p8"
+            if [ -n "$SNOWFLAKE_PRIVATE_KEY_PASSPHRASE" ]; then
+              echo "      private_key_passphrase: \"${SNOWFLAKE_PRIVATE_KEY_PASSPHRASE}\""
+            fi
+            echo "      role: \"${SNOWFLAKE_ROLE}\""
+            echo "      warehouse: \"${SNOWFLAKE_WAREHOUSE}\""
+            echo "      database: \"${SNOWFLAKE_DATABASE}\""
+            echo "      schema: DBT_CI_TESTS"
+            echo "      threads: 4"
+          } > integration_tests/profiles.yml
 
       - name: Install dbt packages
         working-directory: integration_tests
