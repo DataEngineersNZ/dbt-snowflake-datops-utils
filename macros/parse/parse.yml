@@ -8,13 +8,13 @@ macros:
     arguments:
       - name: s_year
         description: The year column to be used
-        type: ref
+        type: string
       - name: s_month
         description: The month column to be used
-        type: ref
+        type: string
       - name: month_format
         description: The format of the month column
-        type: TEXT
+        type: string
 
   - name: last_day_of_month
     description: This macro generates a date for the last day of the month based on the incoming year and month with a specified month format
@@ -23,13 +23,13 @@ macros:
     arguments:
       - name: s_year
         description: The year column to be used
-        type: ref
+        type: string
       - name: s_month
         description: The month column to be used
-        type: ref
+        type: string
       - name: month_format
         description: The format of the month column
-        type: TEXT
+        type: string
 
   - name: to_date
     description: Parse a string into a date using the supplied format pattern.
@@ -37,11 +37,11 @@ macros:
       show: true
     arguments:
       - name: s_date
-        description: The year column to be used
-        type: ref
+        description: The date column or expression to parse
+        type: string
       - name: date_format
         description: The format of the incoming date string
-        type: TEXT
+        type: string
 
   - name: num_to_date
     description: Convert a numeric yyyymmdd value to a date.
@@ -49,7 +49,7 @@ macros:
       show: true
     arguments:
       - name: date_field
-        type: ref
+        type: string
         description: The number to convert into a date
 
   - name: string_to_num
@@ -58,7 +58,7 @@ macros:
       show: true
     arguments:
       - name: field
-        type: ref
+        type: string
         description: The field containing the string to convert
 
   - name: null_to_empty_string
@@ -67,7 +67,7 @@ macros:
       show: true
     arguments:
       - name: field
-        type: ref
+        type: string
         description: The field containing the string to check
 
 
@@ -77,7 +77,7 @@ macros:
       show: true
     arguments:
       - name: given_date
-        type: ref
+        type: string
         description: The field containing the string to convert
 
   - name: string_epoch_to_timestamp_ntz
@@ -86,5 +86,5 @@ macros:
       show: true
     arguments:
       - name: given_date
-        type: ref
+        type: string
         description: The field containing the string to convert

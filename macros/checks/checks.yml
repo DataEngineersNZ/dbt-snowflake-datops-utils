@@ -34,7 +34,7 @@ macros:
         type: List[string]
         description: Column to check to see if its populated
       - name: col_to_fall_back_on
-        type: text
+        type: string
         description: Text based Column to fall back on if col_to_check is not populated
 
   - name: get_populated_numeric_value
@@ -43,10 +43,10 @@ macros:
       show: true
     arguments:
       - name: col_to_check
-        type: number
+        type: string
         description: Column to check to see if its populated
       - name: col_to_fall_back_on
-        type: number
+        type: string
         description: Column to fall back on if col_to_check is not populated
 
   - name: get_populated_string_value
@@ -55,8 +55,8 @@ macros:
       show: true
     arguments:
       - name: col_to_check
-        type: text
+        type: string
         description: Column to check to see if its populated
       - name: col_to_fall_back_on
-        type: text
+        type: string
         description: Column to fall back on if col_to_check is not populated

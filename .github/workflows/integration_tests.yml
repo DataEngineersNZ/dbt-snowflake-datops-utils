@@ -66,3 +66,7 @@ jobs:
       - name: Run dbt build (models + tests)
         working-directory: integration_tests
         run: dbt build
+
+      - name: Run macro unit tests
+        working-directory: integration_tests
+        run: dbt run-operation test_has_matching_nodes

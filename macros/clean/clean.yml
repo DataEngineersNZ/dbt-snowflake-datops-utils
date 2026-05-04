@@ -87,16 +87,19 @@ macros:
         description: specifies if the macro should run in dry run mode
 
   - name: has_matching_nodes
-    description: This macro checks to see if the sql object exists in dbt
+    description: |
+      Check if a Snowflake-deployed function/procedure matches a dbt graph node by schema, name, and argument signature.
+      Supports matching by node.name or by config.meta.override_name for models that deploy under a different name.
+      Resolves parameters from config.meta.parameters (falling back to config.parameters) for signature comparison.
     docs:
       show: false
     arguments:
       - name: nodes
-        type: string
-        description: graph of nodes to check against
+        type: any
+        description: graph.nodes.values() collection to check against
       - name: name_property
         type: string
-        description: name of the property to check against (name or config.override_name)
+        description: "Node attribute to match against sql_object_name: 'name' for direct match or 'config.override_name' for meta-based override names"
       - name: sql_object_schema
         type: string
         description: schema name

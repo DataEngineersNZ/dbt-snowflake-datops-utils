@@ -23,7 +23,7 @@ macros:
         type: List[string]
         description: List of tag names to check for in column meta
       - name: model_node
-        type: object
+        type: any
         description: The model node to inspect for meta tags
 
   - name: set_column_tag_value
@@ -52,5 +52,5 @@ macros:
         type: string
         description: The value to set for the tag
       - name: existing_tags_for_table
-        type: object
+        type: any
         description: Existing tags for the table, used to check current tag state
