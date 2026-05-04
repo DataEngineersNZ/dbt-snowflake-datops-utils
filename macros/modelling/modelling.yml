@@ -60,3 +60,28 @@ macros:
       - name: field_list
         type: Array
         description: The list of fields to be concatenated.
+
+  - name: generate_surrogate_key
+    description: |
+      Generate an MD5-based surrogate key from a list of fields. Each field is cast to string,
+      NULLs are replaced with a sentinel value, and the concatenated result is hashed with MD5.
+      Set var('surrogate_key_treat_nulls_as_empty_strings', true) to use empty strings instead of the sentinel.
+    docs:
+      show: true
+    arguments:
+      - name: field_list
+        type: Array
+        description: List of column expressions to include in the surrogate key hash.
+
+  - name: unknown_member
+    description: |
+      Generate an "unknown member" SELECT row for a dimension table based on column metadata
+      defined in the dbt graph. Produces default values by data type (_key/_pk columns use
+      the unknown_member_surrogate_key var, dates use 1900-01-01, numbers use -1, strings use 'Unknown').
+      The result is intended to be placed before a UNION ALL with the main dimension query.
+    docs:
+      show: true
+    arguments:
+      - name: model_name
+        type: string
+        description: The name of the dimension model whose columns define the unknown member shape.

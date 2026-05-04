@@ -3,7 +3,7 @@
 {%- if var('surrogate_key_treat_nulls_as_empty_strings', False) %}
     {%- set default_null_value = "" %}
 {%- else %}
-    {%- set default_null_value = '_dbt_utils_surrogate_key_null_'%}
+    {%- set default_null_value = '_surrogate_key_null_'%}
 {%- endif -%}
 
 {%- set fields = [] -%}

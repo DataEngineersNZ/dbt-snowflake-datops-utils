@@ -1,6 +1,28 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v1.0.0 - 2026-05-04 - Major Release
+
+### Breaking Changes
+- Removed `dbt-labs/dbt_utils` package dependency. This package now has **zero external dependencies** beyond dbt-core. The `generate_surrogate_key` null sentinel value changed from `_dbt_utils_surrogate_key_null_` to `_surrogate_key_null_`. If you rely on exact hash reproducibility with the old sentinel, set `var('surrogate_key_treat_nulls_as_empty_strings', true)` or update downstream comparisons.
+
+### Added
+- Macro documentation for `generate_surrogate_key` and `unknown_member` in modelling.yml
+- Macro documentation for `grant_external_share_read`, `grant_agent_usage`, `grant_semantic_views_privileges`, and `grant_semantic_views_privileges_specific` in grants.yml
+- Macro arguments for `drop_views_in_schema_for_snapshots` in pre-hooks.yml
+- Confirmed dbt Fusion compatibility across all macros
+
+### Fixed
+- Fixed `to_date` macro: extra closing parenthesis caused syntax error (`TO_DATE(col), 'fmt')` -> `TO_DATE(col, 'fmt')`)
+- Fixed `first_day_of_month` macro: referenced undefined variables `extract_year`/`extract_month` instead of parameters `s_year`/`s_month`
+- Fixed `last_day_of_month` macro: same parameter name bug as `first_day_of_month`
+- Fixed `get_populated_string_value` macro: used double-quoted empty string `""` which Snowflake treats as an identifier; changed to single-quoted `''`
+
+### Changed
+- Bumped version from 0.3.12 to 1.0.0
+- Widened `require-dbt-version` to `>=1.3.0, <3.0.0` to support dbt Fusion (2.x)
+- Updated README with comprehensive macro reference, variable documentation, and dbt Fusion compatibility notes
+
 ## v0.3.12 - 2026-04-30 - Share Reads
 
 - Limiting the macro `grant_share_read` to the current database
