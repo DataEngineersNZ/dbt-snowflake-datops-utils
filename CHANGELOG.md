@@ -1,6 +1,14 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v1.0.1 - 2026-05-04 - Type Fixes & Integration Tests
+
+### Added
+- Integration test project (`integration_tests/`) with 3 test models and 22 assertions covering all pure SQL expression macros (checks, modelling, parse)
+
+### Fixed
+- Fixed invalid macro argument types across YAML docs to use dbt-supported types (`ref` -> `string`, `TEXT` -> `string`, `text` -> `string`, `number` -> `string`, `Array` -> `list[string]`, `object` -> `any`/`optional[list[string]]`/`relation`). Resolves all `dbt1506` warnings.
+
 ## v1.0.0 - 2026-05-04 - Major Release
 
 ### Breaking Changes

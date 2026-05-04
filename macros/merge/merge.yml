@@ -7,7 +7,7 @@ macros:
       show: true
     arguments:
       - name: source
-        type: ref
+        type: relation
         description: where the data is coming from
       - name: destination_table
         type: string
@@ -19,7 +19,7 @@ macros:
         type: string
         description: key to perform the merge on
       - name: predicates
-        type: object
+        type: optional[list[string]]
         description: any additional columns to use during the merge
 
   - name: get_default_merge_statement
@@ -28,7 +28,7 @@ macros:
       show: true
     arguments:
       - name: source
-        type: ref
+        type: relation
         description: where the data is coming from
       - name: destination_table
         type: string
@@ -40,5 +40,5 @@ macros:
         type: string
         description: key to perform the merge on
       - name: predicates
-        type: object
+        type: optional[list[string]]
         description: any additional columns to use during the merge
