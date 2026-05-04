@@ -3,3 +3,8 @@ target/
 dbt_packages/
 logs/
 dbt_internal_packages/
+integration_tests/target/
+integration_tests/dbt_packages/
+integration_tests/logs/
+integration_tests/profiles.yml
+plans/

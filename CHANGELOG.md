@@ -12,6 +12,11 @@ This file contains the changelog for the Data Engineers Snowflake DataOps Utils 
 - Macro arguments for `drop_views_in_schema_for_snapshots` in pre-hooks.yml
 - Confirmed dbt Fusion compatibility across all macros
 
+### Fixed
+- Fixed `to_date` macro: extra closing parenthesis caused syntax error (`TO_DATE(col), 'fmt')` -> `TO_DATE(col, 'fmt')`)
+- Fixed `first_day_of_month` macro: referenced undefined variables `extract_year`/`extract_month` instead of parameters `s_year`/`s_month`
+- Fixed `last_day_of_month` macro: same parameter name bug as `first_day_of_month`
+
 ### Changed
 - Bumped version from 0.3.12 to 1.0.0
 - Widened `require-dbt-version` to `>=1.3.0, <3.0.0` to support dbt Fusion (2.x)

@@ -289,3 +289,24 @@ dbt run-operation clean_objects --args '{"clean_targets": ["prod"], "object_type
 Supported `object_types`: `schemas`, `functions_and_procedures`, `tasks`, `streams`, `stages`, `tables_and_views`, `alerts`, `file_formats`, `semantic_views`, `agents`.
 
 All clean macros support `dry_run` mode (default: `true`) to preview drops before executing.
+
+---
+
+## Running Tests
+
+Integration tests live in the `integration_tests/` directory. They exercise all pure SQL expression macros (checks, modelling, parse) with known inputs and assert expected outputs.
+
+**Prerequisites**: A Snowflake connection configured as a dbt profile named `integration_tests`.
+
+```bash
+cd integration_tests
+dbt deps
+dbt build
+```
+
+`dbt build` runs the test models (which call each macro with literal values) and then executes singular tests that assert expected output values. All tests passing means the macros produce correct SQL.
+
+**What's tested:**
+- **checks**: `get_populated_array`, `get_populated_array_value_as_string`, `get_populated_array_value_or_string_as_string`, `get_populated_numeric_value`, `get_populated_string_value`
+- **modelling**: `date_key`, `time_key`, `datetime_from_dim`, `datetime_to_date_dim`, `datetime_to_time_dim`, `dimension_id`, `generate_surrogate_key`
+- **parse**: `to_date`, `num_to_date`, `string_to_num`, `null_to_empty_string`, `first_day_of_month`, `last_day_of_month`, `string_epoch_to_timestamp_ltz`, `string_epoch_to_timestamp_ntz`

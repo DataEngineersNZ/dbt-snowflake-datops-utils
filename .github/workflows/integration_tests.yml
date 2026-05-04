@@ -1,0 +1,59 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  DBT_PROFILES_DIR: ${{ github.workspace }}/integration_tests
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dbt-snowflake
+        run: pip install dbt-snowflake>=1.8.0
+
+      - name: Write private key
+        run: |
+          echo "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" > /tmp/rsa_key.p8
+          chmod 600 /tmp/rsa_key.p8
+
+      - name: Create dbt profiles.yml
+        run: |
+          cat <<'EOF' > integration_tests/profiles.yml
+          integration_tests:
+            target: ci
+            outputs:
+              ci:
+                type: snowflake
+                account: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+                user: ${{ secrets.SNOWFLAKE_USER }}
+                authenticator: snowflake_jwt
+                private_key_path: /tmp/rsa_key.p8
+                private_key_passphrase: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
+                role: ${{ secrets.SNOWFLAKE_ROLE }}
+                warehouse: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+                database: "{{ env_var('SNOWFLAKE_DATABASE', 'DBT_PACKAGES_CI_TESTS') }}"
+                schema: "{{ env_var('SNOWFLAKE_SCHEMA', 'UTILS_TESTS') }}"
+                threads: 4
+          EOF
+
+      - name: Install dbt packages
+        working-directory: integration_tests
+        run: dbt deps
+
+      - name: Run dbt build (models + tests)
+        working-directory: integration_tests
+        run: dbt build
