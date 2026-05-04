@@ -1,14 +1,6 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
-## v1.0.1 - 2026-05-04 - Type Fixes & Integration Tests
-
-### Added
-- Integration test project (`integration_tests/`) with 3 test models and 22 assertions covering all pure SQL expression macros (checks, modelling, parse)
-
-### Fixed
-- Fixed invalid macro argument types across YAML docs to use dbt-supported types (`ref` -> `string`, `TEXT` -> `string`, `text` -> `string`, `number` -> `string`, `Array` -> `list[string]`, `object` -> `any`/`optional[list[string]]`/`relation`). Resolves all `dbt1506` warnings.
-
 ## v1.0.0 - 2026-05-04 - Major Release
 
 ### Breaking Changes
@@ -19,12 +11,16 @@ This file contains the changelog for the Data Engineers Snowflake DataOps Utils 
 - Macro documentation for `grant_external_share_read`, `grant_agent_usage`, `grant_semantic_views_privileges`, and `grant_semantic_views_privileges_specific` in grants.yml
 - Macro arguments for `drop_views_in_schema_for_snapshots` in pre-hooks.yml
 - Confirmed dbt Fusion compatibility across all macros
+- Integration test project (`integration_tests/`) with 3 test models and 22 assertions covering all pure SQL expression macros (checks, modelling, parse)
 
 ### Fixed
 - Fixed `to_date` macro: extra closing parenthesis caused syntax error (`TO_DATE(col), 'fmt')` -> `TO_DATE(col, 'fmt')`)
 - Fixed `first_day_of_month` macro: referenced undefined variables `extract_year`/`extract_month` instead of parameters `s_year`/`s_month`
 - Fixed `last_day_of_month` macro: same parameter name bug as `first_day_of_month`
 - Fixed `get_populated_string_value` macro: used double-quoted empty string `""` which Snowflake treats as an identifier; changed to single-quoted `''`
+- Fixed invalid macro argument types across YAML docs to use dbt-supported types (`ref` -> `string`, `TEXT` -> `string`, `text` -> `string`, `number` -> `string`, `Array` -> `list[string]`, `object` -> `any`/`optional[list[string]]`/`relation`). Resolves all `dbt1506` warnings.
+- Fixed `has_matching_nodes` macro: `node.config.parameters` failed to find parameters stored under `node.config.meta.parameters` in dbt graph nodes, causing functions/UDTFs with meta-defined parameters to be incorrectly identified as orphans and dropped. Now falls back through `config.meta.parameters` -> `config.parameters` -> `''`.
+- Fixed `has_matching_nodes` macro: `selectattr("config.override_name", ...)` never matched because Jinja2's `selectattr` does not support dotted-path nested attribute lookups. Replaced with manual loop and safe `config.get("meta", {}).get("override_name", ...)` access. This prevents functions using `override_name` from being dropped as orphans.
 
 ### Changed
 - Bumped version from 0.3.12 to 1.0.0
