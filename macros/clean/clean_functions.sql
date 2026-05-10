@@ -38,34 +38,24 @@
             {% set result_has_matching_nodes = dbt_dataengineers_utils.has_matching_nodes(nodes, "config.override_name", sql_object_schema,sql_object_name,sql_arguments) %}
             {% if result_has_matching_nodes == false %}
 
-                {% set sql_arguments = sql_arguments  | replace("(", "") | replace(")", "") %}
-                {% set sql_arguments_list = sql_arguments.split(',') %}
+                {# Strip the outer parentheses from the Snowflake argument signature #}
+                {% set sql_arguments = sql_arguments | replace("(", "", 1) %}
+                {% if sql_arguments.endswith(")") %}
+                    {% set sql_arguments = sql_arguments[:-1] %}
+                {% endif %}
+                {% set sql_arguments = sql_arguments | trim %}
+
+                {# Extract type-only tokens using paren-aware split #}
                 {% set new_sql_arguments_list = [] %}
-                
-                {% for argument in sql_arguments_list %}
-                    {# Split by space and filter out empty parts from consecutive whitespace #}
-                    {% set argument_parts = [] %}
-                    {% for p in (argument | trim).split(' ') %}
-                        {% if p | trim | length > 0 %}
-                            {% do argument_parts.append(p | trim) %}
+                {% if sql_arguments | length > 0 %}
+                    {% for param in dbt_dataengineers_utils.split_params(sql_arguments) %}
+                        {% set param_type = dbt_dataengineers_utils.extract_param_type(param) %}
+                        {% if param_type | length > 0 %}
+                            {% do new_sql_arguments_list.append(param_type) %}
                         {% endif %}
                     {% endfor %}
-                    {% if argument_parts | length >= 2 %}
-                        {# Format: "name type" - take the type (second word) #}
-                        {% do new_sql_arguments_list.append(argument_parts[1]) %}
-                    {% elif argument_parts | length == 1 and argument_parts[0] | length > 0 %}
-                        {# Format: type-only (Snowflake information_schema style) #}
-                        {% do new_sql_arguments_list.append(argument_parts[0]) %}
-                    {% endif %}
-                {% endfor %}
-                {% for argument in new_sql_arguments_list %}
-                    {%- if not loop.first %}
-                        {% set ns.sql_arguments = ns.sql_arguments ~ "," %}
-                    {% else %}
-                        {% set ns.sql_arguments = "" %}
-                    {% endif -%}
-                    {% set ns.sql_arguments = ns.sql_arguments ~ argument %}
-                {% endfor %}
+                {% endif %}
+                {% set ns.sql_arguments = new_sql_arguments_list | join(",") %}
 
                 {% set sql_signature = (sql_object_schema ~ "." ~ sql_object_name ~ "(" ~ ns.sql_arguments ~ ")") | lower %}
 

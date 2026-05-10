@@ -4,9 +4,11 @@ This file contains the changelog for the Data Engineers Snowflake DataOps Utils 
 ## v1.0.1 - 2026-05-10 - Function Signature Matching Fix
 
 ### Fixed
-- Fixed `has_matching_nodes` macro: Snowflake `information_schema.functions` returns type-only signatures (e.g. `(VARCHAR)`) but dbt parameters include names and DEFAULT clauses (e.g. `target_timezone STRING DEFAULT 'Pacific/Auckland'`). Added types-only fallback comparison that strips parameter names and DEFAULT clauses before matching. This prevents UDTFs/functions with DEFAULT parameters from being incorrectly dropped as orphans.
-- Fixed `has_matching_nodes` macro: multi-line parameters (from YAML block scalars or SQL config strings with newlines/tabs) now correctly normalised -- newlines and tabs are replaced with spaces then collapsed, so signature comparison succeeds regardless of whitespace formatting in the parameter definition.
-- Fixed `clean_functions` macro: fallback argument extraction failed on type-only Snowflake signatures because `argument.split(' ')[1]` is out of bounds when the argument is a single type word like `varchar`. Now correctly handles both `name type` and type-only formats, with whitespace-safe splitting.
+- Fixed `has_matching_nodes` macro: Snowflake `information_schema.functions` returns type-only signatures (e.g. `(VARCHAR)`) but dbt parameters include names and DEFAULT clauses (e.g. `target_timezone STRING DEFAULT 'Pacific/Auckland'`). Added type-only fallback comparison that strips parameter names and DEFAULT clauses before matching. This prevents UDTFs/functions with DEFAULT parameters from being incorrectly dropped as orphans.
+- Fixed `has_matching_nodes` macro: multi-line parameters (from YAML block scalars or SQL config strings with newlines/tabs) now correctly normalised via `collapse_whitespace` helper -- newlines and tabs are replaced with spaces then iteratively collapsed, handling arbitrarily long runs of whitespace.
+- Fixed `has_matching_nodes` and `clean_functions` macros: type extraction now uses `extract_param_type` helper which collects all tokens between the parameter name and `DEFAULT` keyword, correctly handling compound types with parenthesised precision like `NUMBER(15, 2)` or `VARCHAR(100)`.
+- Fixed `clean_functions` macro: fallback argument extraction failed on type-only Snowflake signatures because `argument.split(' ')[1]` is out of bounds when the argument is a single type word like `varchar`. Now uses shared helper macros for consistent handling.
+- Added `collapse_whitespace`, `split_params`, and `extract_param_type` helper macros in `macros/clean/_helpers.sql` to share whitespace normalisation, parenthesis-aware parameter splitting, and type extraction logic between `has_matching_nodes` and `clean_functions`.
 
 ### Changed
 - Bumped version from 1.0.0 to 1.0.1

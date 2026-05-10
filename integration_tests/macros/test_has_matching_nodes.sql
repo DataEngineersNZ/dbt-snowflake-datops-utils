@@ -109,7 +109,27 @@
         }
     } %}
 
-    {% set all_nodes = [node_simple, node_meta_params, node_override, node_no_params, node_string_type, node_newline_params, node_default_param, node_multi_default, node_multiline_default, node_direct_multiline] %}
+    {# 11. Function with compound types including precision in parentheses #}
+    {% set node_compound_types = {
+        "schema": "analytics",
+        "name": "my_compound_func",
+        "config": {
+            "parameters": "p_amount NUMBER(15, 2), p_name VARCHAR(100) DEFAULT 'test', p_rate NUMBER(4, 2)"
+        }
+    } %}
+
+    {# 12. Function with extreme whitespace (many consecutive spaces/tabs) #}
+    {% set node_extreme_ws = {
+        "schema": "analytics",
+        "name": "my_extreme_ws_func",
+        "config": {
+            "meta": {
+                "parameters": "p_id          varchar,\n\t\t\t  p_name          varchar"
+            }
+        }
+    } %}
+
+    {% set all_nodes = [node_simple, node_meta_params, node_override, node_no_params, node_string_type, node_newline_params, node_default_param, node_multi_default, node_multiline_default, node_direct_multiline, node_compound_types, node_extreme_ws] %}
 
     {# ── Test 1: Match by name with direct config.parameters ── #}
     {% set result = dbt_dataengineers_utils.has_matching_nodes(
@@ -256,6 +276,38 @@
         {% do failures.append("Test 18 FAILED: multi-line full signature match expected true, got " ~ result) %}
     {% endif %}
 
+    {# ── Test 19: Compound types with precision - type-only match ── #}
+    {% set result = dbt_dataengineers_utils.has_matching_nodes(
+        all_nodes, "name", "ANALYTICS", "MY_COMPOUND_FUNC", "(NUMBER(15, 2), VARCHAR(100), NUMBER(4, 2))"
+    ) %}
+    {% if result != true %}
+        {% do failures.append("Test 19 FAILED: compound types type-only match expected true, got " ~ result) %}
+    {% endif %}
+
+    {# ── Test 20: Compound types - full signature match (no DEFAULT) ── #}
+    {% set result = dbt_dataengineers_utils.has_matching_nodes(
+        all_nodes, "name", "ANALYTICS", "MY_COMPOUND_FUNC", "(p_amount number(15, 2), p_name varchar(100) default 'test', p_rate number(4, 2))"
+    ) %}
+    {% if result != true %}
+        {% do failures.append("Test 20 FAILED: compound types full signature match expected true, got " ~ result) %}
+    {% endif %}
+
+    {# ── Test 21: Extreme whitespace - type-only match ── #}
+    {% set result = dbt_dataengineers_utils.has_matching_nodes(
+        all_nodes, "name", "ANALYTICS", "MY_EXTREME_WS_FUNC", "(VARCHAR, VARCHAR)"
+    ) %}
+    {% if result != true %}
+        {% do failures.append("Test 21 FAILED: extreme whitespace type-only match expected true, got " ~ result) %}
+    {% endif %}
+
+    {# ── Test 22: Extreme whitespace - full signature match ── #}
+    {% set result = dbt_dataengineers_utils.has_matching_nodes(
+        all_nodes, "name", "ANALYTICS", "MY_EXTREME_WS_FUNC", "(p_id varchar, p_name varchar)"
+    ) %}
+    {% if result != true %}
+        {% do failures.append("Test 22 FAILED: extreme whitespace full signature match expected true, got " ~ result) %}
+    {% endif %}
+
     {# ── Report results ── #}
     {% if failures | length > 0 %}
         {% for f in failures %}
@@ -263,6 +315,6 @@
         {% endfor %}
         {{ exceptions.raise_compiler_error("has_matching_nodes: " ~ (failures | length) ~ " test(s) failed. See log above.") }}
     {% else %}
-        {% do log("has_matching_nodes: all 18 tests passed", info=True) %}
+        {% do log("has_matching_nodes: all 22 tests passed", info=True) %}
     {% endif %}
 {% endmacro %}

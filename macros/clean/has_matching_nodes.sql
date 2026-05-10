@@ -13,9 +13,9 @@
             {% if node_name | lower == sql_object_name | lower %}
                 {# Resolve parameters: try config.meta.parameters, then config.parameters, then '' #}
                 {% set raw_params = node.config.get("meta", {}).get("parameters", node.config.get("parameters", "")) %}
-                {% set dbt_arguments = (raw_params | default("", true)) | lower | replace("string", "varchar") | replace('\n', ' ') | replace('\r', '') | replace('\t', ' ') %}
-                {# Collapse consecutive spaces left over from newline/tab replacement #}
-                {% set dbt_arguments = dbt_arguments | replace('     ', ' ') | replace('    ', ' ') | replace('   ', ' ') | replace('  ', ' ') | trim %}
+                {% set dbt_arguments = dbt_dataengineers_utils.collapse_whitespace(
+                    (raw_params | default("", true)) | lower | replace("string", "varchar")
+                ) %}
 
                 {% if name_property == "config.override_name" %}
                     {% set dbt_signature = (node.schema ~ "." ~ node_name ~ "(" ~ dbt_arguments ~ ")") | lower %}
@@ -32,25 +32,15 @@
                    Snowflake information_schema returns type-only signatures e.g. (VARCHAR)
                    while dbt parameters may include names and DEFAULT clauses e.g.
                    "target_timezone VARCHAR DEFAULT 'Pacific/Auckland'".
-                   Parameters may also span multiple lines in YAML/SQL config.
+                   Parameters may also contain parenthesised precision e.g. NUMBER(3, 0).
                    Extract just the types from the dbt side and compare again. #}
                 {% set dbt_types = [] %}
-                {% set clean_dbt_args = dbt_arguments | replace("(", "") | replace(")", "") | trim %}
+                {% set clean_dbt_args = dbt_arguments | trim %}
                 {% if clean_dbt_args | length > 0 %}
-                    {# Split parameters by comma, then extract the type (second word) from each #}
-                    {% for param in clean_dbt_args.split(',') %}
-                        {# Split by space and filter out empty parts from consecutive whitespace #}
-                        {% set parts = [] %}
-                        {% for p in (param | trim).split(' ') %}
-                            {% if p | trim | length > 0 %}
-                                {% do parts.append(p | trim) %}
-                            {% endif %}
-                        {% endfor %}
-                        {% if parts | length >= 2 %}
-                            {% do dbt_types.append(parts[1]) %}
-                        {% elif parts | length == 1 and parts[0] | length > 0 %}
-                            {# Parameter is already type-only (no name prefix) #}
-                            {% do dbt_types.append(parts[0]) %}
+                    {% for param in dbt_dataengineers_utils.split_params(clean_dbt_args) %}
+                        {% set param_type = dbt_dataengineers_utils.extract_param_type(param) %}
+                        {% if param_type | length > 0 %}
+                            {% do dbt_types.append(param_type) %}
                         {% endif %}
                     {% endfor %}
                 {% endif %}
