@@ -69,7 +69,47 @@
         }
     } %}
 
-    {% set all_nodes = [node_simple, node_meta_params, node_override, node_no_params, node_string_type, node_newline_params] %}
+    {# 7. Function with DEFAULT clause in parameters (UDTF pattern) #}
+    {% set node_default_param = {
+        "schema": "m3",
+        "name": "udtf_get_all_active_bank_accounts",
+        "config": {
+            "meta": {
+                "parameters": "target_timezone STRING DEFAULT 'Pacific/Auckland'"
+            }
+        }
+    } %}
+
+    {# 8. Function with multiple params including DEFAULT clauses #}
+    {% set node_multi_default = {
+        "schema": "analytics",
+        "name": "my_multi_default_func",
+        "config": {
+            "parameters": "p_start date, p_timezone string DEFAULT 'UTC', p_limit number DEFAULT 100"
+        }
+    } %}
+
+    {# 9. Function with multi-line parameters (YAML block scalar style) and DEFAULT, in config.meta #}
+    {% set node_multiline_default = {
+        "schema": "m3",
+        "name": "udtf_multiline_params",
+        "config": {
+            "meta": {
+                "parameters": "p_company  NUMBER,\n  p_timezone  STRING  DEFAULT 'Pacific/Auckland',\n  p_active  BOOLEAN  DEFAULT TRUE"
+            }
+        }
+    } %}
+
+    {# 10. Function with multi-line params directly in config (not under meta) #}
+    {% set node_direct_multiline = {
+        "schema": "analytics",
+        "name": "my_direct_multiline_func",
+        "config": {
+            "parameters": "p_id  varchar,\n\tp_name\tvarchar"
+        }
+    } %}
+
+    {% set all_nodes = [node_simple, node_meta_params, node_override, node_no_params, node_string_type, node_newline_params, node_default_param, node_multi_default, node_multiline_default, node_direct_multiline] %}
 
     {# ── Test 1: Match by name with direct config.parameters ── #}
     {% set result = dbt_dataengineers_utils.has_matching_nodes(
@@ -137,7 +177,7 @@
 
     {# ── Test 9: Newline normalization in parameters ── #}
     {% set result = dbt_dataengineers_utils.has_matching_nodes(
-        all_nodes, "name", "ANALYTICS", "MY_NEWLINE_FUNC", "(p_id varchar,p_name varchar)"
+        all_nodes, "name", "ANALYTICS", "MY_NEWLINE_FUNC", "(p_id varchar, p_name varchar)"
     ) %}
     {% if result != true %}
         {% do failures.append("Test 9 FAILED: newline normalization expected true, got " ~ result) %}
@@ -160,6 +200,62 @@
         {% do failures.append("Test 11 FAILED: empty nodes expected false, got " ~ result) %}
     {% endif %}
 
+    {# ── Test 12: DEFAULT clause - Snowflake type-only signature matches dbt params with DEFAULT ── #}
+    {% set result = dbt_dataengineers_utils.has_matching_nodes(
+        all_nodes, "name", "M3", "UDTF_GET_ALL_ACTIVE_BANK_ACCOUNTS", "(VARCHAR)"
+    ) %}
+    {% if result != true %}
+        {% do failures.append("Test 12 FAILED: DEFAULT clause type-only match expected true, got " ~ result) %}
+    {% endif %}
+
+    {# ── Test 13: DEFAULT clause - full signature still matches when Snowflake includes names ── #}
+    {% set result = dbt_dataengineers_utils.has_matching_nodes(
+        all_nodes, "name", "M3", "UDTF_GET_ALL_ACTIVE_BANK_ACCOUNTS", "(target_timezone varchar default 'pacific/auckland')"
+    ) %}
+    {% if result != true %}
+        {% do failures.append("Test 13 FAILED: DEFAULT clause full signature match expected true, got " ~ result) %}
+    {% endif %}
+
+    {# ── Test 14: Multiple params with DEFAULT - type-only match ── #}
+    {% set result = dbt_dataengineers_utils.has_matching_nodes(
+        all_nodes, "name", "ANALYTICS", "MY_MULTI_DEFAULT_FUNC", "(DATE, VARCHAR, NUMBER)"
+    ) %}
+    {% if result != true %}
+        {% do failures.append("Test 14 FAILED: multi-param DEFAULT type-only match expected true, got " ~ result) %}
+    {% endif %}
+
+    {# ── Test 15: DEFAULT clause - wrong type should not match ── #}
+    {% set result = dbt_dataengineers_utils.has_matching_nodes(
+        all_nodes, "name", "M3", "UDTF_GET_ALL_ACTIVE_BANK_ACCOUNTS", "(NUMBER)"
+    ) %}
+    {% if result != false %}
+        {% do failures.append("Test 15 FAILED: DEFAULT clause wrong type expected false, got " ~ result) %}
+    {% endif %}
+
+    {# ── Test 16: Multi-line params with DEFAULT in meta - type-only match ── #}
+    {% set result = dbt_dataengineers_utils.has_matching_nodes(
+        all_nodes, "name", "M3", "UDTF_MULTILINE_PARAMS", "(NUMBER, VARCHAR, BOOLEAN)"
+    ) %}
+    {% if result != true %}
+        {% do failures.append("Test 16 FAILED: multi-line meta params type-only match expected true, got " ~ result) %}
+    {% endif %}
+
+    {# ── Test 17: Multi-line params with tabs in direct config - type-only match ── #}
+    {% set result = dbt_dataengineers_utils.has_matching_nodes(
+        all_nodes, "name", "ANALYTICS", "MY_DIRECT_MULTILINE_FUNC", "(VARCHAR, VARCHAR)"
+    ) %}
+    {% if result != true %}
+        {% do failures.append("Test 17 FAILED: multi-line tab params type-only match expected true, got " ~ result) %}
+    {% endif %}
+
+    {# ── Test 18: Multi-line params with extra spaces - full signature match ── #}
+    {% set result = dbt_dataengineers_utils.has_matching_nodes(
+        all_nodes, "name", "ANALYTICS", "MY_DIRECT_MULTILINE_FUNC", "(p_id varchar, p_name varchar)"
+    ) %}
+    {% if result != true %}
+        {% do failures.append("Test 18 FAILED: multi-line full signature match expected true, got " ~ result) %}
+    {% endif %}
+
     {# ── Report results ── #}
     {% if failures | length > 0 %}
         {% for f in failures %}
@@ -167,6 +263,6 @@
         {% endfor %}
         {{ exceptions.raise_compiler_error("has_matching_nodes: " ~ (failures | length) ~ " test(s) failed. See log above.") }}
     {% else %}
-        {% do log("has_matching_nodes: all 11 tests passed", info=True) %}
+        {% do log("has_matching_nodes: all 18 tests passed", info=True) %}
     {% endif %}
 {% endmacro %}

@@ -91,6 +91,8 @@ macros:
       Check if a Snowflake-deployed function/procedure matches a dbt graph node by schema, name, and argument signature.
       Supports matching by node.name or by config.meta.override_name for models that deploy under a different name.
       Resolves parameters from config.meta.parameters (falling back to config.parameters) for signature comparison.
+      Includes a types-only fallback to handle Snowflake information_schema returning type-only signatures (e.g. (VARCHAR))
+      when dbt parameters include names and DEFAULT clauses (e.g. "target_timezone STRING DEFAULT 'Pacific/Auckland'").
     docs:
       show: false
     arguments:

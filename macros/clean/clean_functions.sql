@@ -43,8 +43,20 @@
                 {% set new_sql_arguments_list = [] %}
                 
                 {% for argument in sql_arguments_list %}
-                    {% set argument_parts = (argument | trim).split(' ') %}
-                    {% do new_sql_arguments_list.append(argument_parts[1]) %}
+                    {# Split by space and filter out empty parts from consecutive whitespace #}
+                    {% set argument_parts = [] %}
+                    {% for p in (argument | trim).split(' ') %}
+                        {% if p | trim | length > 0 %}
+                            {% do argument_parts.append(p | trim) %}
+                        {% endif %}
+                    {% endfor %}
+                    {% if argument_parts | length >= 2 %}
+                        {# Format: "name type" - take the type (second word) #}
+                        {% do new_sql_arguments_list.append(argument_parts[1]) %}
+                    {% elif argument_parts | length == 1 and argument_parts[0] | length > 0 %}
+                        {# Format: type-only (Snowflake information_schema style) #}
+                        {% do new_sql_arguments_list.append(argument_parts[0]) %}
+                    {% endif %}
                 {% endfor %}
                 {% for argument in new_sql_arguments_list %}
                     {%- if not loop.first %}

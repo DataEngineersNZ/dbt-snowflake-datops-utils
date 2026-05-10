@@ -1,6 +1,16 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v1.0.1 - 2026-05-10 - Function Signature Matching Fix
+
+### Fixed
+- Fixed `has_matching_nodes` macro: Snowflake `information_schema.functions` returns type-only signatures (e.g. `(VARCHAR)`) but dbt parameters include names and DEFAULT clauses (e.g. `target_timezone STRING DEFAULT 'Pacific/Auckland'`). Added types-only fallback comparison that strips parameter names and DEFAULT clauses before matching. This prevents UDTFs/functions with DEFAULT parameters from being incorrectly dropped as orphans.
+- Fixed `has_matching_nodes` macro: multi-line parameters (from YAML block scalars or SQL config strings with newlines/tabs) now correctly normalised -- newlines and tabs are replaced with spaces then collapsed, so signature comparison succeeds regardless of whitespace formatting in the parameter definition.
+- Fixed `clean_functions` macro: fallback argument extraction failed on type-only Snowflake signatures because `argument.split(' ')[1]` is out of bounds when the argument is a single type word like `varchar`. Now correctly handles both `name type` and type-only formats, with whitespace-safe splitting.
+
+### Changed
+- Bumped version from 1.0.0 to 1.0.1
+
 ## v1.0.0 - 2026-05-04 - Major Release
 
 ### Breaking Changes
