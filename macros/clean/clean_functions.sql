@@ -38,22 +38,24 @@
             {% set result_has_matching_nodes = dbt_dataengineers_utils.has_matching_nodes(nodes, "config.override_name", sql_object_schema,sql_object_name,sql_arguments) %}
             {% if result_has_matching_nodes == false %}
 
-                {% set sql_arguments = sql_arguments  | replace("(", "") | replace(")", "") %}
-                {% set sql_arguments_list = sql_arguments.split(',') %}
+                {# Strip the outer parentheses from the Snowflake argument signature #}
+                {% set sql_arguments = sql_arguments | replace("(", "", 1) %}
+                {% if sql_arguments.endswith(")") %}
+                    {% set sql_arguments = sql_arguments[:-1] %}
+                {% endif %}
+                {% set sql_arguments = sql_arguments | trim %}
+
+                {# Extract type-only tokens using paren-aware split #}
                 {% set new_sql_arguments_list = [] %}
-                
-                {% for argument in sql_arguments_list %}
-                    {% set argument_parts = (argument | trim).split(' ') %}
-                    {% do new_sql_arguments_list.append(argument_parts[1]) %}
-                {% endfor %}
-                {% for argument in new_sql_arguments_list %}
-                    {%- if not loop.first %}
-                        {% set ns.sql_arguments = ns.sql_arguments ~ "," %}
-                    {% else %}
-                        {% set ns.sql_arguments = "" %}
-                    {% endif -%}
-                    {% set ns.sql_arguments = ns.sql_arguments ~ argument %}
-                {% endfor %}
+                {% if sql_arguments | length > 0 %}
+                    {% for param in dbt_dataengineers_utils.split_params(sql_arguments) %}
+                        {% set param_type = dbt_dataengineers_utils.extract_param_type(param) %}
+                        {% if param_type | length > 0 %}
+                            {% do new_sql_arguments_list.append(param_type) %}
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+                {% set ns.sql_arguments = new_sql_arguments_list | join(",") %}
 
                 {% set sql_signature = (sql_object_schema ~ "." ~ sql_object_name ~ "(" ~ ns.sql_arguments ~ ")") | lower %}
 

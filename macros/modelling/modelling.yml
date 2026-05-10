@@ -58,7 +58,7 @@ macros:
       show: true
     arguments:
       - name: field_list
-        type: Array
+        type: list[string]
         description: The list of fields to be concatenated.
 
   - name: generate_surrogate_key
@@ -70,7 +70,7 @@ macros:
       show: true
     arguments:
       - name: field_list
-        type: Array
+        type: list[string]
         description: List of column expressions to include in the surrogate key hash.
 
   - name: unknown_member
