@@ -1,6 +1,14 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v1.0.2 - 2026-05-12 - Clean Functions Signature Fallback Fix
+
+### Fixed
+- Fixed `has_matching_nodes` macro: the types-only fallback comparison was only extracting types from the dbt side while comparing against the original Snowflake signature which still contained parameter names. This caused UDFs with DEFAULT parameters (e.g. `target_timezone STRING DEFAULT 'Pacific/Auckland'`) to be incorrectly dropped, because the Snowflake signature `(TARGET_TIMEZONE VARCHAR)` includes parameter names that didn't match the dbt types-only signature `(varchar)`. The fallback now extracts types from both sides before comparing.
+
+### Changed
+- Bumped version from 1.0.1 to 1.0.2
+
 ## v1.0.1 - 2026-05-10 - Function Signature Matching Fix
 
 ### Fixed
