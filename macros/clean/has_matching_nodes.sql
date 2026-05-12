@@ -29,11 +29,11 @@
                 {% endif %}
 
                 {# ── Fallback: compare types-only signatures ──
-                   Snowflake information_schema returns type-only signatures e.g. (VARCHAR)
-                   while dbt parameters may include names and DEFAULT clauses e.g.
-                   "target_timezone VARCHAR DEFAULT 'Pacific/Auckland'".
+                   Snowflake information_schema may return signatures with param names
+                   e.g. (TARGET_TIMEZONE VARCHAR) while dbt parameters include names and
+                   DEFAULT clauses e.g. "target_timezone VARCHAR DEFAULT 'Pacific/Auckland'".
                    Parameters may also contain parenthesised precision e.g. NUMBER(3, 0).
-                   Extract just the types from the dbt side and compare again. #}
+                   Extract just the types from BOTH sides and compare again. #}
                 {% set dbt_types = [] %}
                 {% set clean_dbt_args = dbt_arguments | trim %}
                 {% if clean_dbt_args | length > 0 %}
@@ -45,13 +45,31 @@
                     {% endfor %}
                 {% endif %}
 
-                {% if name_property == "config.override_name" %}
-                    {% set dbt_types_signature = (node.schema ~ "." ~ node_name ~ "(" ~ dbt_types | join(", ") ~ ")") | lower %}
-                {% else %}
-                    {% set dbt_types_signature = (node.schema ~ "." ~ node.name ~ "(" ~ dbt_types | join(", ") ~ ")") | lower %}
+                {# Also extract types-only from the Snowflake side (which may include param names) #}
+                {% set sql_types = [] %}
+                {% set clean_sql_args = sql_arguments | replace("(", "", 1) %}
+                {% if clean_sql_args.endswith(")") %}
+                    {% set clean_sql_args = clean_sql_args[:-1] %}
+                {% endif %}
+                {% set clean_sql_args = clean_sql_args | trim %}
+                {% if clean_sql_args | length > 0 %}
+                    {% for param in dbt_dataengineers_utils.split_params(clean_sql_args) %}
+                        {% set param_type = dbt_dataengineers_utils.extract_param_type(param) %}
+                        {% if param_type | length > 0 %}
+                            {% do sql_types.append(param_type) %}
+                        {% endif %}
+                    {% endfor %}
                 {% endif %}
 
-                {% if sql_signature == dbt_types_signature %}
+                {% if name_property == "config.override_name" %}
+                    {% set dbt_types_signature = (node.schema ~ "." ~ node_name ~ "(" ~ dbt_types | join(", ") ~ ")") | lower %}
+                    {% set sql_types_signature = (sql_object_schema ~ "." ~ sql_object_name ~ "(" ~ sql_types | join(", ") ~ ")") | lower %}
+                {% else %}
+                    {% set dbt_types_signature = (node.schema ~ "." ~ node.name ~ "(" ~ dbt_types | join(", ") ~ ")") | lower %}
+                    {% set sql_types_signature = (sql_object_schema ~ "." ~ sql_object_name ~ "(" ~ sql_types | join(", ") ~ ")") | lower %}
+                {% endif %}
+
+                {% if sql_types_signature == dbt_types_signature %}
                     {{ return(true) }}
                 {% endif %}
             {% endif %}
