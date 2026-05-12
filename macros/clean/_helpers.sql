@@ -65,15 +65,29 @@
         {# Type-only (no param name) #}
         {{ return(parts[0]) }}
     {% else %}
-        {# First token is the param name; collect type tokens until we hit "default" #}
-        {% set type_parts = [] %}
-        {% for token in parts[1:] %}
-            {% if token | lower == 'default' %}
-                {{ return(type_parts | join(' ')) }}
-            {% else %}
-                {% do type_parts.append(token) %}
-            {% endif %}
-        {% endfor %}
-        {{ return(type_parts | join(' ')) }}
+        {# If the first token contains '(' it is a type with precision (e.g. "number(15, 2)")
+           not a param name, so reassemble all tokens as the type. #}
+        {% if '(' in parts[0] %}
+            {% set type_parts = [] %}
+            {% for token in parts %}
+                {% if token | lower == 'default' %}
+                    {{ return(type_parts | join(' ')) }}
+                {% else %}
+                    {% do type_parts.append(token) %}
+                {% endif %}
+            {% endfor %}
+            {{ return(type_parts | join(' ')) }}
+        {% else %}
+            {# First token is the param name; collect type tokens until we hit "default" #}
+            {% set type_parts = [] %}
+            {% for token in parts[1:] %}
+                {% if token | lower == 'default' %}
+                    {{ return(type_parts | join(' ')) }}
+                {% else %}
+                    {% do type_parts.append(token) %}
+                {% endif %}
+            {% endfor %}
+            {{ return(type_parts | join(' ')) }}
+        {% endif %}
     {% endif %}
 {% endmacro %}
