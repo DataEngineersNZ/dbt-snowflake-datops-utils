@@ -2,7 +2,7 @@
 
 A macro-only [dbt](https://github.com/dbt-labs/dbt) package for Snowflake DataOps. Provides utilities for object lifecycle management, RBAC grant orchestration, dimensional modelling helpers, tagging, shares, and more.
 
-- **Version**: 1.0.0
+- **Version**: 1.0.3
 - **dbt**: `>=1.3.0, <3.0.0`
 - **Dependencies**: None (zero external package dependencies)
 - **dbt Fusion**: Compatible
@@ -16,7 +16,7 @@ Add the following to your `packages.yml`:
 ```yaml
 packages:
   - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-utils.git
-    revision: "1.0.0"
+    revision: "1.0.3"
 ```
 
 Then run `dbt deps`.
@@ -62,7 +62,8 @@ The following `vars` can be set in your `dbt_project.yml` or via `--vars` on the
 | `clean_objects(database, clean_targets, object_types)` | Orchestrate all clean macros for specified object types and environments |
 | `clean_schemas(database, dry_run)` | Drop schemas not defined in the dbt project |
 | `clean_models(database, dry_run)` | Drop orphaned tables/views/dynamic tables/external tables/materialized views |
-| `clean_functions(database, dry_run)` | Drop orphaned UDFs and stored procedures |
+| `clean_functions(database, dry_run)` | Drop orphaned UDFs and stored procedures (excludes DMFs) |
+| `clean_data_metric_functions(database, dry_run)` | Drop orphaned Data Metric Functions (DMFs) |
 | `clean_generic(object_type, database, dry_run)` | Drop orphaned tasks/streams/stages/alerts/file formats/network rules/secrets/semantic views/agents |
 | `clean_stale_models(database, schema, days, dry_run)` | Drop models older than N days from a specific schema |
 
@@ -286,7 +287,7 @@ The `clean_objects` macro orchestrates removal of Snowflake objects not defined 
 dbt run-operation clean_objects --args '{"clean_targets": ["prod"], "object_types": ["schemas", "tables_and_views", "functions_and_procedures"]}'
 ```
 
-Supported `object_types`: `schemas`, `functions_and_procedures`, `tasks`, `streams`, `stages`, `tables_and_views`, `alerts`, `file_formats`, `semantic_views`, `agents`.
+Supported `object_types`: `schemas`, `functions_and_procedures`, `data_metric_functions`, `tasks`, `streams`, `stages`, `tables_and_views`, `alerts`, `file_formats`, `semantic_views`, `agents`.
 
 All clean macros support `dry_run` mode (default: `true`) to preview drops before executing.
 

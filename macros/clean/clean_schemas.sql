@@ -1,4 +1,5 @@
 {% macro clean_schemas(database=target.database, dry_run=True) %}
+    {% if execute %}
     {% set snowflake_schemas_to_drop = [] %}
     {% set nodes = graph.nodes.values() if graph.nodes else [] %}
     {% set sources = graph.sources.values() if graph.sources else [] %}
@@ -28,4 +29,5 @@
     {% endfor %}
 
     {% do dbt_dataengineers_utils.drop_object("SCHEMA", database, snowflake_schemas_to_drop, dry_run) %}
+    {% endif %}
 {% endmacro %}

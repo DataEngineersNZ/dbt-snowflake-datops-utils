@@ -1,4 +1,5 @@
 {% macro clean_generic(object_type, database=target.database, dry_run=True) %}
+    {% if execute %}
     {% set snowflake_objects_to_drop = [] %}
     {% set nodes = graph.nodes.values() if graph.nodes else [] %}
     {% set schema_index = 3 %}
@@ -48,4 +49,5 @@
     {% endfor %}
 
     {% do dbt_dataengineers_utils.drop_object(object_type, database, snowflake_objects_to_drop, dry_run) %}
+    {% endif %}
 {% endmacro %}

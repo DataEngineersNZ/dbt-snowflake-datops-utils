@@ -1,6 +1,17 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v1.0.3 - 2026-05-16 - Data Metric Function Cleanup Support
+
+### Added
+- Added `clean_data_metric_functions` macro to reconcile dbt-defined Data Metric Functions (DMFs) against deployed DMFs in Snowflake and drop orphaned ones. DMFs are identified via `information_schema.functions` where `is_data_metric = 'YES'` and matched against dbt graph nodes with `config.materialized = 'data_metric_function'`.
+- Added `data_metric_functions` as a supported `object_type` in the `clean_objects` orchestrator macro (included in the default list).
+
+### Changed
+- Modified `clean_functions` macro to exclude Data Metric Functions (`is_data_metric = 'NO'` filter) so DMFs are not incorrectly dropped by the regular function cleanup. DMFs are now handled exclusively by `clean_data_metric_functions`.
+- Added `{% if execute %}` guards to all clean macros (`clean_functions`, `clean_generic`, `clean_models`, `clean_schemas`, `clean_stale_models`) to prevent `run_query()` and `graph.nodes` access during parsing or docs generation.
+- Bumped version from 1.0.2 to 1.0.3
+
 ## v1.0.2 - 2026-05-12 - Clean Functions Signature Fallback Fix
 
 ### Fixed
