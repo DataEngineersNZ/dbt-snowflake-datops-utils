@@ -56,6 +56,18 @@ macros:
         description: List of object types to clean up
      
 
+  - name: clean_data_metric_functions
+    description: Reconcile dbt-defined data metric functions vs deployed; drop any orphaned DMFs in Snowflake.
+    docs:
+      show: true
+    arguments:
+      - name: database
+        type: string
+        description: target database
+      - name: dry_run
+        type: boolean
+        description: specifies if the macro should run in dry run mode
+
   - name: clean_schemas
     description: Reconcile schema list vs dbt; drop schemas no longer defined.
     docs:

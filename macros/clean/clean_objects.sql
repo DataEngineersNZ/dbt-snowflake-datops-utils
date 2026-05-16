@@ -1,4 +1,4 @@
-{% macro clean_objects(database=target.database, clean_targets=['local-dev', 'unit-test', 'test', 'prod'], object_types= ['schemas', 'functions_and_procedures', 'tasks', 'streams', 'stages', 'tables_and_views', 'alerts', 'file_formats', 'semantic_views', 'agents']) %}
+{% macro clean_objects(database=target.database, clean_targets=['local-dev', 'unit-test', 'test', 'prod'], object_types= ['schemas', 'functions_and_procedures', 'data_metric_functions', 'tasks', 'streams', 'stages', 'tables_and_views', 'alerts', 'file_formats', 'semantic_views', 'agents']) %}
     {%if execute %}
         {% if flags.WHICH in ('run', 'run-operation') %}
             {% if target.name in clean_targets %}
@@ -11,6 +11,9 @@
             {% endif %}
             {% if 'functions_and_procedures' in object_types %}
                 {% do dbt_dataengineers_utils.clean_functions(database, dry_run) %}
+            {% endif %}
+            {% if 'data_metric_functions' in object_types %}
+                {% do dbt_dataengineers_utils.clean_data_metric_functions(database, dry_run) %}
             {% endif %}
             {% if 'tasks' in object_types %}
                 {% do dbt_dataengineers_utils.clean_generic("TASK", database, dry_run) %}

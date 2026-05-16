@@ -1,4 +1,5 @@
 {% macro clean_functions(database=target.database, dry_run=True) %}
+    {% if execute %}
     {% set snowflake_functions_to_drop = [] %}
     {% set snowflake_procedures_to_drop = [] %}
     {% set ns = namespace(sql_arguments="") %}
@@ -13,6 +14,7 @@
             argument_signature AS argument_signature
         FROM {{ database }}.information_schema.functions
         WHERE schema NOT IN ('INFORMATION_SCHEMA', 'META', 'PUBLIC', 'PUBLIC_META', 'SCHEMACHANGE', 'UNIT_TESTS')
+        AND is_data_metric = 'NO'
         UNION ALL
         SELECT
             'PROCEDURE' AS object_type,
@@ -71,4 +73,5 @@
     {% do dbt_dataengineers_utils.drop_object("PROCEDURE", database, snowflake_procedures_to_drop, dry_run) %}
     {% do dbt_dataengineers_utils.drop_object("FUNCTION", database, snowflake_functions_to_drop, dry_run) %}
 
+    {% endif %}
 {% endmacro %}
