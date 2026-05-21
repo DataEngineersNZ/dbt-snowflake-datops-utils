@@ -1,6 +1,14 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v1.0.4 - 2026-05-21 - Unknown Member Boolean Cast Fix
+
+### Fixed
+- Fixed `unknown_member` macro: added explicit `::boolean` casts for `is_current`, `is_deleted`, and generic boolean columns to ensure correct type inference in Snowflake when generating unknown member rows.
+
+### Changed
+- Bumped version from 1.0.3 to 1.0.4
+
 ## v1.0.3 - 2026-05-16 - Data Metric Function Cleanup Support
 
 ### Added
