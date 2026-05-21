@@ -45,6 +45,9 @@ jobs:
         id: changelog
         run: |
           VERSION="${{ steps.version.outputs.version }}"
+          echo "DEBUG: VERSION='$VERSION'"
+          echo "DEBUG: Looking for header_prefix='## v$VERSION'"
+          head -5 CHANGELOG.md
           # Use Python for exact string matching (no regex dot issues)
           # Outputs: release title (from header) and release notes (body)
           # Changelog headers use 'v' prefix (e.g. ## v1.0.4)
@@ -52,12 +55,14 @@ jobs:
           import sys
           version = 'v' + sys.argv[1]
           header_prefix = '## ' + version
+          print(f'DEBUG: searching for header_prefix={repr(header_prefix)}', file=sys.stderr)
           found = False
           title = ''
           lines = []
           for line in open('CHANGELOG.md'):
               stripped = line.rstrip()
               if stripped.startswith('## '):
+                  print(f'DEBUG: found header={repr(stripped)}', file=sys.stderr)
                   if found:
                       break
                   if stripped == header_prefix or stripped.startswith(header_prefix + ' ') or stripped.startswith(header_prefix + '\t'):
