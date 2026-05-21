@@ -32,12 +32,12 @@ jobs:
       - name: Check if tag already exists
         id: check_tag
         run: |
-          if git rev-parse --verify "refs/tags/${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+          if git rev-parse --verify "refs/tags/v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "Tag ${{ steps.version.outputs.version }} already exists — skipping release."
+            echo "Tag v${{ steps.version.outputs.version }} already exists — skipping release."
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
-            echo "Tag ${{ steps.version.outputs.version }} does not exist — will create release."
+            echo "Tag v${{ steps.version.outputs.version }} does not exist — will create release."
           fi
 
       - name: Extract changelog for this version
@@ -47,9 +47,10 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           # Use Python for exact string matching (no regex dot issues)
           # Outputs: release title (from header) and release notes (body)
+          # Changelog headers use 'v' prefix (e.g. ## v1.0.4)
           python3 -c "
           import sys
-          version = sys.argv[1]
+          version = 'v' + sys.argv[1]
           header_prefix = '## ' + version
           found = False
           title = ''
@@ -84,7 +85,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ steps.version.outputs.version }}" \
+          gh release create "v${{ steps.version.outputs.version }}" \
             --title "${{ steps.changelog.outputs.title }}" \
             --notes-file /tmp/release_notes.md \
             --target "${{ github.sha }}"
