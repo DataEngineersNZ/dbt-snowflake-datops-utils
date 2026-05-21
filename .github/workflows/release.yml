@@ -21,7 +21,11 @@ jobs:
       - name: Extract version from dbt_project.yml
         id: version
         run: |
-          VERSION=$(python3 -c "import yaml; print(yaml.safe_load(open('dbt_project.yml'))['version'])")
+          VERSION=$(grep "^version:" dbt_project.yml | sed "s/version: *['\"]\\(.*\\)['\"/]/\\1/")
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not extract version from dbt_project.yml"
+            exit 1
+          fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Detected version: $VERSION"
 
@@ -61,6 +65,9 @@ jobs:
                       continue
               if found:
                   lines.append(line.rstrip())
+          if not found:
+              print(f'::error::No changelog entry found for version {version}')
+              sys.exit(1)
           print('TITLE=' + title)
           with open('/tmp/release_notes.md', 'w') as f:
               f.write('\n'.join(lines))
