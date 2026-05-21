@@ -7,4 +7,5 @@ integration_tests/target/
 integration_tests/dbt_packages/
 integration_tests/logs/
 integration_tests/profiles.yml
+integration_tests/package-lock.yml
 plans/

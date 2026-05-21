@@ -26,9 +26,9 @@
             {%- elif column_names[i] == 'effective_to' %}
         to_timestamp_ltz('2999-12-31 23:59:59') as effective_to{{ line_end }}
             {%- elif column_names[i] == 'is_current' %}
-        true as is_current{{ line_end }}
+        true::boolean as is_current{{ line_end }}
             {%- elif column_names[i] == 'is_deleted' %}
-        false as is_deleted{{ line_end }}
+        false::boolean as is_deleted{{ line_end }}
             {%- elif 'finish' in column_names[i] and column_names[i].endswith('_date') and column_types[i]|upper in ['NUMBER', 'INT', 'INTEGER']%}
         29991231 as {{ column_names[i] }}{{ line_end }}
             {%- elif column_names[i].endswith('_date') and column_types[i]|upper in ['NUMBER', 'INT', 'INTEGER']%}
@@ -38,7 +38,7 @@
             {%- elif column_types[i]|upper in ['NUMBER','INT','DECIMAL']%}
         -1 as {{ column_names[i] }}{{ line_end }}
             {%- elif column_types[i]|upper in ['BOOLEAN']%}
-        true as {{ column_names[i] }}{{ line_end }}
+        true::boolean as {{ column_names[i] }}{{ line_end }}
             {%- else %}
         'Unknown' as {{ column_names[i] }}{{ line_end }}
             {%- endif %}
