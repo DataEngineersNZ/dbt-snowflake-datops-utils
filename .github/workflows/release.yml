@@ -21,7 +21,7 @@ jobs:
       - name: Extract version from dbt_project.yml
         id: version
         run: |
-          VERSION=$(grep "^version:" dbt_project.yml | sed "s/version: *['\"]\\(.*\\)['\"/]/\\1/")
+          VERSION=$(grep "^version:" dbt_project.yml | sed "s/version: *//;s/['\"]//g")
           if [ -z "$VERSION" ]; then
             echo "::error::Could not extract version from dbt_project.yml"
             exit 1
@@ -67,7 +67,7 @@ jobs:
               if found:
                   lines.append(line.rstrip())
           if not found:
-              print(f'::error::No changelog entry found for version {version}')
+              print(f'::error::No changelog entry found for version {version}', file=sys.stderr)
               sys.exit(1)
           print('TITLE=' + title)
           with open('/tmp/release_notes.md', 'w') as f:
