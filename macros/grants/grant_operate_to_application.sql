@@ -13,7 +13,7 @@
             "schema_name" as schema_name,
             concat("schema_name", '.', "name") as object_signature
             from $1
-            where startswith(lower("name"), {{ "'" ~ prefix | lower ~ "'" }});
+            where startswith(lower("name"), {{ "'" ~ (prefix | replace("'", "''") | lower) ~ "'" }});
         {% endset %}
         {% set objects = run_query(matching_objects) %}
 
@@ -35,8 +35,6 @@
                             {% else %}
                                 {% do existing_grants.append({ "privilege" : row.privilege, "role" : row.grantee_name, "schema" : object[1], "object" : object[2] }) %}
                             {%endif%}
-                        {% else %}
-                            {% do revoke_statements.append({ "privilege" : row.privilege, "role" : row.grantee_name, "schema" : object[1], "object" : object[2] }) %}
                         {%endif%}
                     {% endif %}
                 {% endfor %}
