@@ -1,6 +1,14 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v1.0.5 - 2026-06-16 - Grant OPERATE on Tasks to Applications
+
+### Added
+- Added `grant_operate_to_application` macro to grant OPERATE privilege on tasks matching a name prefix to specified application roles. Discovers tasks via `SHOW TASKS IN DATABASE`, reconciles existing grants (revoking from unlisted applications), and ensures database/schema USAGE is also granted.
+
+### Changed
+- Bumped version from 1.0.4 to 1.0.5
+
 ## v1.0.4 - 2026-05-21 - Unknown Member Boolean Cast Fix
 
 ### Fixed

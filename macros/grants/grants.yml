@@ -157,6 +157,18 @@ macros:
         type: List[string]
         description: List of schemas to grant usage privileges on
 
+  - name: grant_operate_to_application
+    description: This macro grants OPERATE privilege on tasks matching a name prefix to specified application roles. Also grants database and schema USAGE to the applications.
+    docs:
+      show: true
+    arguments:
+      - name: prefix
+        type: string
+        description: Prefix for the task names to apply the permission to
+      - name: grant_applications
+        type: List[string]
+        description: List of application roles to grant OPERATE privilege to
+
   - name: grant_privileges
     description: |
       Grants a bundle of privileges across environments based on target context.

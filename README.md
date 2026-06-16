@@ -2,7 +2,7 @@
 
 A macro-only [dbt](https://github.com/dbt-labs/dbt) package for Snowflake DataOps. Provides utilities for object lifecycle management, RBAC grant orchestration, dimensional modelling helpers, tagging, shares, and more.
 
-- **Version**: 1.0.3
+- **Version**: 1.0.5
 - **dbt**: `>=1.3.0, <3.0.0`
 - **Dependencies**: None (zero external package dependencies)
 - **dbt Fusion**: Compatible
@@ -110,6 +110,7 @@ The following `vars` can be set in your `dbt_project.yml` or via `--vars` on the
 | `grant_object(object_type, objects, grant_types, grant_roles)` | Reconcile privilege sets on specific objects for roles |
 | `grant_object_application(object_type, objects, grant_types, grant_applications)` | Reconcile privilege sets on specific objects for applications |
 | `grant_usage_to_application(object_type, prefix, grant_applications)` | Grant USAGE on objects matching a prefix to applications |
+| `grant_operate_to_application(prefix, grant_applications)` | Grant OPERATE on tasks matching a prefix to applications |
 | `grant_share_read(view_names, grant_shares, revoke_current_grants)` | Manage secure view exposure to outbound shares |
 | `grant_share_read_specific_schema(schema_name, view_names, grant_shares, revoke_current_grants)` | Grant SELECT on views in a specific schema to shares |
 | `grant_internal_share_read(share_name, exclude_schemas, dry_run)` | Grant SELECT on all tables/views to an internal share |
