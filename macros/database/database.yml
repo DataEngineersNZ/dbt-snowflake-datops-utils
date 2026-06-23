@@ -27,6 +27,14 @@ macros:
       - name: new_owner_role
         description: "[Optional] The new owner role of the newly created object"
 
+  - name: database_clone_grant_ownership
+    description: Grant ownership of a cloned database and all its schemas, tables, and views to a specified role.
+    arguments:
+      - name: destination_database
+        description: The database to transfer ownership of
+      - name: new_owner_role
+        description: The role to grant ownership to
+
   - name: database_destroy
     description: Drop the supplied database (destructive operation).
     arguments:

@@ -1,6 +1,14 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v1.0.6 - 2026-06-23 - Database Clone Grant Ownership
+
+### Added
+- Added `database_clone_grant_ownership` macro to grant ownership of a cloned database and all its schemas, tables, and views to a specified role. Iterates over all schemas in the destination database (excluding INFORMATION_SCHEMA) and grants ownership on the schema, all tables, and all views to the target role with `COPY CURRENT GRANTS`.
+
+### Changed
+- Bumped version from 1.0.5 to 1.0.6
+
 ## v1.0.5 - 2026-06-16 - Grant OPERATE on Tasks to Applications
 
 ### Added
