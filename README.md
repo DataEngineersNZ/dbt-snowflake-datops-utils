@@ -2,7 +2,7 @@
 
 A macro-only [dbt](https://github.com/dbt-labs/dbt) package for Snowflake DataOps. Provides utilities for object lifecycle management, RBAC grant orchestration, dimensional modelling helpers, tagging, shares, and more.
 
-- **Version**: 1.0.5
+- **Version**: 1.0.6
 - **dbt**: `>=1.3.0, <3.0.0`
 - **Dependencies**: None (zero external package dependencies)
 - **dbt Fusion**: Compatible
@@ -72,6 +72,7 @@ The following `vars` can be set in your `dbt_project.yml` or via `--vars` on the
 | Macro | Description |
 |---|---|
 | `database_clone(source_database, destination_database, new_owner_role, comment, include_internal_stages)` | Zero-copy clone a database with optional ownership transfer and internal stage cloning |
+| `database_clone_grant_ownership(destination_database, new_owner_role)` | Grant ownership of a cloned database and all its schemas, tables, and views to a role |
 | `database_destroy(database_name)` | Drop the supplied database |
 | `schema_clone(source_schema, destination_schema, source_database, destination_database, new_owner_role)` | Zero-copy clone a schema with optional ownership transfer |
 

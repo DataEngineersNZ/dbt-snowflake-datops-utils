@@ -1,5 +1,5 @@
 name: 'dbt_dataengineers_utils'
-version: '1.0.5'
+version: '1.0.6'
 config-version: 2
 
 require-dbt-version: [">=1.9.4", "<3.0.0"]
