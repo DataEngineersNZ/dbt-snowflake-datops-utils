@@ -41,6 +41,9 @@
     {% set execute_statements = [] %}
     {% set schemas_skipped = [0] %}
 
+    {# Bulk detect object types for all schemas in 2 queries #}
+    {% set all_schema_object_types = dbt_dataengineers_utils._grants_get_all_schema_object_types() %}
+
     {% for schema in schemas %}
         {% do log('====> Processing schema read grants for ' ~ schema, info=True) %}
         {% set schema_statements = [] %}
@@ -48,8 +51,8 @@
         {# Get existing schema-level grants once #}
         {% set roles_with_usage = dbt_dataengineers_utils._grants_get_schema_grants(schema, 'USAGE', 'ROLE') %}
 
-        {# Detect which object types exist in the schema #}
-        {% set schema_object_types = dbt_dataengineers_utils._grants_get_schema_object_types(schema) %}
+        {# Look up object types from bulk query result #}
+        {% set schema_object_types = all_schema_object_types.get(schema, []) %}
         {% do log('====> Schema ' ~ schema ~ ' contains: ' ~ (schema_object_types | join(', ') if schema_object_types | length > 0 else 'no objects'), info=True) %}
 
         {# Get existing object-level privileges for the grant roles #}

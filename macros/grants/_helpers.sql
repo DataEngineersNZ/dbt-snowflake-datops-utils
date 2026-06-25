@@ -223,39 +223,72 @@ These ideas intentionally deferred to keep current refactor incremental.
             {% endif %}
         {% endfor %}
     {% endif %}
-    {# Streams #}
-    {% set stream_query %}
-        show streams in schema {{ target.database }}.{{ schema }};
+    {# Non-table objects: query information_schema.object_privileges for existence (avoids SHOW commands) #}
+    {% set other_types_query %}
+        select distinct object_type
+        from information_schema.object_privileges
+        where object_schema = '{{ schema }}'
+          and object_type in ('STREAM', 'STAGE', 'PIPE', 'TASK')
     {% endset %}
-    {% set stream_results = run_query(stream_query) %}
-    {% if execute and stream_results and stream_results | length > 0 %}
-        {% do object_types.append('STREAM') %}
-    {% endif %}
-    {# Stages #}
-    {% set stage_query %}
-        show stages in schema {{ target.database }}.{{ schema }};
-    {% endset %}
-    {% set stage_results = run_query(stage_query) %}
-    {% if execute and stage_results and stage_results | length > 0 %}
-        {% do object_types.append('STAGE') %}
-    {% endif %}
-    {# Pipes #}
-    {% set pipe_query %}
-        show pipes in schema {{ target.database }}.{{ schema }};
-    {% endset %}
-    {% set pipe_results = run_query(pipe_query) %}
-    {% if execute and pipe_results and pipe_results | length > 0 %}
-        {% do object_types.append('PIPE') %}
-    {% endif %}
-    {# Tasks #}
-    {% set task_query %}
-        show tasks in schema {{ target.database }}.{{ schema }};
-    {% endset %}
-    {% set task_results = run_query(task_query) %}
-    {% if execute and task_results and task_results | length > 0 %}
-        {% do object_types.append('TASK') %}
+    {% set other_results = run_query(other_types_query) %}
+    {% if execute and other_results %}
+        {% for row in other_results %}
+            {% if row[0] not in object_types %}
+                {% do object_types.append(row[0]) %}
+            {% endif %}
+        {% endfor %}
     {% endif %}
     {% do return(object_types) %}
+{% endmacro %}
+
+{# Bulk version: detect object types for ALL schemas in the database in two queries.
+   Returns a dict {schema_name: [object_types]}. Call once per run and pass the result around. #}
+{% macro _grants_get_all_schema_object_types() %}
+    {% set schema_map = {} %}
+    {# Table-like objects #}
+    {% set query %}
+        select table_schema,
+            case
+                when is_dynamic = 'YES' then 'DYNAMIC TABLE'
+                when table_type = 'BASE TABLE' then 'TABLE'
+                when table_type = 'EXTERNAL TABLE' then 'EXTERNAL TABLE'
+                when table_type = 'MATERIALIZED VIEW' then 'MATERIALIZED VIEW'
+                else table_type
+            end as object_type
+        from information_schema.tables
+        group by table_schema, object_type
+    {% endset %}
+    {% set results = run_query(query) %}
+    {% if execute and results %}
+        {% for row in results %}
+            {% set s = row[0] %}
+            {% if schema_map.get(s) is none %}
+                {% set _ = schema_map.update({s: []}) %}
+            {% endif %}
+            {% if row[1] not in schema_map.get(s) %}
+                {% do schema_map.get(s).append(row[1]) %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    {# Non-table objects from object_privileges #}
+    {% set other_query %}
+        select distinct object_schema, object_type
+        from information_schema.object_privileges
+        where object_type in ('STREAM', 'STAGE', 'PIPE', 'TASK')
+    {% endset %}
+    {% set other_results = run_query(other_query) %}
+    {% if execute and other_results %}
+        {% for row in other_results %}
+            {% set s = row[0] %}
+            {% if schema_map.get(s) is none %}
+                {% set _ = schema_map.update({s: []}) %}
+            {% endif %}
+            {% if row[1] not in schema_map.get(s) %}
+                {% do schema_map.get(s).append(row[1]) %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    {% do return(schema_map) %}
 {% endmacro %}
 
 {# Row formatters for specific ownership object types #}

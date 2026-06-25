@@ -15,11 +15,15 @@
     {% set total_revokes = 0 %}
     {% set total_grants = 0 %}
     {% set schemas_skipped = 0 %}
+
+    {# Bulk detect object types for all schemas in 2 queries #}
+    {% set all_schema_object_types = dbt_dataengineers_utils._grants_get_all_schema_object_types() %}
+
     {% for schema in schemas %}
         {% set schema_statements = [] %}
 
-        {# Detect which object types exist in the schema #}
-        {% set schema_object_types = dbt_dataengineers_utils._grants_get_schema_object_types(schema) %}
+        {# Look up object types from bulk query result #}
+        {% set schema_object_types = all_schema_object_types.get(schema, []) %}
         {% set has_pipes = 'PIPE' in schema_object_types %}
         {% set has_tasks = 'TASK' in schema_object_types %}
 
