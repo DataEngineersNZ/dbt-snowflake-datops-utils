@@ -1,19 +1,6 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
-## v1.0.7 - 2026-06-25 - Grant Performance Optimization
-
-### Changed
-- Modified `grant_object` macro to be grant-only: it no longer revokes privileges from roles not in the supplied list or revokes non-desired privileges. The macro now only ensures the specified privileges are granted to the specified roles.
-- **Performance**: `grant_schema_read_specific` now checks existing privileges via `information_schema.object_privileges` and `SHOW FUTURE GRANTS` before issuing statements. Schemas where all grants are already in place are skipped entirely.
-- **Performance**: `grant_schema_monitor_specific` and `grant_schema_operate_specific` now skip roles that already have the required privilege and only issue `GRANT USAGE ON SCHEMA` when missing.
-- **Performance**: `grant_schema_procedure_usage_specific` replaced O(n×m) per-procedure `SHOW GRANTS` calls with a single `information_schema.object_privileges` query per schema.
-- **Performance**: `grant_schema_object_privileges` replaced per-object `SHOW GRANTS` calls with a single bulk `information_schema.object_privileges` query per schema.
-- **Performance**: `grant_internal_share_read` and `grant_external_share_read` now check existing share grants via `DESC SHARE` upfront and skip schemas/objects that are already granted.
-- **Performance**: `grant_share_read_specific_schema` now checks existing share state before issuing grants.
-- Added helper macros `_grants_get_schema_object_privs`, `_grants_get_schema_grants`, and `_grants_get_future_grants` to `_helpers.sql` for bulk privilege state checking.
-- Bumped version from 1.0.6 to 1.0.7
-
 ## v1.0.6 - 2026-06-23 - Database Clone Grant Ownership
 
 ### Added

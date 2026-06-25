@@ -2,7 +2,7 @@
 
 A macro-only [dbt](https://github.com/dbt-labs/dbt) package for Snowflake DataOps. Provides utilities for object lifecycle management, RBAC grant orchestration, dimensional modelling helpers, tagging, shares, and more.
 
-- **Version**: 1.0.7
+- **Version**: 1.0.6
 - **dbt**: `>=1.3.0, <3.0.0`
 - **Dependencies**: None (zero external package dependencies)
 - **dbt Fusion**: Compatible
@@ -108,7 +108,7 @@ The following `vars` can be set in your `dbt_project.yml` or via `--vars` on the
 | `grant_schema_procedure_usage(exclude_schemas, grant_roles)` | Grant USAGE on all procedures across all schemas |
 | `grant_schema_procedure_usage_specific(schemas, grant_roles, revoke_current_grants, dry_run)` | Grant USAGE on all procedures in specific schemas |
 | `grant_schema_object_privileges(object_type, schema_name, permissions, roles)` | Bulk grant privileges on all objects of a type within a schema |
-| `grant_object(object_type, objects, grant_types, grant_roles)` | Grant privileges on specific objects to roles (grant-only, no revokes) |
+| `grant_object(object_type, objects, grant_types, grant_roles)` | Reconcile privilege sets on specific objects for roles |
 | `grant_object_application(object_type, objects, grant_types, grant_applications)` | Reconcile privilege sets on specific objects for applications |
 | `grant_usage_to_application(object_type, prefix, grant_applications)` | Grant USAGE on objects matching a prefix to applications |
 | `grant_operate_to_application(prefix, grant_applications)` | Grant OPERATE on tasks matching a prefix to applications |
@@ -231,7 +231,7 @@ vars:
 | `grant_schema_operate*` | OPERATE on tasks/pipes + schema usage |
 | `grant_schema_procedure_usage*` | USAGE on all procedures + schema usage |
 | `grant_share_read*` | Secure view exposure to outbound shares |
-| `grant_object` | Per-object privilege granting for roles (no revokes) |
+| `grant_object` | Per-object privilege reconciliation for roles |
 | `grant_object_application` | Per-object privilege reconciliation for applications |
 | `grant_privileges` | Environment-aware bundle orchestrator |
 

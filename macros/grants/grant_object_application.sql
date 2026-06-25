@@ -14,7 +14,6 @@
         {% do return(none) %}
     {% endif %}
 
-    {% set grant_applications = dbt_dataengineers_utils._grants_normalize_roles(grant_applications) %}
     {% set excluded_privs = ['OWNERSHIP'] %} {# Always ignore these for grant/revoke logic #}
     {% set revokable_read_privs = ['SELECT'] %}
     {% set revoke_statements = [] %}
@@ -31,7 +30,7 @@
             {% for row in results %}
                 {% if row.granted_to == 'APPLICATION' and row.privilege not in excluded_privs %}
                     {# classify existing privilege #}
-                    {% set _application = row.grantee_name | upper %}
+                    {% set _application = row.grantee_name %}
                     {% set _priv = row.privilege %}
                     {% if _priv in grant_types %}
                         {% if _application not in grant_applications %}

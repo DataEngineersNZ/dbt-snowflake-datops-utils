@@ -1,5 +1,5 @@
 {% macro grant_object(object_type, objects, grant_types, grant_roles) %}
-    {# Grant-only: no revokes are performed. Signature unchanged. #}
+    {# Optimized: logs summary instead of returning a structure. Signature unchanged. #}
     {% if flags.WHICH not in ['run', 'run-operation'] %}
         {% do log('Skipping grant_object: not run/run-operation context', info=True) %}
         {% do return(none) %}
@@ -14,11 +14,13 @@
         {% do return(none) %}
     {% endif %}
 
-    {% set grant_roles = dbt_dataengineers_utils._grants_normalize_roles(grant_roles) %}
+    {% set excluded_privs = ['OWNERSHIP'] %} {# Always ignore these for grant/revoke logic #}
+    {% set revokable_read_privs = ['SELECT','REFERENCES','REBUILD'] %}
+    {% set revoke_statements = [] %}
     {% set grant_statements = [] %}
 
     {% for object in objects %}
-        {% set existing_role_priv_map = {} %}
+        {% set existing_role_priv_map = {} %} {# key role -> list of privs #}
         {% do log('====> Processing ' ~ object_type ~ ' ' ~ object ~ ' with desired privileges ' ~ (grant_types | join(', ')) ~ ' for roles ' ~ (grant_roles | join(', ')), info=True) %}
         {% set query %}
             show grants on {{ object_type }} {{ target.database }}.{{ object }};
@@ -26,14 +28,27 @@
         {% set results = run_query(query) %}
         {% if results %}
             {% for row in results %}
-                {% set _role = row.grantee_name | upper %}
-                {% set _priv = row.privilege %}
-                {% if _priv in grant_types and _role in grant_roles %}
-                    {% if existing_role_priv_map.get(_role) is none %}
-                        {% set _ = existing_role_priv_map.update({_role: []}) %}
-                    {% endif %}
-                    {% if _priv not in existing_role_priv_map.get(_role) %}
-                        {% set __ = existing_role_priv_map.get(_role).append(_priv) %}
+                {% if row.privilege not in excluded_privs %}
+                    {# classify existing privilege #}
+                    {% set _role = row.grantee_name %}
+                    {% set _priv = row.privilege %}
+                    {% if _priv in grant_types %}
+                        {% if _role not in grant_roles %}
+                            {% do revoke_statements.append('revoke ' ~ _priv | lower ~ ' on ' ~ object_type ~ ' ' ~ target.database ~ '.' ~ object ~ ' from role ' ~ _role | lower ~ ';') %}
+                        {% else %}
+                            {# track existing desired priv #}
+                            {% if existing_role_priv_map.get(_role) is none %}
+                                {% set _ = existing_role_priv_map.update({_role: []}) %}
+                            {% endif %}
+                            {% if _priv not in existing_role_priv_map.get(_role) %}
+                                {% set __ = existing_role_priv_map.get(_role).append(_priv) %}
+                            {% endif %}
+                        {% endif %}
+                    {% else %}
+                        {# privilege not desired -> revoke if granted to managed roles #}
+                        {% if _role in grant_roles or _priv in revokable_read_privs %}
+                            {% do revoke_statements.append('revoke ' ~ _priv | lower ~ ' on ' ~ object_type ~ ' ' ~ target.database ~ '.' ~ object ~ ' from role ' ~ _role | lower ~ ';') %}
+                        {% endif %}
                     {% endif %}
                 {% endif %}
             {% endfor %}
@@ -51,15 +66,18 @@
         {% endfor %}
     {% endfor %}
 
-    {% if grant_statements | length == 0 %}
+    {% set total_revokes = revoke_statements | length %}
+    {% set total_grants = grant_statements | length %}
+    {% set all_statements = revoke_statements + grant_statements %}
+    {% if all_statements | length == 0 %}
         {% do log('grant_object: no changes required for supplied ' ~ object_type ~ ' objects', info=True) %}
         {% do return(none) %}
     {% endif %}
 
-    {% do log('grant_object summary: ' ~ grant_statements | length ~ ' grants for ' ~ object_type ~ ' objects', info=True) %}
-    {% for stmt in grant_statements %}
+    {% do log('grant_object summary: ' ~ total_revokes ~ ' revokes, ' ~ total_grants ~ ' grants (' ~ all_statements | length ~ ' total statements) for ' ~ object_type ~ ' objects', info=True) %}
+    {% for stmt in all_statements %}
         {% do log(stmt, info=True) %}
         {% set _ = run_query(stmt) %}
     {% endfor %}
-    {% do log('grant_object: completed granting privileges for ' ~ object_type ~ ' objects', info=True) %}
+    {% do log('grant_object: completed privilege reconciliation for ' ~ object_type ~ ' objects', info=True) %}
 {% endmacro %}

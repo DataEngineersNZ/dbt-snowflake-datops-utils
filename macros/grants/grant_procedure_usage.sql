@@ -11,76 +11,118 @@
 {% macro grant_schema_procedure_usage_specific(schemas, grant_roles, revoke_current_grants, dry_run) %}
     {% if flags.WHICH not in ['run','run-operation'] %}{% do return(none) %}{% endif %}
     {% if schemas | length == 0 or grant_roles | length == 0 %}{% do log('grant_schema_procedure_usage_specific: nothing to do', info=True) %}{% do return(none) %}{% endif %}
-    {% set grant_roles = dbt_dataengineers_utils._grants_normalize_roles(grant_roles) %}
+    {% set total_revokes = 0 %}
     {% set total_grants = 0 %}
-    {% set schemas_skipped = 0 %}
     {% for schema in schemas %}
-        {% set schema_statements = [] %}
+        {% set existing_roles = [] %}
 
-        {# Check if there are any procedures in this schema #}
+        {# Get list of procedures in the schema using the pattern provided #}
         {% set proc_query %}
-            select count(*) as cnt
-            from information_schema.procedures
-            where procedure_schema = '{{ schema }}'
+            show procedures in schema {{ target.database }}.{{ schema }}
+            ->>
+            select
+                "name" as object_name,
+                "schema_name" as routine_schema,
+                SUBSTR(
+                    "arguments",
+                    POSITION('(' IN "arguments") + 1,
+                    POSITION(')' IN "arguments") - POSITION('(' IN "arguments") - 1
+                ) AS arguments,
+                concat("name", '(',
+                    SUBSTR(
+                        "arguments",
+                        POSITION('(' IN "arguments") + 1,
+                        POSITION(')' IN "arguments") - POSITION('(' IN "arguments") - 1
+                    ),
+                ')') as routine_name
+            from $1
+            where "is_builtin" = 'N'
         {% endset %}
-        {% set proc_count_result = run_query(proc_query) %}
-        {% set proc_count = proc_count_result[0][0] if (execute and proc_count_result) else 0 %}
 
-        {% if proc_count == 0 %}
+        {# First run show procedures to populate result_scan #}
+        {% set show_proc_stmt = 'show procedures in schema ' ~ target.database ~ '.' ~ schema %}
+        {% set _ = run_query(show_proc_stmt) %}
+
+        {# Now get the formatted procedure list #}
+        {% set proc_results = run_query(proc_query) %}
+        {% set procedures = [] %}
+
+        {% if execute and proc_results %}
+            {% for row in proc_results %}
+                {% set full_proc_name = row[3] %}
+                {% do procedures.append(full_proc_name) %}
+            {% endfor %}
+        {% endif %}
+
+        {% if procedures | length == 0 %}
             {% do log('grant_schema_procedure_usage_specific: no procedures found in schema ' ~ schema, info=True) %}
         {% else %}
-            {% do log('grant_schema_procedure_usage_specific: found ' ~ proc_count ~ ' procedures in schema ' ~ schema, info=True) %}
+            {% do log('grant_schema_procedure_usage_specific: found ' ~ (procedures | length) ~ ' procedures in schema ' ~ schema, info=True) %}
 
-            {# Get existing USAGE grants on procedures in this schema in one query #}
-            {% set existing_usage_roles = [] %}
-            {% set usage_query %}
-                select distinct grantee
-                from information_schema.object_privileges
-                where object_schema = '{{ schema }}'
-                  and privilege_type = 'USAGE'
-                  and object_type = 'PROCEDURE'
-            {% endset %}
-            {% set usage_results = run_query(usage_query) %}
-            {% if execute and usage_results %}
-                {% for row in usage_results %}
-                    {% if row[0] not in existing_usage_roles %}
-                        {% do existing_usage_roles.append(row[0]) %}
-                    {% endif %}
-                {% endfor %}
-            {% endif %}
+            {# Check existing grants for each procedure #}
+            {% for procedure in procedures %}
+                {% set grant_query %}
+                    show grants on procedure {{ target.database }}.{{ schema }}.{{ procedure }}
+                {% endset %}
+                {% set grant_results = run_query(grant_query) %}
 
-            {# Revoke from roles not in grant_roles that currently have USAGE #}
-            {% if revoke_current_grants %}
-                {% for role_with_usage in existing_usage_roles %}
-                    {% if role_with_usage not in grant_roles %}
-                        {% do schema_statements.append('revoke usage on all procedures in schema ' ~ target.database ~ '.' ~ schema ~ ' from role ' ~ role_with_usage ~ ';') %}
-                    {% endif %}
-                {% endfor %}
-            {% endif %}
+                {% if execute and grant_results %}
+                    {% for row in grant_results %}
+                        {% set priv = row.privilege %}{% set grantee = row.grantee_name %}
+                        {% if priv == 'USAGE' %}
+                            {% if grantee not in grant_roles %}
+                                {% if revoke_current_grants %}
+                                    {% set stmt = 'revoke usage on procedure ' ~ target.database ~ '.' ~ schema ~ '.' ~ procedure ~ ' from role ' ~ grantee ~ ';' %}
+                                    {% do log(stmt, info=True) %}
+                                    {% if not dry_run %}{% set _ = run_query(stmt) %}{% endif %}
+                                    {% set total_revokes = total_revokes + 1 %}
+                                {% endif %}
+                            {% else %}
+                                {% if grantee not in existing_roles %}
+                                    {% do existing_roles.append(grantee) %}
+                                {% endif %}
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            {% endfor %}
 
-            {# Check schema USAGE #}
-            {% set roles_with_usage = dbt_dataengineers_utils._grants_get_schema_grants(schema, 'USAGE', 'ROLE') %}
-
-            {# Grant procedure usage only to roles that don't already have it #}
+            {# Grant schema usage first #}
             {% for role in grant_roles %}
-                {% if role not in existing_usage_roles %}
-                    {% if role not in roles_with_usage %}
-                        {% do schema_statements.append('grant usage on schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role ~ ';') %}
+                {% set schema_stmt = 'grant usage on schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role ~ ';' %}
+                {% do log(schema_stmt, info=True) %}
+                {% if not dry_run %}{% set _ = run_query(schema_stmt) %}{% endif %}
+                {% set total_grants = total_grants + 1 %}
+            {% endfor %}
+
+            {# Grant procedure usage #}
+            {% for role in grant_roles %}
+                {% set needs_grant = true %}
+                {# Check if role already has USAGE on any procedure in this schema #}
+                {% for procedure in procedures %}
+                    {% set grant_query %}
+                        show grants on procedure {{ target.database }}.{{ schema }}.{{ procedure }}
+                    {% endset %}
+                    {% set grant_results = run_query(grant_query) %}
+                    {% if execute and grant_results %}
+                        {% for row in grant_results %}
+                            {% if row.privilege == 'USAGE' and row.grantee_name == role %}
+                                {% set needs_grant = false %}
+                                {% break %}
+                            {% endif %}
+                        {% endfor %}
                     {% endif %}
-                    {% do schema_statements.append('grant usage on all procedures in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role ~ ';') %}
+                    {% if not needs_grant %}{% break %}{% endif %}
+                {% endfor %}
+
+                {% if needs_grant %}
+                    {% set stmt = 'grant usage on all procedures in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role ~ ';' %}
+                    {% do log(stmt, info=True) %}
+                    {% if not dry_run %}{% set _ = run_query(stmt) %}{% endif %}
+                    {% set total_grants = total_grants + 1 %}
                 {% endif %}
             {% endfor %}
         {% endif %}
-
-        {% if schema_statements | length == 0 %}
-            {% set schemas_skipped = schemas_skipped + 1 %}
-        {% else %}
-            {% for s in schema_statements %}
-                {% do log(s, info=True) %}
-                {% if not dry_run %}{% set _ = run_query(s) %}{% endif %}
-            {% endfor %}
-            {% set total_grants = total_grants + schema_statements | length %}
-        {% endif %}
     {% endfor %}
-    {% do log('grant_schema_procedure_usage_specific summary: ' ~ total_grants ~ ' statements executed, ' ~ schemas_skipped ~ '/' ~ (schemas | length) ~ ' schemas skipped (dry_run=' ~ dry_run ~ ')', info=True) %}
+    {% do log('grant_schema_procedure_usage_specific summary: ' ~ total_revokes ~ ' revokes, ' ~ total_grants ~ ' grants (dry_run=' ~ dry_run ~ ')', info=True) %}
 {% endmacro %}

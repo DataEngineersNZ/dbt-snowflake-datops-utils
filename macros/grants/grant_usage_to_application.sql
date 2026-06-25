@@ -1,6 +1,5 @@
 {% macro grant_usage_to_application(object_type, prefix, grant_applications) %}
     {% if flags.WHICH in ['run', 'run-operation'] %}
-        {% set grant_applications = dbt_dataengineers_utils._grants_normalize_roles(grant_applications) %}
         {% set revoke_statements = [] %}
         {% set grant_statements = [] %}
         {% set grant_schemas = [] %}
@@ -31,10 +30,10 @@
                 {% for row in results %}
                     {% if row.privilege not in ["OWNERSHIP", "SELECT", "REFERENCES", "REBUILD"] %}
                         {% if row.privilege in grant_types %}
-                            {% if row.grantee_name | upper not in grant_applications %}
+                            {% if row.grantee_name not in grant_applications %}
                                 {% do revoke_statements.append({ "privilege" : row.privilege, "role" : row.grantee_name, "schema" : object[1], "object" : object[2] }) %}
                             {% else %}
-                                {% do existing_grants.append({ "privilege" : row.privilege, "role" : row.grantee_name | upper, "schema" : object[1], "object" : object[2] }) %}
+                                {% do existing_grants.append({ "privilege" : row.privilege, "role" : row.grantee_name, "schema" : object[1], "object" : object[2] }) %}
                             {%endif%}
                         {% else %}
                             {% do revoke_statements.append({ "privilege" : row.privilege, "role" : row.grantee_name, "schema" : object[1], "object" : object[2] }) %}

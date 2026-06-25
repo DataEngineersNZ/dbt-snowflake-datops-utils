@@ -52,22 +52,6 @@
             {% if share.kind == 'OUTBOUND' and share.name not in snowflake_shares %}{% do snowflake_shares.append(share.name) %}{% endif %}
         {% endfor %}
         {% do log('grant_share_read_specific_schema: processing schema ' ~ schema_name | lower, info=True) %}
-
-        {# Build a map of existing share grants from DESC SHARE to avoid redundant grants #}
-        {% set existing_share_grants = {} %}
-        {% for share in grant_shares %}
-            {% if share in snowflake_shares %}
-                {% set share_objects = [] %}
-                {% set share_desc = run_query('desc share ' ~ share | lower ~ ';') %}
-                {% for row in share_desc %}
-                    {% if row[1].split('.')[0] | lower == target.database | lower and row[1].split('.')[1] | lower == schema_name | lower %}
-                        {% do share_objects.append(row[0] ~ ':' ~ row[1] | upper) %}
-                    {% endif %}
-                {% endfor %}
-                {% set _ = existing_share_grants.update({share: share_objects}) %}
-            {% endif %}
-        {% endfor %}
-
         {% if revoke_current_grants %}
             {% set results = run_query('show grants on schema ' ~ target.database | lower ~ '.' ~ schema_name | lower ~ ';') %}
             {% for row in results %}
@@ -90,30 +74,16 @@
                 {% endfor %}
             {% endfor %}
         {% endif %}
-
-        {# Grant only where not already present #}
         {% for share in grant_shares %}
-            {% set share_existing = existing_share_grants.get(share) if existing_share_grants.get(share) is not none else [] %}
-            {% set schema_key = 'SCHEMA:' ~ target.database | upper ~ '.' ~ schema_name | upper %}
-            {% if schema_key not in share_existing %}
-                {% do execute_statements.append('grant usage on schema ' ~ target.database ~ '.' ~ schema_name ~ ' to share ' ~ share ~ ';') %}
-            {% endif %}
+            {% do execute_statements.append('grant usage on schema ' ~ target.database ~ '.' ~ schema_name ~ ' to share ' ~ share ~ ';') %}
             {% for view in view_names %}
-                {% set view_key = 'VIEW:' ~ target.database | upper ~ '.' ~ schema_name | upper ~ '.' ~ view | upper %}
-                {% if view_key not in share_existing %}
-                    {% do execute_statements.append('grant select on view ' ~ target.database ~ '.' ~ schema_name ~ '.' ~ view ~ ' to share ' ~ share ~ ';') %}
-                {% endif %}
+                {% do execute_statements.append('grant select on view ' ~ target.database ~ '.' ~ schema_name ~ '.' ~ view ~ ' to share ' ~ share ~ ';') %}
             {% endfor %}
         {% endfor %}
-
-        {% if execute_statements | length == 0 %}
-            {% do log('grant_share_read_specific_schema: no changes required for schema ' ~ schema_name, info=True) %}
-        {% else %}
-            {% for statement in execute_statements %}
-                {% do log(statement, info=True) %}
-                {% if not dry_run %}{% set _ = run_query(statement) %}{% endif %}
-            {% endfor %}
-            {% do log('grant_share_read_specific_schema summary: executed ' ~ (execute_statements | length) ~ ' statements (dry_run=' ~ dry_run ~ ')', info=True) %}
-        {% endif %}
+        {% for statement in execute_statements %}
+            {% do log(statement, info=True) %}
+            {% if not dry_run %}{% set _ = run_query(statement) %}{% endif %}
+        {% endfor %}
+        {% do log('grant_share_read_specific_schema summary: executed ' ~ (execute_statements | length) ~ ' statements (dry_run=' ~ dry_run ~ ')', info=True) %}
     {% endif %}
 {% endmacro %}
