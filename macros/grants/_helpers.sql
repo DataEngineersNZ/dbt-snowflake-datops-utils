@@ -121,10 +121,12 @@ These ideas intentionally deferred to keep current refactor incremental.
 {% endmacro %}
 
 {# Bulk check: returns dict {role: [privs]} for a given schema from information_schema.object_privileges.
-   Filters by optional privilege_types list and grantee list. #}
-{% macro _grants_get_schema_object_privs(schema, privilege_types, grantees) %}
+   Filters by optional privilege_types list, grantee list, and object_type.
+   Grantees are normalized to uppercase internally. #}
+{% macro _grants_get_schema_object_privs(schema, privilege_types, grantees, object_type=none) %}
     {% set result_map = {} %}
     {% set priv_filter = privilege_types | map('upper') | list %}
+    {% set grantees_upper = grantees | map('upper') | list %}
     {% set query %}
         select privilege_type, grantee
         from information_schema.object_privileges
@@ -132,15 +134,17 @@ These ideas intentionally deferred to keep current refactor incremental.
         {% if priv_filter | length > 0 %}
           and privilege_type in ({{ priv_filter | map('tojson') | join(', ') }})
         {% endif %}
-        {% if grantees | length > 0 %}
-          and grantee in ({{ grantees | map('tojson') | join(', ') }})
+        {% if grantees_upper | length > 0 %}
+          and grantee in ({{ grantees_upper | map('tojson') | join(', ') }})
+        {% endif %}
+        {% if object_type is not none %}
+          and object_type = '{{ object_type | upper }}'
         {% endif %}
         and grantor is not null
     {% endset %}
     {% set results = run_query(query) %}
     {% if execute and results %}
         {% for row in results %}
-            {% set _role = row[0] ~ '::' ~ row[1] %}
             {% if result_map.get(row[1]) is none %}
                 {% set _ = result_map.update({row[1]: []}) %}
             {% endif %}
