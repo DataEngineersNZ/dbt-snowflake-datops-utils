@@ -1,14 +1,6 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
-## v1.0.8 - 2026-06-25 - Grant SQL Quoting Fix
-
-### Fixed
-- Fixed SQL compilation error in grant macros caused by `tojson` Jinja filter producing double-quoted strings (`"ROLE_NAME"`) which Snowflake interprets as identifiers instead of string literals. Replaced with `format("'%s'")` to produce correct single-quoted SQL strings (`'ROLE_NAME'`). Affected macros: `grant_schema_read`, `grant_schema_object_privileges`, and `_grants_get_schema_object_privs`.
-
-### Changed
-- Bumped version from 1.0.7 to 1.0.8
-
 ## v1.0.7 - 2026-06-25 - Grant Performance Optimization
 
 ### Changed

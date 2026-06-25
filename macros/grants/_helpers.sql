@@ -132,10 +132,10 @@ These ideas intentionally deferred to keep current refactor incremental.
         from information_schema.object_privileges
         where object_schema = '{{ schema }}'
         {% if priv_filter | length > 0 %}
-          and privilege_type in ({{ priv_filter | map("format", "'%s'") | join(', ') }})
+          and privilege_type in ({{ priv_filter | map('tojson') | join(', ') }})
         {% endif %}
         {% if grantees_upper | length > 0 %}
-          and grantee in ({{ grantees_upper | map("format", "'%s'") | join(', ') }})
+          and grantee in ({{ grantees_upper | map('tojson') | join(', ') }})
         {% endif %}
         {% if object_type is not none %}
           and object_type = '{{ object_type | upper }}'

@@ -77,7 +77,7 @@
                     and table_privileges.table_catalog = tables.table_catalog
                 where tables.table_schema = '{{ schema }}'
                   and table_privileges.privilege_type in ('SELECT','REFERENCES','REBUILD')
-                  and table_privileges.grantee not in ({{ grant_roles | map("format", "'%s'") | join(', ') }})
+                  and table_privileges.grantee not in ({{ grant_roles | map('tojson') | join(', ') }})
                   and granted_to = 'ROLE'
             {% endset %}
             {% set tbl_privs = run_query(revoke_query) %}
