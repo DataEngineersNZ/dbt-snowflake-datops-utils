@@ -80,8 +80,8 @@
         select distinct privilege_type, grantee
         from information_schema.object_privileges
         where object_schema = '{{ schema_name }}'
-          and privilege_type in ({{ permission_list | map('upper') | map('tojson') | join(', ') }})
-          and grantee not in ({{ role_list | map('tojson') | join(', ') }})
+          and privilege_type in ('{{ permission_list | map('upper') | join("', '") }}')
+          and grantee not in ('{{ role_list | join("', '") }}')
           and object_type = '{{ object_type | upper }}'
           and grantor is not null
     {% endset %}
