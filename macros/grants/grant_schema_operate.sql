@@ -16,54 +16,74 @@
     {% set schemas_skipped = 0 %}
     {% for schema in schemas %}
         {% set schema_statements = [] %}
-        {# Query existing OPERATE grants for this schema in one call #}
-        {% set existing_operate_roles = [] %}
-        {% set query %}
-            select privilege_type, grantee
-            from information_schema.object_privileges
-            where privilege_type = 'OPERATE' and object_schema = '{{ schema }}'
-              and object_type in ('PIPE', 'TASK')
-        {% endset %}
-        {% set results = run_query(query) %}
-        {% if execute and results %}
-            {% for row in results %}
-                {% set priv = row[0] %}{% set grantee = row[1] %}
-                {% if priv == 'OPERATE' %}
-                    {% if grantee not in grant_roles %}
-                        {% if revoke_current_grants %}
-                            {% do schema_statements.append('revoke operate on all tasks in schema ' ~ target.database ~ '.' ~ schema ~ ' from role ' ~ grantee ~ ';') %}
-                            {% do schema_statements.append('revoke operate on all pipes in schema ' ~ target.database ~ '.' ~ schema ~ ' from role ' ~ grantee ~ ';') %}
+
+        {# Detect which object types exist in the schema #}
+        {% set schema_object_types = dbt_dataengineers_utils._grants_get_schema_object_types(schema) %}
+        {% set has_pipes = 'PIPE' in schema_object_types %}
+        {% set has_tasks = 'TASK' in schema_object_types %}
+
+        {# Skip schema entirely if no pipes or tasks #}
+        {% if not has_pipes and not has_tasks %}
+            {% do log('====> Schema ' ~ schema ~ ': no pipes or tasks, skipping operate grants', info=True) %}
+            {% set schemas_skipped = schemas_skipped + 1 %}
+        {% else %}
+            {# Query existing OPERATE grants for this schema in one call #}
+            {% set existing_operate_roles = [] %}
+            {% set query %}
+                select privilege_type, grantee
+                from information_schema.object_privileges
+                where privilege_type = 'OPERATE' and object_schema = '{{ schema }}'
+                  and object_type in ('PIPE', 'TASK')
+            {% endset %}
+            {% set results = run_query(query) %}
+            {% if execute and results %}
+                {% for row in results %}
+                    {% set priv = row[0] %}{% set grantee = row[1] %}
+                    {% if priv == 'OPERATE' %}
+                        {% if grantee not in grant_roles %}
+                            {% if revoke_current_grants %}
+                                {% if has_tasks %}
+                                    {% do schema_statements.append('revoke operate on all tasks in schema ' ~ target.database ~ '.' ~ schema ~ ' from role ' ~ grantee ~ ';') %}
+                                {% endif %}
+                                {% if has_pipes %}
+                                    {% do schema_statements.append('revoke operate on all pipes in schema ' ~ target.database ~ '.' ~ schema ~ ' from role ' ~ grantee ~ ';') %}
+                                {% endif %}
+                            {% endif %}
+                        {% else %}
+                            {% if grantee not in existing_operate_roles %}
+                                {% do existing_operate_roles.append(grantee) %}
+                            {% endif %}
                         {% endif %}
-                    {% else %}
-                        {% if grantee not in existing_operate_roles %}
-                            {% do existing_operate_roles.append(grantee) %}
-                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+
+            {# Check schema USAGE for each role #}
+            {% set roles_with_usage = dbt_dataengineers_utils._grants_get_schema_grants(schema, 'USAGE', 'ROLE') %}
+
+            {% for role in grant_roles %}
+                {% if role not in existing_operate_roles %}
+                    {% if role not in roles_with_usage %}
+                        {% do schema_statements.append('grant usage on schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role ~ ';') %}
+                    {% endif %}
+                    {% if has_pipes %}
+                        {% do schema_statements.append('grant operate on all pipes in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role ~ ';') %}
+                    {% endif %}
+                    {% if has_tasks %}
+                        {% do schema_statements.append('grant operate on all tasks in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role ~ ';') %}
                     {% endif %}
                 {% endif %}
             {% endfor %}
-        {% endif %}
 
-        {# Check schema USAGE for each role #}
-        {% set roles_with_usage = dbt_dataengineers_utils._grants_get_schema_grants(schema, 'USAGE', 'ROLE') %}
-
-        {% for role in grant_roles %}
-            {% if role not in existing_operate_roles %}
-                {% if role not in roles_with_usage %}
-                    {% do schema_statements.append('grant usage on schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role ~ ';') %}
-                {% endif %}
-                {% do schema_statements.append('grant operate on all pipes in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role ~ ';') %}
-                {% do schema_statements.append('grant operate on all tasks in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role ~ ';') %}
+            {% if schema_statements | length == 0 %}
+                {% set schemas_skipped = schemas_skipped + 1 %}
+            {% else %}
+                {% for s in schema_statements %}
+                    {% do log(s, info=True) %}
+                    {% if not dry_run %}{% set _ = run_query(s) %}{% endif %}
+                {% endfor %}
+                {% set total_grants = total_grants + schema_statements | length %}
             {% endif %}
-        {% endfor %}
-
-        {% if schema_statements | length == 0 %}
-            {% set schemas_skipped = schemas_skipped + 1 %}
-        {% else %}
-            {% for s in schema_statements %}
-                {% do log(s, info=True) %}
-                {% if not dry_run %}{% set _ = run_query(s) %}{% endif %}
-            {% endfor %}
-            {% set total_grants = total_grants + schema_statements | length %}
         {% endif %}
     {% endfor %}
     {% do log('grant_schema_operate_specific summary: ' ~ total_grants ~ ' statements executed, ' ~ schemas_skipped ~ '/' ~ (schemas | length) ~ ' schemas skipped (dry_run=' ~ dry_run ~ ')', info=True) %}

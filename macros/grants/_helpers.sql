@@ -198,6 +198,66 @@ These ideas intentionally deferred to keep current refactor incremental.
     {% do return(result_map) %}
 {% endmacro %}
 
+{# Detect which object types exist in a schema. Returns a list of type strings.
+   Types returned: 'TABLE', 'VIEW', 'MATERIALIZED VIEW', 'EXTERNAL TABLE', 'DYNAMIC TABLE', 'STREAM', 'STAGE', 'PIPE', 'TASK' #}
+{% macro _grants_get_schema_object_types(schema) %}
+    {% set object_types = [] %}
+    {# Table-like objects from information_schema.tables #}
+    {% set query %}
+        select distinct
+            case
+                when is_dynamic = 'YES' then 'DYNAMIC TABLE'
+                when table_type = 'BASE TABLE' then 'TABLE'
+                when table_type = 'EXTERNAL TABLE' then 'EXTERNAL TABLE'
+                when table_type = 'MATERIALIZED VIEW' then 'MATERIALIZED VIEW'
+                else table_type
+            end as object_type
+        from information_schema.tables
+        where table_schema = '{{ schema }}'
+    {% endset %}
+    {% set results = run_query(query) %}
+    {% if execute and results %}
+        {% for row in results %}
+            {% if row[0] not in object_types %}
+                {% do object_types.append(row[0]) %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    {# Streams #}
+    {% set stream_query %}
+        show streams in schema {{ target.database }}.{{ schema }};
+    {% endset %}
+    {% set stream_results = run_query(stream_query) %}
+    {% if execute and stream_results and stream_results | length > 0 %}
+        {% do object_types.append('STREAM') %}
+    {% endif %}
+    {# Stages #}
+    {% set stage_query %}
+        show stages in schema {{ target.database }}.{{ schema }};
+    {% endset %}
+    {% set stage_results = run_query(stage_query) %}
+    {% if execute and stage_results and stage_results | length > 0 %}
+        {% do object_types.append('STAGE') %}
+    {% endif %}
+    {# Pipes #}
+    {% set pipe_query %}
+        show pipes in schema {{ target.database }}.{{ schema }};
+    {% endset %}
+    {% set pipe_results = run_query(pipe_query) %}
+    {% if execute and pipe_results and pipe_results | length > 0 %}
+        {% do object_types.append('PIPE') %}
+    {% endif %}
+    {# Tasks #}
+    {% set task_query %}
+        show tasks in schema {{ target.database }}.{{ schema }};
+    {% endset %}
+    {% set task_results = run_query(task_query) %}
+    {% if execute and task_results and task_results | length > 0 %}
+        {% do object_types.append('TASK') %}
+    {% endif %}
+    {% do return(object_types) %}
+{% endmacro %}
+
 {# Row formatters for specific ownership object types #}
 {% macro _fmt_schema_ownership(row) %}
     grant ownership on schema {{ target.database }}.{{ row[0] }} to role {{ var('current_role_name_override', '') or '' }} revoke current grants;
