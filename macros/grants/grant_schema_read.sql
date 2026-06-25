@@ -55,8 +55,8 @@
         {% set schema_object_types = all_schema_object_types.get(schema, []) %}
         {% do log('====> Schema ' ~ schema ~ ' contains: ' ~ (schema_object_types | join(', ') if schema_object_types | length > 0 else 'no objects'), info=True) %}
 
-        {# Get existing object-level privileges for the grant roles #}
-        {% set existing_privs = dbt_dataengineers_utils._grants_get_schema_object_privs(schema, ['SELECT', 'REFERENCES', 'REBUILD', 'READ'], grant_roles) %}
+        {# Get existing object-level privileges for the grant roles (count-based full coverage check) #}
+        {% set coverage = dbt_dataengineers_utils._grants_get_schema_full_coverage(schema, ['SELECT', 'REFERENCES', 'REBUILD', 'READ'], grant_roles) %}
 
         {# Revoke schema usage from roles not in grant_roles if requested #}
         {% if revoke_current_grants %}
@@ -107,42 +107,42 @@
             {% set future_grants = dbt_dataengineers_utils._grants_get_future_grants(schema) %}
         {% endif %}
 
-        {# Build grant statements — only for object types that exist and privileges not already granted #}
+        {# Build grant statements — only for object types that exist and privileges not fully covered #}
         {% for role in grant_roles %}
             {% set role_future = future_grants.get(role | upper) if future_grants.get(role | upper) is not none else [] %}
-            {% set role_privs = existing_privs.get(role | upper) if existing_privs.get(role | upper) is not none else [] %}
+            {% set role_coverage = coverage.get(role | upper) if coverage.get(role | upper) is not none else [] %}
 
             {# Schema USAGE — only grant if not already present #}
             {% if role not in roles_with_usage %}
                 {% do schema_statements.append('grant usage on schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
             {% endif %}
 
-            {# Object grants — only issue for object types that exist and where the role doesn't already have the privilege #}
-            {% if 'VIEW' in schema_object_types and 'SELECT' not in role_privs %}
+            {# Object grants — only issue for object types that exist and where coverage is incomplete #}
+            {% if 'VIEW' in schema_object_types and 'SELECT:VIEW' not in role_coverage %}
                 {% do schema_statements.append('grant select on all views in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
             {% endif %}
-            {% if 'MATERIALIZED VIEW' in schema_object_types and 'SELECT' not in role_privs %}
+            {% if 'MATERIALIZED VIEW' in schema_object_types and 'SELECT:MATERIALIZED VIEW' not in role_coverage %}
                 {% do schema_statements.append('grant select on all materialized views in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
             {% endif %}
-            {% if 'TABLE' in schema_object_types and 'SELECT' not in role_privs %}
+            {% if 'TABLE' in schema_object_types and 'SELECT:TABLE' not in role_coverage %}
                 {% do schema_statements.append('grant select on all tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
             {% endif %}
-            {% if 'EXTERNAL TABLE' in schema_object_types and 'SELECT' not in role_privs %}
+            {% if 'EXTERNAL TABLE' in schema_object_types and 'SELECT:EXTERNAL TABLE' not in role_coverage %}
                 {% do schema_statements.append('grant select on all external tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
             {% endif %}
-            {% if 'DYNAMIC TABLE' in schema_object_types and 'SELECT' not in role_privs %}
+            {% if 'DYNAMIC TABLE' in schema_object_types and 'SELECT:DYNAMIC TABLE' not in role_coverage %}
                 {% do schema_statements.append('grant select on all dynamic tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
             {% endif %}
-            {% if 'STREAM' in schema_object_types and 'SELECT' not in role_privs %}
+            {% if 'STREAM' in schema_object_types and 'SELECT:STREAM' not in role_coverage %}
                 {% do schema_statements.append('grant select on all streams in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
             {% endif %}
-            {% if 'TABLE' in schema_object_types and 'REBUILD' not in role_privs %}
+            {% if 'TABLE' in schema_object_types and 'REBUILD:TABLE' not in role_coverage %}
                 {% do schema_statements.append('grant rebuild on all tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
             {% endif %}
-            {% if 'TABLE' in schema_object_types and 'REFERENCES' not in role_privs %}
+            {% if 'TABLE' in schema_object_types and 'REFERENCES:TABLE' not in role_coverage %}
                 {% do schema_statements.append('grant references on all tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
             {% endif %}
-            {% if 'STAGE' in schema_object_types and 'READ' not in role_privs %}
+            {% if 'STAGE' in schema_object_types and 'READ:STAGE' not in role_coverage %}
                 {% do schema_statements.append('grant read on all stages in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
             {% endif %}
 
