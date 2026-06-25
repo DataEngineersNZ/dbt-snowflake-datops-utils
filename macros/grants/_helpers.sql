@@ -156,7 +156,7 @@ These ideas intentionally deferred to keep current refactor incremental.
     {% do return(result_map) %}
 {% endmacro %}
 
-{# Check schema-level grants (USAGE etc) for given roles. Returns list of roles that already have the privilege. #}
+{# Check schema-level grants (USAGE etc) for given roles. Returns list of roles (uppercased) that already have the privilege. #}
 {% macro _grants_get_schema_grants(schema, privilege, grantee_type) %}
     {% set existing = [] %}
     {% set query %}
@@ -166,8 +166,8 @@ These ideas intentionally deferred to keep current refactor incremental.
     {% if execute and results %}
         {% for row in results %}
             {% if row.privilege == privilege and row.granted_to == grantee_type %}
-                {% if row.grantee_name not in existing %}
-                    {% do existing.append(row.grantee_name) %}
+                {% if row.grantee_name | upper not in existing %}
+                    {% do existing.append(row.grantee_name | upper) %}
                 {% endif %}
             {% endif %}
         {% endfor %}

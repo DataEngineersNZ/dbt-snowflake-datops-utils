@@ -39,6 +39,7 @@
                 where object_schema = '{{ schema }}'
                   and privilege_type = 'USAGE'
                   and object_type = 'PROCEDURE'
+                  and granted_to = 'ROLE'
             {% endset %}
             {% set usage_results = run_query(usage_query) %}
             {% if execute and usage_results %}

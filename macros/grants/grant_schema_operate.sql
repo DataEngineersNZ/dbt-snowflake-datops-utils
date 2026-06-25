@@ -22,6 +22,7 @@
             select privilege_type, grantee
             from information_schema.object_privileges
             where privilege_type = 'OPERATE' and object_schema = '{{ schema }}'
+              and object_type in ('PIPE', 'TASK')
         {% endset %}
         {% set results = run_query(query) %}
         {% if execute and results %}
