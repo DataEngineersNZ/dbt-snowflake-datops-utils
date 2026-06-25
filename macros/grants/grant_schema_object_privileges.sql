@@ -75,6 +75,7 @@
 
     {# Build revoke statements for roles NOT in the list that have these privs on this object type #}
     {% set revoke_statements = [] %}
+    {% if role_list | length > 0 %}
     {% set revoke_query %}
         select distinct privilege_type, grantee
         from information_schema.object_privileges
@@ -92,6 +93,7 @@
                 {% do revoke_statements.append(stmt) %}
             {% endif %}
         {% endfor %}
+    {% endif %}
     {% endif %}
 
     {# Build bulk grant statements #}

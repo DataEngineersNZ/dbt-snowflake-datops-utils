@@ -58,7 +58,7 @@
         {% endif %}
 
         {# Revoke object-level read privileges from roles not in grant_roles #}
-        {% if revoke_current_grants %}
+        {% if revoke_current_grants and grant_roles | length > 0 %}
             {% set revoke_query %}
                 select distinct
                     case
