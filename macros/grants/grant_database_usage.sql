@@ -1,5 +1,7 @@
 {% macro grant_database_usage(grant_roles, grant_shares=[], revoke_current_grants=true) %}
    {% if flags.WHICH in ['run', 'run-operation'] %}
+        {% set grant_roles = dbt_dataengineers_utils._grants_normalize_roles(grant_roles) %}
+        {% set grant_shares = grant_shares | map('upper') | list %}
         {% set existing_roles = []%}
         {% set existing_shares = []%}
         {% set statements = [] %}
@@ -10,16 +12,16 @@
                 {% set current_account = run_query("select current_account();")%}
                 {% for row in results %}
                     {% if row.privilege == "USAGE" and row.granted_to in ["ROLE"] %}
-                        {% if row.grantee_name not in grant_roles %}
+                        {% if row.grantee_name | upper not in grant_roles %}
                             {% do statements.append("revoke usage on database "  ~ target.database | lower  ~ " from role " ~ row.grantee_name | lower  ~ ";") %}
                         {% else %}
-                            {% do existing_roles.append(row.grantee_name) %}
+                            {% do existing_roles.append(row.grantee_name | upper) %}
                         {% endif %}
                     {% elif row.privilege == "USAGE" and row.granted_to in ["SHARE"] %}
-                        {% if row.grantee_name.replace(current_account[0][0] ~ ".","")  not in grant_shares %}
+                        {% if row.grantee_name.replace(current_account[0][0] ~ ".","") | upper not in grant_shares %}
                             {% do statements.append("revoke usage on database "  ~ target.database | lower  ~ " from share " ~ row.grantee_name | lower  ~ ";") %}
                         {% else %}
-                            {% do existing_shares.append(row.grantee_name.replace(current_account[0][0] ~ ".","")) %}
+                            {% do existing_shares.append(row.grantee_name.replace(current_account[0][0] ~ ".","") | upper) %}
                         {% endif %}
                     {% endif %}
                 {% endfor %}

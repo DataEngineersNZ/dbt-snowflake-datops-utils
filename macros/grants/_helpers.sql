@@ -52,6 +52,11 @@ These ideas intentionally deferred to keep current refactor incremental.
     {% endif %}
 {% endmacro %}
 
+{# Normalize a list of role/grantee names to uppercase for case-insensitive comparison #}
+{% macro _grants_normalize_roles(roles) %}
+    {% do return(roles | map('upper') | list) %}
+{% endmacro %}
+
 {% macro _grants_log_list(prefix, items) %}
     {% do log(prefix ~ (items | join(', ')), info=True) %}
 {% endmacro %}
@@ -113,6 +118,80 @@ These ideas intentionally deferred to keep current refactor incremental.
         {% endfor %}
     {% endif %}
     {% do return(statements) %}
+{% endmacro %}
+
+{# Bulk check: returns dict {role: [privs]} for a given schema from information_schema.object_privileges.
+   Filters by optional privilege_types list and grantee list. #}
+{% macro _grants_get_schema_object_privs(schema, privilege_types, grantees) %}
+    {% set result_map = {} %}
+    {% set priv_filter = privilege_types | map('upper') | list %}
+    {% set query %}
+        select privilege_type, grantee
+        from information_schema.object_privileges
+        where object_schema = '{{ schema }}'
+        {% if priv_filter | length > 0 %}
+          and privilege_type in ({{ priv_filter | map('tojson') | join(', ') }})
+        {% endif %}
+        {% if grantees | length > 0 %}
+          and grantee in ({{ grantees | map('tojson') | join(', ') }})
+        {% endif %}
+        and grantor is not null
+    {% endset %}
+    {% set results = run_query(query) %}
+    {% if execute and results %}
+        {% for row in results %}
+            {% set _role = row[0] ~ '::' ~ row[1] %}
+            {% if result_map.get(row[1]) is none %}
+                {% set _ = result_map.update({row[1]: []}) %}
+            {% endif %}
+            {% if row[0] not in result_map.get(row[1]) %}
+                {% do result_map.get(row[1]).append(row[0]) %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    {% do return(result_map) %}
+{% endmacro %}
+
+{# Check schema-level grants (USAGE etc) for given roles. Returns list of roles that already have the privilege. #}
+{% macro _grants_get_schema_grants(schema, privilege, grantee_type) %}
+    {% set existing = [] %}
+    {% set query %}
+        show grants on schema {{ target.database }}.{{ schema }};
+    {% endset %}
+    {% set results = run_query(query) %}
+    {% if execute and results %}
+        {% for row in results %}
+            {% if row.privilege == privilege and row.granted_to == grantee_type %}
+                {% if row.grantee_name not in existing %}
+                    {% do existing.append(row.grantee_name) %}
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    {% do return(existing) %}
+{% endmacro %}
+
+{# Check future grants in a schema. Returns dict {role: [privs]} of existing future grants. #}
+{% macro _grants_get_future_grants(schema) %}
+    {% set result_map = {} %}
+    {% set query %}
+        show future grants in schema {{ target.database }}.{{ schema }};
+    {% endset %}
+    {% set results = run_query(query) %}
+    {% if execute and results %}
+        {% for row in results %}
+            {% set _role = row.grantee_name %}
+            {% set _priv = row.privilege %}
+            {% if result_map.get(_role) is none %}
+                {% set _ = result_map.update({_role: []}) %}
+            {% endif %}
+            {% set _key = _priv ~ ':' ~ row.grant_on %}
+            {% if _key not in result_map.get(_role) %}
+                {% do result_map.get(_role).append(_key) %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    {% do return(result_map) %}
 {% endmacro %}
 
 {# Row formatters for specific ownership object types #}
