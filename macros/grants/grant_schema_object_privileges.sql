@@ -55,7 +55,7 @@
     {% do log('====> Found ' ~ (discovered_objects | length) ~ ' ' ~ object_type ~ 's', info=True) %}
 
     {# Bulk query: get all existing privileges for this object type in this schema #}
-    {% set existing_privs = dbt_dataengineers_utils._grants_get_schema_object_privs(schema_name, permission_list, role_list) %}
+    {% set existing_privs = dbt_dataengineers_utils._grants_get_schema_object_privs(schema_name, permission_list, role_list, object_type) %}
 
     {# Check which roles need grants #}
     {% set bulk_grant_needed = {} %}
@@ -73,7 +73,7 @@
         {% endfor %}
     {% endfor %}
 
-    {# Build revoke statements for roles NOT in the list that have these privs #}
+    {# Build revoke statements for roles NOT in the list that have these privs on this object type #}
     {% set revoke_statements = [] %}
     {% set revoke_query %}
         select distinct privilege_type, grantee
@@ -81,6 +81,7 @@
         where object_schema = '{{ schema_name }}'
           and privilege_type in ({{ permission_list | map('tojson') | join(', ') }})
           and grantee not in ({{ role_list | map('tojson') | join(', ') }})
+          and object_type = '{{ object_type | upper }}'
           and grantor is not null
     {% endset %}
     {% set revoke_results = run_query(revoke_query) %}

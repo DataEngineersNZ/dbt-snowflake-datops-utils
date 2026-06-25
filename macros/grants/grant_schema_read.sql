@@ -57,9 +57,6 @@
             {% endfor %}
         {% endif %}
 
-        {# Get existing object-level privileges for this schema in one query #}
-        {% set existing_privs = dbt_dataengineers_utils._grants_get_schema_object_privs(schema, ['SELECT', 'REFERENCES', 'REBUILD', 'READ'], grant_roles) %}
-
         {# Revoke object-level read privileges from roles not in grant_roles #}
         {% if revoke_current_grants %}
             {% set revoke_query %}
@@ -100,36 +97,27 @@
             {% set future_grants = dbt_dataengineers_utils._grants_get_future_grants(schema) %}
         {% endif %}
 
-        {# Build grant statements only for missing privileges #}
+        {# Build grant statements — GRANT ON ALL is idempotent in Snowflake (no-op if already granted) #}
         {% for role in grant_roles %}
-            {% set role_privs = existing_privs.get(role) if existing_privs.get(role) is not none else [] %}
             {% set role_future = future_grants.get(role | upper) if future_grants.get(role | upper) is not none else [] %}
 
-            {# Schema USAGE #}
+            {# Schema USAGE — only grant if not already present #}
             {% if role not in roles_with_usage %}
                 {% do schema_statements.append('grant usage on schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
             {% endif %}
 
-            {# Object grants - only issue if role doesn't already have the privilege #}
-            {% if 'SELECT' not in role_privs %}
-                {% do schema_statements.append('grant select on all views in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
-                {% do schema_statements.append('grant select on all materialized views in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
-                {% do schema_statements.append('grant select on all tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
-                {% do schema_statements.append('grant select on all external tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
-                {% do schema_statements.append('grant select on all dynamic tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
-                {% do schema_statements.append('grant select on all streams in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
-            {% endif %}
-            {% if 'REBUILD' not in role_privs %}
-                {% do schema_statements.append('grant rebuild on all tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
-            {% endif %}
-            {% if 'REFERENCES' not in role_privs %}
-                {% do schema_statements.append('grant references on all tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
-            {% endif %}
-            {% if 'READ' not in role_privs %}
-                {% do schema_statements.append('grant read on all stages in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
-            {% endif %}
+            {# Object grants — always issue, Snowflake handles idempotency #}
+            {% do schema_statements.append('grant select on all views in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+            {% do schema_statements.append('grant select on all materialized views in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+            {% do schema_statements.append('grant select on all tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+            {% do schema_statements.append('grant select on all external tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+            {% do schema_statements.append('grant select on all dynamic tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+            {% do schema_statements.append('grant select on all streams in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+            {% do schema_statements.append('grant rebuild on all tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+            {% do schema_statements.append('grant references on all tables in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
+            {% do schema_statements.append('grant read on all stages in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
 
-            {# Future grants - only issue if not already set #}
+            {# Future grants - only issue if not already set (these are NOT idempotent — duplicates error) #}
             {% if include_future_grants %}
                 {% if 'SELECT:VIEW' not in role_future %}
                     {% do schema_statements.append('grant select on future views in schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role | lower ~ ';') %}
