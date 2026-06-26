@@ -44,6 +44,9 @@
     {# Bulk detect object types for all schemas in 2 queries #}
     {% set all_schema_object_types = dbt_dataengineers_utils._grants_get_all_schema_object_types() %}
 
+    {# Bulk check full privilege coverage across all schemas in 1 query #}
+    {% set all_coverage = dbt_dataengineers_utils._grants_get_all_schema_full_coverage(['SELECT', 'REFERENCES', 'REBUILD', 'READ'], grant_roles) %}
+
     {% for schema in schemas %}
         {% do log('====> Processing schema read grants for ' ~ schema, info=True) %}
         {% set schema_statements = [] %}
@@ -55,8 +58,8 @@
         {% set schema_object_types = all_schema_object_types.get(schema, []) %}
         {% do log('====> Schema ' ~ schema ~ ' contains: ' ~ (schema_object_types | join(', ') if schema_object_types | length > 0 else 'no objects'), info=True) %}
 
-        {# Get existing object-level privileges for the grant roles (count-based full coverage check) #}
-        {% set coverage = dbt_dataengineers_utils._grants_get_schema_full_coverage(schema, ['SELECT', 'REFERENCES', 'REBUILD', 'READ'], grant_roles) %}
+        {# Look up coverage from bulk query result #}
+        {% set coverage = all_coverage.get(schema, {}) %}
 
         {# Revoke schema usage from roles not in grant_roles if requested #}
         {% if revoke_current_grants %}

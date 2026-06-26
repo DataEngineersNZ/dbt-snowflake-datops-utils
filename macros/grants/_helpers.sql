@@ -156,6 +156,101 @@ These ideas intentionally deferred to keep current refactor incremental.
     {% do return(result_map) %}
 {% endmacro %}
 
+{# Bulk version: check full privilege coverage across ALL schemas in the database in a single query.
+   Returns dict {schema: {role: [priv:type_keys_with_full_coverage]}}.
+   A privilege is "fully covered" when granted_count >= total_count for that object type. #}
+{% macro _grants_get_all_schema_full_coverage(privilege_types, grantees) %}
+    {% set schema_map = {} %}
+    {% set priv_filter = privilege_types | map('upper') | list %}
+    {% set grantees_upper = grantees | map('upper') | list %}
+    {% if grantees_upper | length == 0 or priv_filter | length == 0 %}
+        {% do return(schema_map) %}
+    {% endif %}
+    {% set query %}
+        with object_counts as (
+            select table_schema as schema_name, obj_type, count(*) as total_count
+            from (
+                select
+                    table_schema,
+                    case
+                        when table_type = 'VIEW' then 'VIEW'
+                        when table_type = 'MATERIALIZED VIEW' then 'MATERIALIZED VIEW'
+                        when table_type = 'EXTERNAL TABLE' then 'EXTERNAL TABLE'
+                        when is_dynamic = 'YES' then 'DYNAMIC TABLE'
+                        when table_type = 'BASE TABLE' then 'TABLE'
+                        else table_type
+                    end as obj_type,
+                    table_name as object_name
+                from information_schema.tables
+                where table_schema != 'INFORMATION_SCHEMA'
+                union all
+                select object_schema as table_schema, object_type as obj_type, object_name
+                from (
+                    select distinct object_schema, object_type, object_name
+                    from information_schema.object_privileges
+                    where object_type in ('STREAM', 'STAGE')
+                      and grantor is not null
+                )
+            ) all_objects
+            group by table_schema, obj_type
+        ),
+        granted_counts as (
+            select
+                op.object_schema,
+                op.grantee,
+                op.privilege_type,
+                case
+                    when t.table_type = 'VIEW' then 'VIEW'
+                    when t.table_type = 'MATERIALIZED VIEW' then 'MATERIALIZED VIEW'
+                    when t.table_type = 'EXTERNAL TABLE' then 'EXTERNAL TABLE'
+                    when t.is_dynamic = 'YES' then 'DYNAMIC TABLE'
+                    when t.table_type = 'BASE TABLE' then 'TABLE'
+                    when t.table_type is not null then t.table_type
+                    else op.object_type
+                end as resolved_type,
+                count(distinct op.object_name) as granted_count
+            from information_schema.object_privileges op
+            left join information_schema.tables t
+                on op.object_name = t.table_name
+                and op.object_schema = t.table_schema
+            where op.privilege_type in ('{{ priv_filter | join("', '") }}')
+              and op.grantee in ('{{ grantees_upper | join("', '") }}')
+              and op.grantor is not null
+            group by op.object_schema, op.grantee, op.privilege_type, resolved_type
+        )
+        select
+            g.object_schema,
+            g.grantee,
+            g.privilege_type,
+            g.resolved_type as object_type
+        from granted_counts g
+        inner join object_counts o
+            on g.object_schema = o.schema_name
+            and g.resolved_type = o.obj_type
+        where g.granted_count >= o.total_count
+    {% endset %}
+    {% set results = run_query(query) %}
+    {% if execute and results %}
+        {% for row in results %}
+            {% set s = row[0] %}
+            {% set role = row[1] %}
+            {% set priv = row[2] %}
+            {% set obj_type = row[3] %}
+            {% set key = priv ~ ':' ~ obj_type %}
+            {% if schema_map.get(s) is none %}
+                {% set _ = schema_map.update({s: {}}) %}
+            {% endif %}
+            {% if schema_map.get(s).get(role) is none %}
+                {% set _ = schema_map.get(s).update({role: []}) %}
+            {% endif %}
+            {% if key not in schema_map.get(s).get(role) %}
+                {% do schema_map.get(s).get(role).append(key) %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    {% do return(schema_map) %}
+{% endmacro %}
+
 {# Check if roles have FULL privilege coverage on all objects in a schema.
    Returns dict {role: [priv_types_with_full_coverage]}.
    A privilege type is "fully covered" when the count of objects with that grant equals the total count of objects. #}
