@@ -163,7 +163,7 @@ These ideas intentionally deferred to keep current refactor incremental.
     {% set schema_map = {} %}
     {% set priv_filter = privilege_types | map('upper') | list %}
     {% set grantees_upper = grantees | map('upper') | list %}
-    {% if grantees_upper | length == 0 or priv_filter | length == 0 %}
+    {% if not execute or grantees_upper | length == 0 or priv_filter | length == 0 %}
         {% do return(schema_map) %}
     {% endif %}
     {% set query %}
@@ -258,7 +258,7 @@ These ideas intentionally deferred to keep current refactor incremental.
     {% set result_map = {} %}
     {% set priv_filter = privilege_types | map('upper') | list %}
     {% set grantees_upper = grantees | map('upper') | list %}
-    {% if grantees_upper | length == 0 or priv_filter | length == 0 %}
+    {% if not execute or grantees_upper | length == 0 or priv_filter | length == 0 %}
         {% do return(result_map) %}
     {% endif %}
     {% set query %}
@@ -386,6 +386,9 @@ These ideas intentionally deferred to keep current refactor incremental.
    Types returned: 'TABLE', 'VIEW', 'MATERIALIZED VIEW', 'EXTERNAL TABLE', 'DYNAMIC TABLE', 'STREAM', 'STAGE', 'PIPE', 'TASK' #}
 {% macro _grants_get_schema_object_types(schema) %}
     {% set object_types = [] %}
+    {% if not execute %}
+        {% do return(object_types) %}
+    {% endif %}
     {# Table-like objects from information_schema.tables #}
     {% set query %}
         select distinct
@@ -400,7 +403,7 @@ These ideas intentionally deferred to keep current refactor incremental.
         where table_schema = '{{ schema }}'
     {% endset %}
     {% set results = run_query(query) %}
-    {% if execute and results %}
+    {% if results %}
         {% for row in results %}
             {% if row[0] not in object_types %}
                 {% do object_types.append(row[0]) %}
@@ -415,7 +418,7 @@ These ideas intentionally deferred to keep current refactor incremental.
           and object_type in ('STREAM', 'STAGE', 'PIPE', 'TASK')
     {% endset %}
     {% set other_results = run_query(other_types_query) %}
-    {% if execute and other_results %}
+    {% if other_results %}
         {% for row in other_results %}
             {% if row[0] not in object_types %}
                 {% do object_types.append(row[0]) %}
@@ -429,6 +432,9 @@ These ideas intentionally deferred to keep current refactor incremental.
    Returns a dict {schema_name: [object_types]}. Call once per run and pass the result around. #}
 {% macro _grants_get_all_schema_object_types() %}
     {% set schema_map = {} %}
+    {% if not execute %}
+        {% do return(schema_map) %}
+    {% endif %}
     {# Table-like objects #}
     {% set query %}
         select table_schema,
