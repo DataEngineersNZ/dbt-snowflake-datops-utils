@@ -12,15 +12,27 @@
       {% set schemas = dbt_dataengineers_utils._grants_collect_schemas(exclude_schemas, is_exclude_list=true) %}
 
       {# Get existing share grants once upfront #}
-      {% set existing_share_objects = [] %}
+      {% set existing_share_objects = {} %}
+      {% set schemas_with_table_grants = [] %}
       {% set share_desc = run_query('desc share ' ~ share_name ~ ';') %}
       {% if share_desc %}
         {% for row in share_desc %}
-          {% do existing_share_objects.append(row[0] ~ ':' ~ row[1] | upper) %}
+          {% set key = row[0] ~ ':' ~ row[1] | upper %}
+          {% set _ = existing_share_objects.update({key: true}) %}
+          {# Track which schemas already have table grants #}
+          {% if row[0] == 'TABLE' %}
+            {% set parts = row[1].split('.') %}
+            {% if parts | length >= 2 %}
+              {% set schema_key = parts[0] | upper ~ '.' ~ parts[1] | upper %}
+              {% if schema_key not in schemas_with_table_grants %}
+                {% do schemas_with_table_grants.append(schema_key) %}
+              {% endif %}
+            {% endif %}
+          {% endif %}
         {% endfor %}
       {% endif %}
 
-      {# Bulk fetch all views across the database in one query instead of SHOW VIEWS per schema #}
+      {# Bulk fetch all views across the database in one query #}
       {% set all_views = {} %}
       {% set views_bulk_query %}
         select table_schema, table_name
@@ -46,18 +58,14 @@
         {% set schema_statements = [] %}
 
         {# Check if schema USAGE already granted #}
-        {% if 'SCHEMA:' ~ database | upper ~ '.' ~ schema | upper not in existing_share_objects %}
+        {% set schema_key = 'SCHEMA:' ~ database | upper ~ '.' ~ schema | upper %}
+        {% if existing_share_objects.get(schema_key) is none %}
           {% do schema_statements.append('grant usage on schema ' ~ database ~ '.' ~ schema ~ ' to share ' ~ share_name ~ ';') %}
         {% endif %}
 
-        {# Check if tables grant exists (heuristic: if any TABLE in this schema is in share, skip bulk) #}
-        {% set has_table_grants = [] %}
-        {% for obj in existing_share_objects %}
-          {% if obj.startswith('TABLE:' ~ database | upper ~ '.' ~ schema | upper ~ '.') %}
-            {% do has_table_grants.append(1) %}
-          {% endif %}
-        {% endfor %}
-        {% if has_table_grants | length == 0 %}
+        {# Check if tables already granted (O(1) lookup using pre-built set) #}
+        {% set db_schema_key = database | upper ~ '.' ~ schema | upper %}
+        {% if db_schema_key not in schemas_with_table_grants %}
           {% do schema_statements.append('grant select on all tables in schema ' ~ database ~ '.' ~ schema ~ ' to share ' ~ share_name ~ ';') %}
         {% endif %}
 
@@ -65,7 +73,7 @@
         {% set schema_views = all_views.get(schema, []) %}
         {% for view_name in schema_views %}
           {% set view_key = 'VIEW:' ~ database | upper ~ '.' ~ schema | upper ~ '.' ~ view_name | upper %}
-          {% if view_key not in existing_share_objects %}
+          {% if existing_share_objects.get(view_key) is none %}
             {% do schema_statements.append('grant select on view ' ~ database ~ '.' ~ schema ~ '.' ~ view_name ~ ' to share ' ~ share_name ~ ';') %}
           {% endif %}
         {% endfor %}
@@ -77,6 +85,7 @@
             {% if dry_run %}
               {% do log(stmt, info=True) %}
             {% else %}
+              {% do log(stmt, info=True) %}
               {% do run_query(stmt) %}
             {% endif %}
           {% endfor %}
