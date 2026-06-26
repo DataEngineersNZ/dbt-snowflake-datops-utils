@@ -196,24 +196,35 @@ These ideas intentionally deferred to keep current refactor incremental.
         ),
         granted_counts as (
             select
-                grantee,
-                privilege_type,
-                object_type,
-                count(distinct object_name) as granted_count
-            from information_schema.object_privileges
-            where object_schema = '{{ schema }}'
-              and privilege_type in ('{{ priv_filter | join("', '") }}')
-              and grantee in ('{{ grantees_upper | join("', '") }}')
-              and grantor is not null
-            group by grantee, privilege_type, object_type
+                op.grantee,
+                op.privilege_type,
+                case
+                    when t.table_type = 'VIEW' then 'VIEW'
+                    when t.table_type = 'MATERIALIZED VIEW' then 'MATERIALIZED VIEW'
+                    when t.table_type = 'EXTERNAL TABLE' then 'EXTERNAL TABLE'
+                    when t.is_dynamic = 'YES' then 'DYNAMIC TABLE'
+                    when t.table_type = 'BASE TABLE' then 'TABLE'
+                    when t.table_type is not null then t.table_type
+                    else op.object_type
+                end as resolved_type,
+                count(distinct op.object_name) as granted_count
+            from information_schema.object_privileges op
+            left join information_schema.tables t
+                on op.object_name = t.table_name
+                and op.object_schema = t.table_schema
+            where op.object_schema = '{{ schema }}'
+              and op.privilege_type in ('{{ priv_filter | join("', '") }}')
+              and op.grantee in ('{{ grantees_upper | join("', '") }}')
+              and op.grantor is not null
+            group by op.grantee, op.privilege_type, resolved_type
         )
         select
             g.grantee,
             g.privilege_type,
-            g.object_type
+            g.resolved_type as object_type
         from granted_counts g
         inner join object_counts o
-            on g.object_type = o.obj_type
+            on g.resolved_type = o.obj_type
         where g.granted_count >= o.total_count
     {% endset %}
     {% set results = run_query(query) %}
