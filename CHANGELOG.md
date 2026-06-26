@@ -1,6 +1,17 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v1.0.9 - 2026-06-26 - Conditional Grant Statements & Performance
+
+### Changed
+- **Performance**: `grant_schema_read_specific` now detects which object types exist in each schema and only issues grant statements for types that are present. Schemas with no objects of a given type no longer receive unnecessary `GRANT ... ON ALL` statements.
+- **Performance**: `grant_schema_read_specific` uses count-based full coverage checking — compares the number of objects with the privilege granted vs total objects of that type. Only re-issues `GRANT ON ALL` when a new object was added that doesn't yet have the privilege. On steady-state runs (no new objects), zero grant statements are executed.
+- **Performance**: `grant_schema_monitor_specific` and `grant_schema_operate_specific` now skip schemas that have no pipes or tasks, and only issue grants for the specific object types that exist.
+- **Performance**: Object type detection uses bulk database-wide queries (`_grants_get_all_schema_object_types`) — 2 queries total instead of per-schema SHOW commands.
+- **Performance**: `grant_internal_share_read` replaced per-schema `SHOW VIEWS` with a single bulk `information_schema.tables` query for all views across the database.
+- Added helper macros: `_grants_get_schema_object_types`, `_grants_get_all_schema_object_types`, `_grants_get_schema_full_coverage`.
+- Bumped version from 1.0.8 to 1.0.9
+
 ## v1.0.8 - 2026-06-25 - Grant SQL Quoting Fix
 
 ### Fixed

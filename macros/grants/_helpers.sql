@@ -156,6 +156,190 @@ These ideas intentionally deferred to keep current refactor incremental.
     {% do return(result_map) %}
 {% endmacro %}
 
+{# Bulk version: check full privilege coverage across ALL schemas in the database in a single query.
+   Returns dict {schema: {role: [priv:type_keys_with_full_coverage]}}.
+   A privilege is "fully covered" when granted_count >= total_count for that object type. #}
+{% macro _grants_get_all_schema_full_coverage(privilege_types, grantees) %}
+    {% set schema_map = {} %}
+    {% set priv_filter = privilege_types | map('upper') | list %}
+    {% set grantees_upper = grantees | map('upper') | list %}
+    {% if not execute or grantees_upper | length == 0 or priv_filter | length == 0 %}
+        {% do return(schema_map) %}
+    {% endif %}
+    {% set query %}
+        with object_counts as (
+            select table_schema as schema_name, obj_type, count(*) as total_count
+            from (
+                select
+                    table_schema,
+                    case
+                        when table_type = 'VIEW' then 'VIEW'
+                        when table_type = 'MATERIALIZED VIEW' then 'MATERIALIZED VIEW'
+                        when table_type = 'EXTERNAL TABLE' then 'EXTERNAL TABLE'
+                        when is_dynamic = 'YES' then 'DYNAMIC TABLE'
+                        when table_type = 'BASE TABLE' then 'TABLE'
+                        else table_type
+                    end as obj_type,
+                    table_name as object_name
+                from information_schema.tables
+                where table_schema != 'INFORMATION_SCHEMA'
+                union all
+                select object_schema as table_schema, object_type as obj_type, object_name
+                from (
+                    select distinct object_schema, object_type, object_name
+                    from information_schema.object_privileges
+                    where object_type in ('STREAM', 'STAGE')
+                      and grantor is not null
+                )
+            ) all_objects
+            group by table_schema, obj_type
+        ),
+        granted_counts as (
+            select
+                op.object_schema,
+                op.grantee,
+                op.privilege_type,
+                case
+                    when t.table_type = 'VIEW' then 'VIEW'
+                    when t.table_type = 'MATERIALIZED VIEW' then 'MATERIALIZED VIEW'
+                    when t.table_type = 'EXTERNAL TABLE' then 'EXTERNAL TABLE'
+                    when t.is_dynamic = 'YES' then 'DYNAMIC TABLE'
+                    when t.table_type = 'BASE TABLE' then 'TABLE'
+                    when t.table_type is not null then t.table_type
+                    else op.object_type
+                end as resolved_type,
+                count(distinct op.object_name) as granted_count
+            from information_schema.object_privileges op
+            left join information_schema.tables t
+                on op.object_name = t.table_name
+                and op.object_schema = t.table_schema
+            where op.privilege_type in ('{{ priv_filter | join("', '") }}')
+              and op.grantee in ('{{ grantees_upper | join("', '") }}')
+              and op.grantor is not null
+            group by op.object_schema, op.grantee, op.privilege_type, resolved_type
+        )
+        select
+            g.object_schema,
+            g.grantee,
+            g.privilege_type,
+            g.resolved_type as object_type
+        from granted_counts g
+        inner join object_counts o
+            on g.object_schema = o.schema_name
+            and g.resolved_type = o.obj_type
+        where g.granted_count >= o.total_count
+    {% endset %}
+    {% set results = run_query(query) %}
+    {% if execute and results %}
+        {% for row in results %}
+            {% set s = row[0] %}
+            {% set role = row[1] %}
+            {% set priv = row[2] %}
+            {% set obj_type = row[3] %}
+            {% set key = priv ~ ':' ~ obj_type %}
+            {% if schema_map.get(s) is none %}
+                {% set _ = schema_map.update({s: {}}) %}
+            {% endif %}
+            {% if schema_map.get(s).get(role) is none %}
+                {% set _ = schema_map.get(s).update({role: []}) %}
+            {% endif %}
+            {% if key not in schema_map.get(s).get(role) %}
+                {% do schema_map.get(s).get(role).append(key) %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    {% do return(schema_map) %}
+{% endmacro %}
+
+{# Check if roles have FULL privilege coverage on all objects in a schema.
+   Returns dict {role: [priv_types_with_full_coverage]}.
+   A privilege type is "fully covered" when the count of objects with that grant equals the total count of objects. #}
+{% macro _grants_get_schema_full_coverage(schema, privilege_types, grantees) %}
+    {% set result_map = {} %}
+    {% set priv_filter = privilege_types | map('upper') | list %}
+    {% set grantees_upper = grantees | map('upper') | list %}
+    {% if not execute or grantees_upper | length == 0 or priv_filter | length == 0 %}
+        {% do return(result_map) %}
+    {% endif %}
+    {% set query %}
+        with object_counts as (
+            select obj_type, count(*) as total_count
+            from (
+                select
+                    case
+                        when table_type = 'VIEW' then 'VIEW'
+                        when table_type = 'MATERIALIZED VIEW' then 'MATERIALIZED VIEW'
+                        when table_type = 'EXTERNAL TABLE' then 'EXTERNAL TABLE'
+                        when is_dynamic = 'YES' then 'DYNAMIC TABLE'
+                        when table_type = 'BASE TABLE' then 'TABLE'
+                        else table_type
+                    end as obj_type,
+                    table_name as object_name
+                from information_schema.tables
+                where table_schema = '{{ schema }}'
+                union all
+                select object_type as obj_type, object_name
+                from (
+                    select distinct object_type, object_name
+                    from information_schema.object_privileges
+                    where object_schema = '{{ schema }}'
+                      and object_type in ('STREAM', 'STAGE')
+                      and grantor is not null
+                )
+            ) all_objects
+            group by obj_type
+        ),
+        granted_counts as (
+            select
+                op.grantee,
+                op.privilege_type,
+                case
+                    when t.table_type = 'VIEW' then 'VIEW'
+                    when t.table_type = 'MATERIALIZED VIEW' then 'MATERIALIZED VIEW'
+                    when t.table_type = 'EXTERNAL TABLE' then 'EXTERNAL TABLE'
+                    when t.is_dynamic = 'YES' then 'DYNAMIC TABLE'
+                    when t.table_type = 'BASE TABLE' then 'TABLE'
+                    when t.table_type is not null then t.table_type
+                    else op.object_type
+                end as resolved_type,
+                count(distinct op.object_name) as granted_count
+            from information_schema.object_privileges op
+            left join information_schema.tables t
+                on op.object_name = t.table_name
+                and op.object_schema = t.table_schema
+            where op.object_schema = '{{ schema }}'
+              and op.privilege_type in ('{{ priv_filter | join("', '") }}')
+              and op.grantee in ('{{ grantees_upper | join("', '") }}')
+              and op.grantor is not null
+            group by op.grantee, op.privilege_type, resolved_type
+        )
+        select
+            g.grantee,
+            g.privilege_type,
+            g.resolved_type as object_type
+        from granted_counts g
+        inner join object_counts o
+            on g.resolved_type = o.obj_type
+        where g.granted_count >= o.total_count
+    {% endset %}
+    {% set results = run_query(query) %}
+    {% if execute and results %}
+        {% for row in results %}
+            {% set role = row[0] %}
+            {% set priv = row[1] %}
+            {% set obj_type = row[2] %}
+            {% set key = priv ~ ':' ~ obj_type %}
+            {% if result_map.get(role) is none %}
+                {% set _ = result_map.update({role: []}) %}
+            {% endif %}
+            {% if key not in result_map.get(role) %}
+                {% do result_map.get(role).append(key) %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    {% do return(result_map) %}
+{% endmacro %}
+
 {# Check schema-level grants (USAGE etc) for given roles. Returns list of roles (uppercased) that already have the privilege. #}
 {% macro _grants_get_schema_grants(schema, privilege, grantee_type) %}
     {% set existing = [] %}
@@ -196,6 +380,105 @@ These ideas intentionally deferred to keep current refactor incremental.
         {% endfor %}
     {% endif %}
     {% do return(result_map) %}
+{% endmacro %}
+
+{# Detect which object types exist in a schema. Returns a list of type strings.
+   Types returned: 'TABLE', 'VIEW', 'MATERIALIZED VIEW', 'EXTERNAL TABLE', 'DYNAMIC TABLE', 'STREAM', 'STAGE', 'PIPE', 'TASK' #}
+{% macro _grants_get_schema_object_types(schema) %}
+    {% set object_types = [] %}
+    {% if not execute %}
+        {% do return(object_types) %}
+    {% endif %}
+    {# Table-like objects from information_schema.tables #}
+    {% set query %}
+        select distinct
+            case
+                when is_dynamic = 'YES' then 'DYNAMIC TABLE'
+                when table_type = 'BASE TABLE' then 'TABLE'
+                when table_type = 'EXTERNAL TABLE' then 'EXTERNAL TABLE'
+                when table_type = 'MATERIALIZED VIEW' then 'MATERIALIZED VIEW'
+                else table_type
+            end as object_type
+        from information_schema.tables
+        where table_schema = '{{ schema }}'
+    {% endset %}
+    {% set results = run_query(query) %}
+    {% if results %}
+        {% for row in results %}
+            {% if row[0] not in object_types %}
+                {% do object_types.append(row[0]) %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    {# Non-table objects: query information_schema.object_privileges for existence (avoids SHOW commands) #}
+    {% set other_types_query %}
+        select distinct object_type
+        from information_schema.object_privileges
+        where object_schema = '{{ schema }}'
+          and object_type in ('STREAM', 'STAGE', 'PIPE', 'TASK')
+    {% endset %}
+    {% set other_results = run_query(other_types_query) %}
+    {% if other_results %}
+        {% for row in other_results %}
+            {% if row[0] not in object_types %}
+                {% do object_types.append(row[0]) %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    {% do return(object_types) %}
+{% endmacro %}
+
+{# Bulk version: detect object types for ALL schemas in the database in two queries.
+   Returns a dict {schema_name: [object_types]}. Call once per run and pass the result around. #}
+{% macro _grants_get_all_schema_object_types() %}
+    {% set schema_map = {} %}
+    {% if not execute %}
+        {% do return(schema_map) %}
+    {% endif %}
+    {# Table-like objects #}
+    {% set query %}
+        select table_schema,
+            case
+                when is_dynamic = 'YES' then 'DYNAMIC TABLE'
+                when table_type = 'BASE TABLE' then 'TABLE'
+                when table_type = 'EXTERNAL TABLE' then 'EXTERNAL TABLE'
+                when table_type = 'MATERIALIZED VIEW' then 'MATERIALIZED VIEW'
+                else table_type
+            end as object_type
+        from information_schema.tables
+        group by table_schema, object_type
+    {% endset %}
+    {% set results = run_query(query) %}
+    {% if execute and results %}
+        {% for row in results %}
+            {% set s = row[0] %}
+            {% if schema_map.get(s) is none %}
+                {% set _ = schema_map.update({s: []}) %}
+            {% endif %}
+            {% if row[1] not in schema_map.get(s) %}
+                {% do schema_map.get(s).append(row[1]) %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    {# Non-table objects from object_privileges #}
+    {% set other_query %}
+        select distinct object_schema, object_type
+        from information_schema.object_privileges
+        where object_type in ('STREAM', 'STAGE', 'PIPE', 'TASK')
+    {% endset %}
+    {% set other_results = run_query(other_query) %}
+    {% if execute and other_results %}
+        {% for row in other_results %}
+            {% set s = row[0] %}
+            {% if schema_map.get(s) is none %}
+                {% set _ = schema_map.update({s: []}) %}
+            {% endif %}
+            {% if row[1] not in schema_map.get(s) %}
+                {% do schema_map.get(s).append(row[1]) %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    {% do return(schema_map) %}
 {% endmacro %}
 
 {# Row formatters for specific ownership object types #}
