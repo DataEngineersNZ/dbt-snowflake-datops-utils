@@ -1,5 +1,5 @@
 {% macro grant_operate_to_application(prefix, grant_applications) %}
-    {% if flags.WHICH in ['run', 'run-operation'] %}
+    {% if flags.WHICH in ['run', 'build', 'run-operation'] %}
         {% set grant_applications = dbt_dataengineers_utils._grants_normalize_roles(grant_applications) %}
         {% set revoke_statements = [] %}
         {% set grant_statements = [] %}

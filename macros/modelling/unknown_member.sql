@@ -1,6 +1,6 @@
 {% macro unknown_member(model_name) %}
     {%- if execute -%}
-        {% if flags.WHICH in ('run', 'test') -%}
+        {% if flags.WHICH in ('run', 'build', 'test') -%}
             {%- set column_types = [] -%}
             {%- set column_names = [] -%}
             {%- for node in graph.nodes.values() -%}

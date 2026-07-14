@@ -1,6 +1,6 @@
 {% macro grant_schema_ownership(exclude_schemas, role_name) %}
     {# Maintain signature & invocation semantics; use helpers for clarity and efficiency #}
-    {% if flags.WHICH not in ['run', 'run-operation'] %}
+    {% if flags.WHICH not in ['run', 'build', 'run-operation'] %}
         {% do log('Skipping grant_schema_ownership: not run/run-operation context', info=True) %}
         {% do return(none) %}
     {% endif %}

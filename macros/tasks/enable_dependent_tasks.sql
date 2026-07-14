@@ -1,7 +1,7 @@
 {% macro enable_dependent_tasks(root_task, enabled_targets) %}
     {%- if execute -%}
         {% if target.name in enabled_targets -%}
-            {% if flags.WHICH == 'run' %}
+            {% if flags.WHICH in ['run', 'build', 'run-operation'] %}
                 {% set nodes = graph.nodes.values() if graph.nodes else [] %}
                  {% set matching_nodes = nodes
                     | selectattr("name", "equalto", root_task | lower)

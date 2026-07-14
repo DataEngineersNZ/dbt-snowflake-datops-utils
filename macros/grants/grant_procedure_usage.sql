@@ -1,5 +1,6 @@
 {% macro grant_schema_procedure_usage(exclude_schemas, grant_roles) %}
-    {% if flags.WHICH not in ['run','run-operation'] %}{% do log('grant_schema_procedure_usage: skip (context)', info=True) %}{% do return(none) %}{% endif %}
+    {% if flags.WHICH not in ['run', 'build', 'run-operation'] %}
+    {% do log('grant_schema_procedure_usage: skip (context)', info=True) %}{% do return(none) %}{% endif %}
     {% set dry_run = var('grants_dry_run', false) %}
     {% if 'INFORMATION_SCHEMA' not in exclude_schemas %}{% do exclude_schemas.append('INFORMATION_SCHEMA') %}{% endif %}
     {% set include_schemas = dbt_dataengineers_utils._grants_collect_schemas(exclude_schemas, is_exclude_list=true) %}
@@ -9,7 +10,7 @@
 {% endmacro %}
 
 {% macro grant_schema_procedure_usage_specific(schemas, grant_roles, revoke_current_grants, dry_run) %}
-    {% if flags.WHICH not in ['run','run-operation'] %}{% do return(none) %}{% endif %}
+    {% if flags.WHICH not in ['run', 'build', 'run-operation'] %}{% do return(none) %}{% endif %}
     {% if schemas | length == 0 or grant_roles | length == 0 %}{% do log('grant_schema_procedure_usage_specific: nothing to do', info=True) %}{% do return(none) %}{% endif %}
     {% set grant_roles = dbt_dataengineers_utils._grants_normalize_roles(grant_roles) %}
     {% set total_grants = 0 %}

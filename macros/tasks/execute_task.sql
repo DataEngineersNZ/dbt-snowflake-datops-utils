@@ -1,10 +1,10 @@
 {% macro execute_task(task_name, enabled_targets) %}
     {%- if execute -%}
         {% if target.name in enabled_targets -%}
-            {% if flags.WHICH == 'run' %}
+            {% if flags.WHICH in ['run', 'build', 'run-operation'] %}
                 {% set nodes = graph.nodes.values() if graph.nodes else [] %}
                  {% set matching_nodes = nodes
-                    | selectattr("name", "equalto", root_task | lower)
+                    | selectattr("name", "equalto", task_name | lower)
                     | selectattr("config.materialized", "equalto", "task")
                 %}
                 {% for node in matching_nodes %}

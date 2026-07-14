@@ -1,5 +1,5 @@
 {% macro get_grant_functions_ownership_sql(schema_list, role_name) %}
-    {% if flags.WHICH not in ['run','run-operation'] %}{% do return([]) %}{% endif %}
+    {% if flags.WHICH not in ['run', 'build', 'run-operation'] %}{% do return([]) %}{% endif %}
     {% if not execute %}{% do return([]) %}{% endif %}
     {% set query %}
         select

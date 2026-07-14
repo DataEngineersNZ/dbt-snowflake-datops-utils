@@ -1,5 +1,5 @@
 {% macro grant_schema_read(exclude_schemas, grant_roles, include_future_grants) %}
-    {% if flags.WHICH not in ['run', 'run-operation'] %}
+    {% if flags.WHICH not in ['run', 'build', 'run-operation'] %}
         {% do log('Skipping grant_schema_read: not run/run-operation context', info=True) %}
         {% do return(none) %}
     {% endif %}
@@ -23,7 +23,7 @@
 {% endmacro %}
 
 {% macro grant_schema_read_specific(schemas, grant_roles, include_future_grants, revoke_current_grants) %}
-    {% if flags.WHICH not in ['run', 'run-operation'] %}
+    {% if flags.WHICH not in ['run', 'build', 'run-operation'] %}
         {% do log('Skipping grant_schema_read_specific: not run/run-operation context', info=True) %}
         {% do return(none) %}
     {% endif %}

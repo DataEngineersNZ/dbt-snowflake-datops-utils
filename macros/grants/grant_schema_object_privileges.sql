@@ -1,6 +1,6 @@
 {% macro grant_schema_object_privileges(object_type, schema_name, permissions, roles) %}
     {# Grants privileges on all objects of a specific type within a schema. Uses bulk queries to check state. #}
-    {% if flags.WHICH not in ['run', 'run-operation'] %}
+    {% if flags.WHICH not in ['run', 'build', 'run-operation'] %}
         {% do log('Skipping grant_schema_object_privileges: not run/run-operation context', info=True) %}
         {% do return(none) %}
     {% endif %}

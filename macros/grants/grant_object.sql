@@ -1,6 +1,6 @@
 {% macro grant_object(object_type, objects, grant_types, grant_roles) %}
     {# Grant-only: no revokes are performed. Signature unchanged. #}
-    {% if flags.WHICH not in ['run', 'run-operation'] %}
+    {% if flags.WHICH in ['run', 'build', 'run-operation'] %}
         {% do log('Skipping grant_object: not run/run-operation context', info=True) %}
         {% do return(none) %}
     {% endif %}

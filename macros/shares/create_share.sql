@@ -1,5 +1,5 @@
 {% macro create_share(share_name, accounts, environments) %}
-    {% if flags.WHICH in ['run', 'run-operation'] %}
+    {% if flags.WHICH in ['run', 'build', 'run-operation'] %}
         {% if execute %}
             {% if target.name in environments %}
                 {% do log("Creating or Updating Share" ~ share_name, info=True) %}
