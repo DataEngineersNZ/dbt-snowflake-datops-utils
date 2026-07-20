@@ -32,21 +32,26 @@
         {% else %}
             {% do log('grant_schema_procedure_usage_specific: found ' ~ proc_count ~ ' procedures in schema ' ~ schema, info=True) %}
 
-            {# Get existing USAGE grants on procedures in this schema in one query #}
+            {# Get per-role count of USAGE grants on procedures in this schema #}
+            {% set fully_granted_roles = [] %}
             {% set existing_usage_roles = [] %}
             {% set usage_query %}
-                select distinct grantee
+                select grantee, count(distinct object_name) as granted_count
                 from information_schema.object_privileges
                 where object_schema = '{{ schema }}'
                   and privilege_type = 'USAGE'
                   and object_type = 'PROCEDURE'
                   and granted_to = 'ROLE'
+                group by grantee
             {% endset %}
             {% set usage_results = run_query(usage_query) %}
             {% if execute and usage_results %}
                 {% for row in usage_results %}
                     {% if row[0] not in existing_usage_roles %}
                         {% do existing_usage_roles.append(row[0]) %}
+                    {% endif %}
+                    {% if row[1] >= proc_count %}
+                        {% do fully_granted_roles.append(row[0]) %}
                     {% endif %}
                 {% endfor %}
             {% endif %}
@@ -63,9 +68,9 @@
             {# Check schema USAGE #}
             {% set roles_with_usage = dbt_dataengineers_utils._grants_get_schema_grants(schema, 'USAGE', 'ROLE') %}
 
-            {# Grant procedure usage only to roles that don't already have it #}
+            {# Grant procedure usage only to roles that don't already cover all procedures #}
             {% for role in grant_roles %}
-                {% if role not in existing_usage_roles %}
+                {% if role not in fully_granted_roles %}
                     {% if role not in roles_with_usage %}
                         {% do schema_statements.append('grant usage on schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role ~ ';') %}
                     {% endif %}

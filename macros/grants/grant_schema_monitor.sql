@@ -32,32 +32,56 @@
             {% do log('====> Schema ' ~ schema ~ ': no pipes or tasks, skipping monitor grants', info=True) %}
             {% set schemas_skipped = schemas_skipped + 1 %}
         {% else %}
-            {# Query existing MONITOR grants for this schema in one call #}
+            {# Count total pipes and tasks in this schema #}
+            {% set object_count_query %}
+                select object_type, count(distinct object_name) as cnt
+                from information_schema.object_privileges
+                where object_schema = '{{ schema }}'
+                  and object_type in ('PIPE', 'TASK')
+                  and grantor is not null
+                group by object_type
+            {% endset %}
+            {% set object_counts = {} %}
+            {% set oc_results = run_query(object_count_query) %}
+            {% if execute and oc_results %}
+                {% for row in oc_results %}
+                    {% set _ = object_counts.update({row[0]: row[1]}) %}
+                {% endfor %}
+            {% endif %}
+            {% set total_monitor_objects = (object_counts.get('PIPE', 0) | int) + (object_counts.get('TASK', 0) | int) %}
+
+            {# Query existing MONITOR grants per role for this schema #}
             {% set existing_monitor_roles = [] %}
+            {% set fully_granted_roles = [] %}
             {% set query %}
-                select privilege_type, grantee
+                select grantee, count(distinct object_name) as granted_count
                 from information_schema.object_privileges
                 where privilege_type = 'MONITOR' and object_schema = '{{ schema }}'
                   and object_type in ('PIPE', 'TASK')
+                group by grantee
             {% endset %}
             {% set results = run_query(query) %}
             {% if execute and results %}
                 {% for row in results %}
-                    {% set priv = row[0] %}{% set grantee = row[1] %}
-                    {% if priv == 'MONITOR' %}
-                        {% if grantee not in grant_roles %}
-                            {% if revoke_current_grants %}
-                                {% if has_tasks %}
-                                    {% do schema_statements.append('revoke monitor on all tasks in schema ' ~ target.database ~ '.' ~ schema ~ ' from role ' ~ grantee ~ ';') %}
-                                {% endif %}
-                                {% if has_pipes %}
-                                    {% do schema_statements.append('revoke monitor on all pipes in schema ' ~ target.database ~ '.' ~ schema ~ ' from role ' ~ grantee ~ ';') %}
-                                {% endif %}
-                            {% endif %}
-                        {% else %}
-                            {% if grantee not in existing_monitor_roles %}
-                                {% do existing_monitor_roles.append(grantee) %}
-                            {% endif %}
+                    {% set grantee = row[0] %}
+                    {% if grantee not in existing_monitor_roles %}
+                        {% do existing_monitor_roles.append(grantee) %}
+                    {% endif %}
+                    {% if grantee in grant_roles and row[1] >= total_monitor_objects %}
+                        {% do fully_granted_roles.append(grantee) %}
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+
+            {# Revoke from roles not in grant_roles that currently have MONITOR #}
+            {% if revoke_current_grants %}
+                {% for role_with_monitor in existing_monitor_roles %}
+                    {% if role_with_monitor not in grant_roles %}
+                        {% if has_tasks %}
+                            {% do schema_statements.append('revoke monitor on all tasks in schema ' ~ target.database ~ '.' ~ schema ~ ' from role ' ~ role_with_monitor ~ ';') %}
+                        {% endif %}
+                        {% if has_pipes %}
+                            {% do schema_statements.append('revoke monitor on all pipes in schema ' ~ target.database ~ '.' ~ schema ~ ' from role ' ~ role_with_monitor ~ ';') %}
                         {% endif %}
                     {% endif %}
                 {% endfor %}
@@ -66,8 +90,9 @@
             {# Check schema USAGE for each role #}
             {% set roles_with_usage = dbt_dataengineers_utils._grants_get_schema_grants(schema, 'USAGE', 'ROLE') %}
 
+            {# Grant monitor only to roles that don't already cover all objects #}
             {% for role in grant_roles %}
-                {% if role not in existing_monitor_roles %}
+                {% if role not in fully_granted_roles %}
                     {% if role not in roles_with_usage %}
                         {% do schema_statements.append('grant usage on schema ' ~ target.database ~ '.' ~ schema ~ ' to role ' ~ role ~ ';') %}
                     {% endif %}
