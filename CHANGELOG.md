@@ -1,6 +1,12 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v1.0.10 - 2026-07-20 - Fix Partial Coverage Grant Skip Bug
+
+### Fixed
+- Fixed grant macros incorrectly skipping roles that had partial privilege coverage. If a role had the privilege on *some* objects in a schema (e.g. USAGE on 7 of 9 procedures), the remaining objects were never granted because the check only tested for *any* existing grant rather than *full* coverage.
+- Now each macro counts granted objects per role and only skips when `granted_count >= total_count`. Affected macros: `grant_schema_procedure_usage_specific`, `grant_schema_operate_specific`, `grant_schema_monitor_specific`, `grant_schema_object_privileges`.
+
 ## v1.0.10 - 2026-07-15 - dbt build Context Support
 
 ### Fixed
