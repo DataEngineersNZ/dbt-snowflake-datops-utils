@@ -1,6 +1,6 @@
 {% macro grant_schema_object_privileges(object_type, schema_name, permissions, roles) %}
     {# Grants privileges on all objects of a specific type within a schema. Uses bulk queries to check state. #}
-    {% if flags.WHICH not in ['run', 'run-operation'] %}
+    {% if flags.WHICH not in ['run', 'build', 'run-operation'] %}
         {% do log('Skipping grant_schema_object_privileges: not run/run-operation context', info=True) %}
         {% do return(none) %}
     {% endif %}
@@ -54,15 +54,41 @@
 
     {% do log('====> Found ' ~ (discovered_objects | length) ~ ' ' ~ object_type ~ 's', info=True) %}
 
-    {# Bulk query: get all existing privileges for this object type in this schema #}
-    {% set existing_privs = dbt_dataengineers_utils._grants_get_schema_object_privs(schema_name, permission_list, role_list, object_type) %}
+    {# Bulk query: get per-role count of granted objects per privilege vs total object count #}
+    {% set object_count = discovered_objects | length %}
+    {% set full_coverage_query %}
+        select grantee, privilege_type, count(distinct object_name) as granted_count
+        from information_schema.object_privileges
+        where object_schema = '{{ schema_name }}'
+          and privilege_type in ('{{ permission_list | map('upper') | join("', '") }}')
+          and grantee in ('{{ role_list | join("', '") }}')
+          {% if object_type is not none %}
+          and object_type = '{{ object_type | upper }}'
+          {% endif %}
+          and grantor is not null
+        group by grantee, privilege_type
+    {% endset %}
+    {% set coverage_results = run_query(full_coverage_query) %}
+    {% set full_coverage = {} %}
+    {% if execute and coverage_results %}
+        {% for row in coverage_results %}
+            {% if full_coverage.get(row[0]) is none %}
+                {% set _ = full_coverage.update({row[0]: []}) %}
+            {% endif %}
+            {% if row[2] >= object_count %}
+                {% if row[1] not in full_coverage.get(row[0]) %}
+                    {% do full_coverage.get(row[0]).append(row[1]) %}
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+    {% endif %}
 
-    {# Check which roles need grants #}
+    {# Check which roles need grants — only skip if fully covered #}
     {% set bulk_grant_needed = {} %}
     {% for role in role_list %}
-        {% set role_privs = existing_privs.get(role) if existing_privs.get(role) is not none else [] %}
+        {% set role_full = full_coverage.get(role) if full_coverage.get(role) is not none else [] %}
         {% for privilege in permission_list %}
-            {% if privilege not in role_privs %}
+            {% if privilege not in role_full %}
                 {% if bulk_grant_needed.get(role) is none %}
                     {% set _ = bulk_grant_needed.update({role: []}) %}
                 {% endif %}

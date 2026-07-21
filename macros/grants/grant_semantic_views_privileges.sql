@@ -3,7 +3,7 @@
 -- Usage: {{ grant_semantic_views_privileges(schema_name, grant_roles) }}
 
 {% macro grant_semantic_views_privileges(exclude_schemas, grant_roles, include_future_grants) %}
-    {% if flags.WHICH not in ['run', 'run-operation'] %}
+    {% if flags.WHICH not in ['run', 'build', 'run-operation'] %}
         {% do log('Skipping grant_semantic_views_privileges: not run/run-operation context', info=True) %}
         {% do return(none) %}
     {% endif %}
@@ -27,7 +27,7 @@
 {% endmacro %}
 
 {% macro grant_semantic_views_privileges_specific(schema_name, grant_roles) %}
-    {% if flags.WHICH not in ['run', 'run-operation'] %}
+    {% if flags.WHICH not in ['run', 'build', 'run-operation'] %}
         {% do log('Skipping grant_schema_read_specific: not run/run-operation context', info=True) %}
         {% do return(none) %}
     {% endif %}

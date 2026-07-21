@@ -1,5 +1,6 @@
 {% macro grant_privileges(domain_schemas) %}
-    {% if flags.WHICH not in ['run','run-operation'] %}{% do log('grant_privileges: skip (context)', info=True) %}{% do return(none) %}{% endif %}
+    {% if flags.WHICH not in ['run', 'build', 'run-operation'] %}
+    {% do log('grant_privileges: skip (context)', info=True) %}{% do return(none) %}{% endif %}
     {% set dry_run = var('grants_dry_run', false) %}
     {% do log('grant_privileges: environment=' ~ target.name ~ ' dry_run=' ~ dry_run, info=True) %}
     {% if target.name == 'prod' %}

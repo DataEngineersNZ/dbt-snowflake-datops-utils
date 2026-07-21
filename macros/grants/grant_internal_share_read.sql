@@ -1,5 +1,5 @@
 {% macro grant_internal_share_read(share_name, exclude_schemas=none, dry_run=false) %}
-  {% if flags.WHICH in ['run', 'run-operation'] %}
+  {% if flags.WHICH in ['run', 'build', 'run-operation'] %}
     {% if execute %}
       {% set database = target.database %}
       {% if exclude_schemas is none %}

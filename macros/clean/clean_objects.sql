@@ -1,6 +1,6 @@
 {% macro clean_objects(database=target.database, clean_targets=['local-dev', 'unit-test', 'test', 'prod'], object_types= ['schemas', 'functions_and_procedures', 'data_metric_functions', 'tasks', 'streams', 'stages', 'tables_and_views', 'alerts', 'file_formats', 'semantic_views', 'agents']) %}
     {%if execute %}
-        {% if flags.WHICH in ('run', 'run-operation') %}
+        {% if flags.WHICH in ['run', 'build', 'run-operation'] %}
             {% if target.name in clean_targets %}
                 {% set dry_run = false %}
             {% else %}

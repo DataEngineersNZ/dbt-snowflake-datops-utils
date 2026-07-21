@@ -9,7 +9,7 @@
           - Tests case-insensitive role handling
           - Does not mutate state when grants_dry_run=true
     #}
-    {% if flags.WHICH not in ['run','run-operation'] %}
+    {% if flags.WHICH not in ['run', 'build', 'run-operation'] %}
         {% do log('grants_smoke_test: skipped (context)', info=True) %}
         {% do return(none) %}
     {% endif %}

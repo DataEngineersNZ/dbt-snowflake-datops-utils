@@ -1,7 +1,7 @@
 {% macro grant_object_application(object_type, objects, grant_types, grant_applications) %}
     {# Optimized: logs summary instead of returning a structure. Signature unchanged. #}
-    {% if flags.WHICH not in ['run', 'run-operation'] %}
-        {% do log('Skipping grant_object: not run/run-operation context', info=True) %}
+    {% if flags.WHICH not in ['run', 'build', 'run-operation'] %}
+        {% do log('Skipping grant_object_application: not run/build/run-operation context', info=True) %}
         {% do return(none) %}
     {% endif %}
     {% if not execute %}

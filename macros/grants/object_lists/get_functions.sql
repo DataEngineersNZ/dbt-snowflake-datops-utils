@@ -1,5 +1,5 @@
 {% macro get_functions(schema_list) %}
-    {% if flags.WHICH not in ['run','run-operation'] %}{% do return([]) %}{% endif %}
+    {% if flags.WHICH not in ['run', 'build', 'run-operation'] %}{% do return([]) %}{% endif %}
     {% if not execute %}{% do return([]) %}{% endif %}
     {% set query %}
         select

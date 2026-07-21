@@ -1,5 +1,6 @@
 {% macro grant_database_usage(grant_roles, grant_shares=[], revoke_current_grants=true) %}
-   {% if flags.WHICH in ['run', 'run-operation'] %}
+    {% if flags.WHICH in ['run', 'build', 'run-operation'] %}
+        {% do log("Granting Database Usage on " ~ target.database, info=True) %}
         {% set grant_roles = dbt_dataengineers_utils._grants_normalize_roles(grant_roles) %}
         {% set grant_shares = grant_shares | map('upper') | list %}
         {% set existing_roles = []%}

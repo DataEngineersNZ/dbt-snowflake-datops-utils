@@ -1,5 +1,5 @@
 {% macro grant_share_read(view_names, grant_shares, revoke_current_grants) %}
-    {% if flags.WHICH not in ['run','run-operation'] %}{% do log('grant_share_read: skip (context)', info=True) %}{% do return(none) %}{% endif %}
+    {% if flags.WHICH not in ['run', 'build', 'run-operation'] %}{% do log('grant_share_read: skip (context)', info=True) %}{% do return(none) %}{% endif %}
     {% set dry_run = var('grants_dry_run', false) %}
     {% if view_names | length > 0 %}
         {% set schemas = [] %}
@@ -42,7 +42,7 @@
 {% endmacro %}
 
 {% macro grant_share_read_specific_schema(schema_name, view_names, grant_shares, revoke_current_grants, dry_run) %}
-    {% if flags.WHICH not in ['run','run-operation'] %}{% do return(none) %}{% endif %}
+    {% if flags.WHICH not in ['run', 'build', 'run-operation'] %}{% do return(none) %}{% endif %}
     {% set execute_statements = [] %}
     {% set snowflake_shares = [] %}
     {% if execute %}

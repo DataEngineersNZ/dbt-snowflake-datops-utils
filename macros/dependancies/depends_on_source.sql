@@ -5,7 +5,7 @@
        {%-  do ref_statements.append(model) -%}
     {%- endif -%}
 {%- elif include_for == 'run' -%}
-    {%- if flags.WHICH in ('run', 'test', 'compile') -%}
+    {%- if flags.WHICH in ['run', 'build', 'test', 'compile'] -%}
        {%-  do ref_statements.append(model) -%}
     {%- endif %}
 {%- elif include_for == 'all' -%}
