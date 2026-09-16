@@ -29,10 +29,9 @@
 
     {% for result in snowflake_schema_results %}
         {% set dbt_models = [] %}
-        {% set object_Type = result.values()[0] %}
-        {% set sql_object_schema = result.values()[1] %}
-        {% set sql_object_name = result.values()[2] %}
-        {% set sql_arguments = result.values()[3] | lower | replace("string", "varchar") %}
+        {% set sql_object_schema = result['SCHEMA'] %}
+        {% set sql_object_name = result['NAME'] %}
+        {% set sql_arguments = result['ARGUMENT_SIGNATURE'] | lower | replace("string", "varchar") %}
         {% set sql_signature = (sql_object_schema ~ "." ~sql_object_name ~ sql_arguments) | lower %}
         {% set result_has_matching_nodes = dbt_dataengineers_utils.has_matching_nodes(nodes, "name", sql_object_schema,sql_object_name,sql_arguments) %}
 
@@ -61,9 +60,9 @@
 
                 {% set sql_signature = (sql_object_schema ~ "." ~ sql_object_name ~ "(" ~ ns.sql_arguments ~ ")") | lower %}
 
-                {% if result.values()[0] == "PROCEDURE" %}
+                {% if result['OBJECT_TYPE'] == "PROCEDURE" %}
                     {% do snowflake_procedures_to_drop.append(sql_signature) %}
-                {% elif result.values()[0] == "FUNCTION" %}
+                {% elif result['OBJECT_TYPE'] == "FUNCTION" %}
                     {% do snowflake_functions_to_drop.append(sql_signature) %}
                 {% endif %}
             {% endif %}

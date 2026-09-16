@@ -9,14 +9,17 @@
                 when table_type = 'BASE TABLE' then 'TABLE'
                 else table_type
             end as drop_type,
-            'DROP ' || drop_type || ' {{ database | upper }}.' || table_schema || '.' || table_name || ';'
+            'DROP ' || drop_type || ' {{ database | upper }}.' || table_schema || '.' || table_name || ';' as drop_command
         from {{ database }}.information_schema.tables
         where table_schema = upper('{{ schema }}')
         and last_altered <= current_date - {{ days }}
     {% endset %}
 
     {{ log('\nGenerating cleanup queries...\n', info=True) }}
-    {% set drop_queries = run_query(get_drop_commands_query).columns[1].values() %}
+    {% set drop_queries = [] %}
+    {% for row in run_query(get_drop_commands_query) %}
+        {% do drop_queries.append(row['DROP_COMMAND']) %}
+    {% endfor %}
 
     {% for query in drop_queries %}
         {% if dry_run %}

@@ -8,7 +8,7 @@
             {%- set model_schema =  model.schema|upper -%}
             {%- set model_schema_full = model_database|upper + '.' + model_schema -%}
             {%- set model_alias = model.alias|upper -%}
-            {%- set materialization = materialization_map[model.config.get("materialized")] -%}
+            {%- set materialization = materialization_map.get(model.config.get("materialized"), model.config.get("materialized")) -%}
             {{ log("START found tags for model " + model_schema|lower ~ "." ~ model_alias|lower, info=True) }}
             {%- call statement('main', fetch_result=True) -%}
                 select

@@ -1,6 +1,30 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v1.1.0 - 2026-09-16 - dbt Fusion (dbt 2.0) Macro Compatibility Hardening
+
+### Fixed
+- Fixed `get_default_merge_statement` macro to call the public, adapter-dispatched `get_merge_sql()` macro instead of the internal `default__get_merge_sql()` macro. Calling a `default__`-prefixed macro directly bypasses dispatch and is not guaranteed to exist under dbt Fusion's macro resolution.
+- Fixed several `clean_*`, `database_clone*`, and `drop_views_in_schema_for_snapshots` macros that read `run_query()` results using Agate-specific positional access (`result.values()[N]`, `.columns[N].values()`). Replaced with named-column dict access (`result['COLUMN_NAME']`). Also fixes a latent bug in `clean_generic` where a hardcoded `schema_index` (3, or 4 for `TASK`, 2 for `SECRET`) was used to locate the schema column positionally in `SHOW <OBJECT>S` output instead of by name.
+- Fixed `clean_generic`, `clean_data_metric_functions`, `enable_dependent_tasks`, and `execute_task` macros: replaced `selectattr("config.materialized", "equalto", ...)` (a dotted-path filter that Jinja's `selectattr` does not natively support and only worked by accident of Python attribute resolution) with an explicit loop checking `node.config.get("materialized")`.
+- Fixed `apply_meta_as_tags` macro: `materialization_map[model.config.get("materialized")]` could raise `KeyError` for an unmapped materialization; changed to `.get()` with a fallback to the raw materialization value.
+- Fixed `unknown_member` macro: added the missing `if graph.nodes else []` guard around `graph.nodes.values()` iteration, consistent with the other `clean_*` macros.
+- Removed unused, broken helper macros `_ownership_run` and `_ownership_build` from `macros/grants/_helpers.sql`. `_ownership_build` used `call(attribute(dbt_dataengineers_utils, formatter), r)`, an invalid Jinja dynamic-dispatch pattern that is not valid usage of the `call` tag; neither macro was referenced anywhere in the codebase.
+- Fixed the `ref()` override macro (`macros/schema/ref.sql`) to accept `package` and `version` arguments and forward them to `builtins.ref()`. Previously the macro only forwarded `model_name`, so any cross-package or versioned `ref()` call routed through this global override silently dropped the package/version context and resolved (or failed to resolve) against the wrong node.
+- This surfaced as a hard failure under dbt Fusion (dbt 2.0), which also removed the legacy two-positional-argument form `ref('package_name', 'model_name')`. Callers depending on this package's `ref` override must now use the keyword form: `ref('model_name', package='package_name')`.
+
+### Verified
+- Verified the `ref()` fix against dbt-fusion 2.0.0-preview.218 with a local repro project confirming both same-package and cross-package `ref()` resolution.
+- Confirmed Snowflake column-name casing behavior driving the Agate-access fixes above: unquoted `SELECT ... AS alias` results are returned uppercased by Snowflake, while `SHOW <OBJECT>` command output columns (e.g. `name`, `schema_name`) are lowercase. Verified this is identical on both dbt-core (1.11.12) and dbt Fusion (2.0.4) since it is Snowflake connector behavior, not engine-specific.
+- Verified `flags.WHICH` values (`run-operation`, `compile`, `test`) are identical between dbt-core and dbt Fusion, confirming existing `flags.WHICH` guards throughout the grant/clean/task macros do not need changes.
+- Ran `dbt parse` and `dbt compile` against `integration_tests/` on both dbt Fusion 2.0.4 and dbt-core 1.11.12 after all changes.
+- Exercised `clean_schemas`, `clean_generic`, and the full new `test_clean_macros` suite live against Snowflake (dry-run only, no destructive DDL) on both engines, confirming identical, correct output.
+
+### Added
+- Added `dbt-fusion` as a second matrix leg in the `Integration Tests` GitHub Actions workflow (`.github/workflows/integration_tests.yml`), installing dbt Fusion via the official installer (`public.cdn.getdbt.com/fs/install/install.sh`) and running the same `dbt build` + macro unit tests against it, using a separate schema (`DBT_CI_TESTS_FUSION`) to avoid colliding with the dbt-core leg.
+- Added `test_clean_macros` integration test macro (`integration_tests/macros/test_clean_macros.sql`) exercising `clean_schemas`, `clean_models`, `clean_functions`, `clean_data_metric_functions`, `clean_generic` (for `VIEW`, `TASK`, and `SECRET` object types), `clean_stale_models`, and `drop_views_in_schema_for_snapshots` live against Snowflake in `dry_run=true` mode, to catch regressions in `run_query()` result-row column access on both dbt-core and dbt Fusion.
+- Wired `test_grants_helpers` and `test_grants_idempotency` into the CI workflow (previously only `test_has_matching_nodes` was run automatically).
+
 ## v1.0.10 - 2026-07-20 - Fix Partial Coverage Grant Skip Bug
 
 ### Fixed

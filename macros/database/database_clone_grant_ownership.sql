@@ -17,8 +17,10 @@
   {% endset %}
 
   {% if execute %}
-    {% set results = run_query(list_schemas_query) %}
-    {% set schemata_list = results.columns[0].values() %}
+    {% set schemata_list = [] %}
+    {% for row in run_query(list_schemas_query) %}
+        {% do schemata_list.append(row['SCHEMA_NAME']) %}
+    {% endfor %}
   {% else %}
     {% set schemata_list = [] %}
   {% endif %}

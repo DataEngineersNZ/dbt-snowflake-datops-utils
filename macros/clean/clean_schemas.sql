@@ -10,8 +10,9 @@
         WHERE table_schema NOT IN ('INFORMATION_SCHEMA', 'META', 'PUBLIC', 'PUBLIC_META', 'SCHEMACHANGE', 'UNIT_TESTS')
     {% endset %}
 
-    {% set snowflake_schema_results = run_query(get_schemas).columns[0].values() %}
-    {% for schema in snowflake_schema_results %}
+    {% set snowflake_schema_results = run_query(get_schemas) %}
+    {% for row in snowflake_schema_results %}
+        {% set schema = row['TABLE_SCHEMA'] %}
         {% set dbt_schemas = [] %}
         {% set matching_nodes = nodes | selectattr("schema", "equalto", schema | lower) %}
         {% for node in matching_nodes %}
