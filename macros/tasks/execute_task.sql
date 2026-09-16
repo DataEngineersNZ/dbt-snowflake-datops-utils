@@ -3,10 +3,13 @@
         {% if target.name in enabled_targets -%}
             {% if flags.WHICH in ['run', 'build', 'run-operation'] %}
                 {% set nodes = graph.nodes.values() if graph.nodes else [] %}
-                 {% set matching_nodes = nodes
-                    | selectattr("name", "equalto", task_name | lower)
-                    | selectattr("config.materialized", "equalto", "task")
-                %}
+                {% set candidate_nodes = nodes | selectattr("name", "equalto", task_name | lower) %}
+                {% set matching_nodes = [] %}
+                {% for node in candidate_nodes %}
+                    {% if node.config.get("materialized") == "task" %}
+                        {% do matching_nodes.append(node) %}
+                    {% endif %}
+                {% endfor %}
                 {% for node in matching_nodes %}
                     {% set task_name = target.database + "." + node.schema + "." + node.name %}
                     {{ log("Executing task: " ~ task_name, info=True) }}

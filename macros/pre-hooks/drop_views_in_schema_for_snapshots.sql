@@ -19,9 +19,9 @@
             {% set snowflake_schema_results = run_query(get_snowflake_models) %}
             {% for result in snowflake_schema_results %}
                 {% set dbt_models = [] %}
-                {% set object_Type = result.values()[0] %}
-                {% set sql_object_schema = result.values()[1] %}
-                {% set sql_object_name = result.values()[2] %}
+                {% set object_Type = result['OBJECT_TYPE'] %}
+                {% set sql_object_schema = result['TABLE_SCHEMA'] %}
+                {% set sql_object_name = result['TABLE_NAME'] %}
 
                 {% set sql_object = sql_object_schema ~ "." ~ sql_object_name %}
                 {% set matching_nodes = snapshots

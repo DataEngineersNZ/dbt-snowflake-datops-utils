@@ -2,8 +2,8 @@
 
 A macro-only [dbt](https://github.com/dbt-labs/dbt) package for Snowflake DataOps. Provides utilities for object lifecycle management, RBAC grant orchestration, dimensional modelling helpers, tagging, shares, and more.
 
-- **Version**: 1.0.9
-- **dbt**: `>=1.3.0, <3.0.0`
+- **Version**: 1.1.0
+- **dbt**: `>=1.9.4, <3.0.0`
 - **Dependencies**: None (zero external package dependencies)
 - **dbt Fusion**: Compatible
 
@@ -16,7 +16,7 @@ Add the following to your `packages.yml`:
 ```yaml
 packages:
   - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-utils.git
-    revision: "1.0.3"
+    revision: "1.1.0"
 ```
 
 Then run `dbt deps`.
@@ -167,7 +167,7 @@ The following `vars` can be set in your `dbt_project.yml` or via `--vars` on the
 | Macro | Description |
 |---|---|
 | `generate_schema_name(custom_schema_name, node)` | Override: derives schema name from folder structure |
-| `ref(model_name, include_database)` | Enhanced ref with optional `include_database` parameter for cross-database references |
+| `ref(model_name, include_database, package, version)` | Enhanced ref with optional `include_database` parameter for cross-database references. For cross-package refs, use `ref('model_name', package='package_name')` -- the legacy `ref('package_name', 'model_name')` two-positional-argument form is not supported under dbt Fusion (dbt 2.0) |
 | `source(schema_name, model_name, include_database)` | Enhanced source with optional `include_database` parameter |
 | `model_ref(model_name)` | Return a model relation without creating a dependency node |
 | `model_source(schema_name, model_name, include_database)` | Return a source relation without creating a dependency node |

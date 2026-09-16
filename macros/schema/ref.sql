@@ -1,3 +1,7 @@
-{% macro ref(model_name, include_database=false) %}
-    {% do return(builtins.ref(model_name).include(database=include_database)) %}
+{% macro ref(model_name, include_database=false, package=none, version=none) %}
+    {% if package %}
+        {% do return(builtins.ref(model_name, package=package, version=version).include(database=include_database)) %}
+    {% else %}
+        {% do return(builtins.ref(model_name, version=version).include(database=include_database)) %}
+    {% endif %}
 {% endmacro %}

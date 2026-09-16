@@ -24,6 +24,12 @@ macros:
       - name: include_database
         type: bool
         description: Include database name if model exists in another snowflake database. Default is false.
+      - name: package
+        type: string
+        description: Name of the package the model belongs to, for cross-package refs. Use the keyword form `ref('model_name', package='package_name')` -- the legacy two-positional-argument form `ref('package_name', 'model_name')` is not supported under dbt Fusion (dbt 2.0). Default is none.
+      - name: version
+        type: string
+        description: Version of the model, for versioned refs. Default is none.
 
   - name: source
     description: '{{ doc("src") }}'

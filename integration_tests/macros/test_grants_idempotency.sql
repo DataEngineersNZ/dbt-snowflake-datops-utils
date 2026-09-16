@@ -20,7 +20,10 @@
     {% endif %}
 
     {% set failures = [] %}
-    {% set test_schema = 'PUBLIC' %}
+    {# Use the active target schema rather than a hardcoded 'PUBLIC' -- not every
+       Snowflake database used for CI/testing has an accessible PUBLIC schema,
+       but target.schema is always created by this project's own dbt build. #}
+    {% set test_schema = target.schema %}
 
     {# ── Test 1: _grants_get_schema_grants returns a list ── #}
     {% set roles_with_usage = dbt_dataengineers_utils._grants_get_schema_grants(test_schema, 'USAGE', 'ROLE') %}

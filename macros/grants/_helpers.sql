@@ -92,34 +92,6 @@ These ideas intentionally deferred to keep current refactor incremental.
     {% do return(roles) %}
 {% endmacro %}
 
-{# Generic ownership query runner returning result rows (list) #}
-{% macro _ownership_run(query) %}
-    {% set results = run_query(query) %}
-    {% if results %}
-        {% do return(results) %}
-    {% else %}
-        {% do return([]) %}
-    {% endif %}
-{% endmacro %}
-
-{# Generic ownership statement builder.
-   Parameters:
-     object_rows: results from run_query
-     formatter: expects a macro name (string) to call with each row to produce statement or none.
- #}
-{% macro _ownership_build(object_rows, formatter) %}
-    {% set statements = [] %}
-    {% if object_rows | length > 0 %}
-        {% for r in object_rows %}
-            {% set stmt = call(attribute(dbt_dataengineers_utils, formatter), r) %}
-            {% if stmt %}
-                {% do statements.append(stmt) %}
-            {% endif %}
-        {% endfor %}
-    {% endif %}
-    {% do return(statements) %}
-{% endmacro %}
-
 {# Bulk check: returns dict {role: [privs]} for a given schema from information_schema.object_privileges.
    Filters by optional privilege_types list, grantee list, and object_type.
    Grantees are normalized to uppercase internally. #}

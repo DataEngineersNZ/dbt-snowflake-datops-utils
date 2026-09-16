@@ -36,8 +36,10 @@
     {% set results = run_query(list_schemas_query) %}
 
     {% if execute %}
-        {# Return the first column #}
-        {% set schemata_list = results.columns[0].values() %}
+        {% set schemata_list = [] %}
+        {% for row in results %}
+            {% do schemata_list.append(row['SCHEMA_NAME']) %}
+        {% endfor %}
     {% else %}
         {% set schemata_list = [] %}
     {% endif %}

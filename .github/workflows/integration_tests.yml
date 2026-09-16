@@ -13,17 +13,30 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [dbt-core, dbt-fusion]
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Python
+        if: matrix.engine == 'dbt-core'
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install dbt-snowflake
-        run: pip install dbt-snowflake>=1.9.4
+      - name: Install dbt-snowflake (dbt-core)
+        if: matrix.engine == 'dbt-core'
+        run: pip install "dbt-snowflake>=1.9.4,<2.0.0"
+
+      - name: Install dbt Fusion
+        if: matrix.engine == 'dbt-fusion'
+        run: |
+          curl -fsSL https://public.cdn.getdbt.com/fs/install/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Write private key
         run: |
@@ -38,6 +51,7 @@ jobs:
           SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_DATABASE: ${{ secrets.SNOWFLAKE_DATABASE }}
           SNOWFLAKE_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
+          CI_SCHEMA: ${{ matrix.engine == 'dbt-fusion' && 'DBT_CI_TESTS_FUSION' || 'DBT_CI_TESTS' }}
         run: |
           {
             echo "integration_tests:"
@@ -55,9 +69,13 @@ jobs:
             echo "      role: \"${SNOWFLAKE_ROLE}\""
             echo "      warehouse: \"${SNOWFLAKE_WAREHOUSE}\""
             echo "      database: \"${SNOWFLAKE_DATABASE}\""
-            echo "      schema: DBT_CI_TESTS"
+            echo "      schema: ${CI_SCHEMA}"
             echo "      threads: 4"
           } > integration_tests/profiles.yml
+
+      - name: Print dbt version
+        working-directory: integration_tests
+        run: dbt --version
 
       - name: Install dbt packages
         working-directory: integration_tests
@@ -69,4 +87,8 @@ jobs:
 
       - name: Run macro unit tests
         working-directory: integration_tests
-        run: dbt run-operation test_has_matching_nodes
+        run: |
+          dbt run-operation test_has_matching_nodes
+          dbt run-operation test_grants_helpers
+          dbt run-operation test_grants_idempotency
+          dbt run-operation test_clean_macros

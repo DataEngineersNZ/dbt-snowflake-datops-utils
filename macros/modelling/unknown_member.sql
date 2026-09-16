@@ -3,7 +3,8 @@
         {% if flags.WHICH in ('run', 'build', 'test') -%}
             {%- set column_types = [] -%}
             {%- set column_names = [] -%}
-            {%- for node in graph.nodes.values() -%}
+            {%- set nodes = graph.nodes.values() if graph.nodes else [] -%}
+            {%- for node in nodes -%}
                 {%- if node.name == model_name -%}
                     {%- for column, properties in node.columns.items() -%}
                         {%- do column_types.append(properties.get('type')) -%}

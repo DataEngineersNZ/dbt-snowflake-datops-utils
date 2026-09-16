@@ -17,17 +17,21 @@
 
     {% for result in snowflake_dmf_results %}
         {% set dbt_models = [] %}
-        {% set sql_object_schema = result.values()[0] %}
-        {% set sql_object_name = result.values()[1] %}
-        {% set sql_arguments = result.values()[2] %}
+        {% set sql_object_schema = result['SCHEMA'] %}
+        {% set sql_object_name = result['NAME'] %}
+        {% set sql_arguments = result['ARGUMENT_SIGNATURE'] %}
 
         {# Match against dbt graph nodes with materialized='data_metric_function' #}
-        {# Uses selectattr for materialized check (consistent with clean_generic) #}
         {# Then checks both node.name and override_name (consistent with has_matching_nodes) #}
-        {% set matching_nodes = nodes
+        {% set candidate_nodes = nodes
             | selectattr("schema", "equalto", sql_object_schema | lower)
-            | selectattr("config.materialized", "equalto", "data_metric_function")
         %}
+        {% set matching_nodes = [] %}
+        {% for node in candidate_nodes %}
+            {% if node.config.get("materialized") == "data_metric_function" %}
+                {% do matching_nodes.append(node) %}
+            {% endif %}
+        {% endfor %}
         {% for node in matching_nodes %}
             {% set node_name = node.config.get("meta", {}).get("override_name", node.config.get("override_name", node.name)) %}
             {% if node_name | lower == sql_object_name | lower %}
