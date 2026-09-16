@@ -449,3 +449,93 @@ macros:
       - name: grant_roles
         type: List[string]
         description: List of roles to grant SELECT to
+
+  - name: create_database_role
+    description: |
+      Creates one or more database roles in the target database using CREATE DATABASE ROLE IF NOT EXISTS.
+      Idempotent - does not use CREATE OR REPLACE, since recreating a database role drops it from any
+      shares it has been granted to.
+    docs:
+      show: true
+    arguments:
+      - name: database_role_names
+        type: List[string]
+        description: Database role name, or list of database role names, to create (e.g. 'ANALYST_DB_ROLE' or ['READER_DB_ROLE', 'WRITER_DB_ROLE'])
+      - name: comment
+        type: string
+        description: Optional comment to apply to newly created database roles. Default is none.
+
+  - name: grant_database_role_schema_privileges
+    description: |
+      Grants schema-level privileges (e.g. USAGE, MONITOR, CREATE TABLE) on one or more schemas to one
+      or more database roles. Statements are executed unconditionally since GRANT is idempotent.
+    docs:
+      show: true
+    arguments:
+      - name: permissions
+        type: List[string]
+        description: Privilege or list of privileges to grant (e.g. 'USAGE' or ['USAGE', 'MONITOR'])
+      - name: schema_names
+        type: List[string]
+        description: Schema name, or list of schema names, to grant privileges on
+      - name: database_roles
+        type: List[string]
+        description: Database role name, or list of database role names, to grant privileges to
+
+  - name: grant_database_role_object_privileges
+    description: |
+      Grants privileges on ALL objects of a specific type within one or more schemas to one or more
+      database roles, using bulk GRANT ... ON ALL <type>S IN SCHEMA statements. Statements are executed
+      unconditionally since GRANT is idempotent.
+    docs:
+      show: true
+    arguments:
+      - name: object_type
+        type: string
+        description: Type of the object (e.g. TABLE, VIEW, FUNCTION)
+      - name: schema_names
+        type: List[string]
+        description: Schema name, or list of schema names, to grant privileges on
+      - name: permissions
+        type: List[string]
+        description: Privilege or list of privileges to grant (e.g. 'SELECT' or ['SELECT', 'REFERENCES'])
+      - name: database_roles
+        type: List[string]
+        description: Database role name, or list of database role names, to grant privileges to
+
+  - name: grant_database_role_object
+    description: |
+      Grants specified privileges on a specific object (or list of objects) to one or more database roles.
+      Checks existing grants via SHOW GRANTS ON <object> (filtered to granted_to = 'DATABASE_ROLE') and
+      only issues statements for privileges not already held. Grant-only: no revokes are performed.
+    docs:
+      show: true
+    arguments:
+      - name: object_type
+        type: string
+        description: Type of the object (e.g. TABLE, VIEW, SCHEMA)
+      - name: objects
+        type: List[string]
+        description: List of objects to apply the permission to (format = schema.object)
+      - name: grant_types
+        type: List[string]
+        description: List of privilege types to grant (e.g. SELECT, REFERENCES)
+      - name: database_roles
+        type: List[string]
+        description: Database role name, or list of database role names, to grant privileges to
+
+  - name: grant_database_role_to_role
+    description: |
+      Grants a database role to one or more account roles, creating a role hierarchy so the account
+      role inherits the database role's privileges. Statements are executed unconditionally since
+      GRANT DATABASE ROLE is idempotent.
+    docs:
+      show: true
+    arguments:
+      - name: database_role_name
+        type: string
+        description: Name of the database role to grant (must exist in the target database)
+      - name: role_names
+        type: List[string]
+        description: Account role name, or list of account role names, to grant the database role to
+

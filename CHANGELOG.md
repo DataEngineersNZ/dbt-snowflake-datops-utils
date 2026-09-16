@@ -1,6 +1,19 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v1.2.0 - 2026-09-17 - Database Role Grant Macros
+
+### Added
+- Added `create_database_role` macro to create one or more Snowflake database roles (`CREATE DATABASE ROLE IF NOT EXISTS`). Idempotent by design -- deliberately avoids `CREATE OR REPLACE`, since Snowflake docs warn that recreating a database role drops it from any shares it has been granted to.
+- Added `grant_database_role_schema_privileges` macro to grant schema-level privileges (e.g. `USAGE`, `MONITOR`, `CREATE TABLE`) on one or more schemas to one or more database roles.
+- Added `grant_database_role_object_privileges` macro to bulk-grant privileges on ALL objects of a specific type within one or more schemas to one or more database roles (`GRANT ... ON ALL <TYPE>S IN SCHEMA ... TO DATABASE ROLE ...`).
+- Added `grant_database_role_object` macro to grant privileges on specific named objects to one or more database roles, mirroring the existing `grant_object` macro's grant-only, skip-if-already-granted behaviour but for `TO DATABASE ROLE` instead of `TO ROLE`.
+- Added `grant_database_role_to_role` macro to grant a database role to one or more account roles (`GRANT DATABASE ROLE ... TO ROLE ...`), establishing a role hierarchy.
+
+### Notes
+- `information_schema.object_privileges` (used by existing bulk coverage-checking helpers such as `_grants_get_schema_full_coverage`) does not reliably surface `DATABASE_ROLE` grantees -- Snowflake's documented `GRANTED_TO` values for that view are `ROLE`, `APPLICATION`, and `APPLICATION ROLE` only. `grant_database_role_schema_privileges` and `grant_database_role_object_privileges` therefore execute their `GRANT` statements unconditionally rather than attempting an unreliable pre-check; this is safe because Snowflake `GRANT` statements are inherently idempotent (re-granting an already-held privilege is a no-op). `grant_database_role_object` instead checks existing state via `SHOW GRANTS ON <object>` filtered to `granted_to = 'DATABASE_ROLE'`, which does correctly report database role grantees.
+- Verified all five macros live against Snowflake (create role, grant schema/object privileges, grant to a role, verify via `SHOW GRANTS`, then drop the role) on both dbt-core (1.11.12) and dbt Fusion (2.0.4), including confirming `grant_database_role_object`'s idempotency check correctly skips a privilege already held via a bulk grant.
+
 ## v1.1.0 - 2026-09-16 - dbt Fusion (dbt 2.0) Macro Compatibility Hardening
 
 ### Fixed
