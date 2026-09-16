@@ -167,7 +167,7 @@ The following `vars` can be set in your `dbt_project.yml` or via `--vars` on the
 | Macro | Description |
 |---|---|
 | `generate_schema_name(custom_schema_name, node)` | Override: derives schema name from folder structure |
-| `ref(model_name, package, version, include_database)` | Enhanced ref with optional `include_database` parameter for cross-database references. For cross-package refs, use `ref('model_name', package='package_name')` -- the legacy `ref('package_name', 'model_name')` two-positional-argument form is not supported under dbt Fusion (dbt 2.0) |
+| `ref(model_name, include_database, package, version)` | Enhanced ref with optional `include_database` parameter for cross-database references. For cross-package refs, use `ref('model_name', package='package_name')` -- the legacy `ref('package_name', 'model_name')` two-positional-argument form is not supported under dbt Fusion (dbt 2.0) |
 | `source(schema_name, model_name, include_database)` | Enhanced source with optional `include_database` parameter |
 | `model_ref(model_name)` | Return a model relation without creating a dependency node |
 | `model_source(schema_name, model_name, include_database)` | Return a source relation without creating a dependency node |
