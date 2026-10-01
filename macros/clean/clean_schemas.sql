@@ -1,7 +1,8 @@
-{% macro clean_schemas(database=target.database, dry_run=True) %}
+{% macro clean_schemas(database=target.database, dry_run=True, current_project_only=False) %}
     {% if execute %}
     {% set snowflake_schemas_to_drop = [] %}
     {% set nodes = graph.nodes.values() if graph.nodes else [] %}
+    {% set nodes = dbt_dataengineers_utils._clean_scope_nodes_to_current_project(nodes, current_project_only) %}
     {% set sources = graph.sources.values() if graph.sources else [] %}
 
     {% set get_schemas %}

@@ -1,6 +1,18 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v1.3.0 - 2026-10-02 - Optional Current-Project Scoping for Clean Macros
+
+### Added
+- Added an opt-in `current_project_only` argument (default `False`) to `clean_models`, `clean_data_metric_functions`, `clean_generic`, `clean_functions`, `clean_schemas`, and the `clean_objects` orchestrator (which threads it through to every sub-macro it calls). When `True`, only nodes defined in the current (root) dbt project protect a deployed Snowflake object from cleanup; a model/function/etc. that exists in the database solely because an *installed package* (dependency) materializes a node with that name is treated as orphaned and becomes eligible for drop, the same as any other unmanaged object.
+- Added shared helper `_clean_scope_nodes_to_current_project(nodes, current_project_only=False)` in `macros/clean/_helpers.sql` to keep the filtering logic in one place across all six macros.
+
+### Notes
+- Default (`current_project_only=False`) preserves prior behavior exactly: nodes from installed packages still protect matching objects from cleanup. This is a backward-compatible, opt-in change -- no existing `clean_*` invocation needs to be updated.
+- `sources` are intentionally left unfiltered in `clean_models` and `clean_schemas` regardless of `current_project_only`, since sources represent pre-existing/externally-managed tables that dbt does not create, so they should protect a matching object regardless of which package declares the source.
+- `clean_stale_models` (time-based cleanup, does not reference `graph.nodes`) and `has_matching_nodes` (a generic matcher that already operates on whatever `nodes` list its caller passes in) were not changed.
+- `project_name` is a built-in dbt Jinja context global that resolves to the name of the consuming/root project (from its `dbt_project.yml`), not the package's own name -- confirmed via live `dbt run-operation` testing.
+
 ## v1.2.0 - 2026-09-17 - Database Role Grant Macros
 
 ### Added

@@ -1,4 +1,4 @@
-{% macro clean_models(database=target.database, dry_run=True) %}
+{% macro clean_models(database=target.database, dry_run=True, current_project_only=False) %}
     {% if execute %}
     {% set snowflake_views_to_drop = [] %}
     {% set snowflake_materialized_views_to_drop = [] %}
@@ -7,6 +7,12 @@
     {% set snowflake_external_tables_to_drop = [] %}
     {% set nodes = graph.nodes.values() if graph.nodes else [] %}
     {% set sources = graph.sources.values() if graph.sources else [] %}
+    {# When current_project_only=True, only models/seeds/snapshots defined in the current project
+       protect an object from cleanup; nodes compiled from installed packages (dependencies) are
+       excluded, so an object that exists in this database solely because a package materializes
+       a model with that name is treated as orphaned and becomes eligible for drop. Defaults to
+       False (unfiltered), preserving pre-existing behavior. #}
+    {% set nodes = dbt_dataengineers_utils._clean_scope_nodes_to_current_project(nodes, current_project_only) %}
 
     {% set get_snowflake_models %}
         select

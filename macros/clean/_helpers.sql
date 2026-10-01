@@ -3,6 +3,24 @@
 #}
 
 
+{# ── _clean_scope_nodes_to_current_project ──
+   Optionally restricts a list of graph nodes to only those defined in the current/root dbt
+   project (node.package_name == project_name), excluding nodes compiled from installed packages
+   (dependencies). When current_project_only is false (the default used by all clean_* macros),
+   nodes are returned unfiltered, so any package-defined model/seed/snapshot still protects a
+   matching Snowflake object from cleanup -- this preserves pre-existing behavior.
+   When current_project_only is true, objects that exist in the database solely because an
+   installed package materializes a model with that name are treated as orphaned, just like any
+   other unmanaged object. #}
+{% macro _clean_scope_nodes_to_current_project(nodes, current_project_only=False) %}
+    {% if current_project_only %}
+        {{ return(nodes | selectattr("package_name", "equalto", project_name) | list) }}
+    {% else %}
+        {{ return(nodes) }}
+    {% endif %}
+{% endmacro %}
+
+
 {# ── collapse_whitespace ──
    Replace all runs of whitespace (spaces, tabs, newlines) with a single space and trim.
    Python's str.split() with no args splits on any whitespace and discards empties,

@@ -1,10 +1,11 @@
-{% macro clean_functions(database=target.database, dry_run=True) %}
+{% macro clean_functions(database=target.database, dry_run=True, current_project_only=False) %}
     {% if execute %}
     {% set snowflake_functions_to_drop = [] %}
     {% set snowflake_procedures_to_drop = [] %}
     {% set ns = namespace(sql_arguments="") %}
     
     {% set nodes = graph.nodes.values() if graph.nodes else [] %}
+    {% set nodes = dbt_dataengineers_utils._clean_scope_nodes_to_current_project(nodes, current_project_only) %}
 
     {% set get_snowflake_models %}
         SELECT

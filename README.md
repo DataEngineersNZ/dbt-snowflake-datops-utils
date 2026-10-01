@@ -59,12 +59,12 @@ The following `vars` can be set in your `dbt_project.yml` or via `--vars` on the
 
 | Macro | Description |
 |---|---|
-| `clean_objects(database, clean_targets, object_types)` | Orchestrate all clean macros for specified object types and environments |
-| `clean_schemas(database, dry_run)` | Drop schemas not defined in the dbt project |
-| `clean_models(database, dry_run)` | Drop orphaned tables/views/dynamic tables/external tables/materialized views |
-| `clean_functions(database, dry_run)` | Drop orphaned UDFs and stored procedures (excludes DMFs) |
-| `clean_data_metric_functions(database, dry_run)` | Drop orphaned Data Metric Functions (DMFs) |
-| `clean_generic(object_type, database, dry_run)` | Drop orphaned tasks/streams/stages/alerts/file formats/network rules/secrets/semantic views/agents |
+| `clean_objects(database, clean_targets, object_types, current_project_only)` | Orchestrate all clean macros for specified object types and environments |
+| `clean_schemas(database, dry_run, current_project_only)` | Drop schemas not defined in the dbt project |
+| `clean_models(database, dry_run, current_project_only)` | Drop orphaned tables/views/dynamic tables/external tables/materialized views |
+| `clean_functions(database, dry_run, current_project_only)` | Drop orphaned UDFs and stored procedures (excludes DMFs) |
+| `clean_data_metric_functions(database, dry_run, current_project_only)` | Drop orphaned Data Metric Functions (DMFs) |
+| `clean_generic(object_type, database, dry_run, current_project_only)` | Drop orphaned tasks/streams/stages/alerts/file formats/network rules/secrets/semantic views/agents |
 | `clean_stale_models(database, schema, days, dry_run)` | Drop models older than N days from a specific schema |
 
 ### database
