@@ -125,6 +125,8 @@ The following `vars` can be set in your `dbt_project.yml` or via `--vars` on the
 | `grant_database_role_object_privileges(object_type, schema_names, permissions, database_roles)` | Bulk grant privileges on all objects of a type within a schema to database roles |
 | `grant_database_role_object(object_type, objects, grant_types, database_roles)` | Grant privileges on specific objects to database roles (grant-only, no revokes) |
 | `grant_database_role_to_role(database_role_name, role_names)` | Grant a database role to one or more account roles |
+| `grant_database_role_inherited_privileges(object_type, permissions, database_roles, include_schemas, exclude_schemas)` | Grant INHERITED privileges (auto-covers current and future objects) at schema or database level to database roles |
+| `grant_database_role_object_by_prefix(object_type, prefix, grant_types, database_roles, include_schemas, exclude_schemas)` | Grant privileges to database roles on all objects of a type whose name starts with a prefix |
 
 ### merge
 

@@ -19,6 +19,7 @@
     {% set database_role_list = dbt_dataengineers_utils._grants_normalize_roles(
         [database_roles] if database_roles is string else database_roles
     ) %}
+    {% set grant_types = grant_types | map('upper') | list %}
     {% set grant_statements = [] %}
 
     {% for object in objects %}

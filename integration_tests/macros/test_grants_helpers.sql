@@ -101,6 +101,44 @@
         {% do failures.append("Test 13 FAILED: Snowflake grantee 'OPS_SUPPORT' should match normalized ['ops_support']") %}
     {% endif %}
 
+    {# ── Test _grants_pluralize_object_type ── #}
+
+    {# Test 14: regular type gets a trailing S #}
+    {% set result = dbt_dataengineers_utils._grants_pluralize_object_type('TABLE') %}
+    {% if result != 'TABLES' %}
+        {% do failures.append("Test 14 FAILED: pluralize('TABLE') expected 'TABLES', got " ~ result) %}
+    {% endif %}
+
+    {# Test 15: consonant + Y gets IES #}
+    {% set result = dbt_dataengineers_utils._grants_pluralize_object_type('POLICY') %}
+    {% if result != 'POLICIES' %}
+        {% do failures.append("Test 15 FAILED: pluralize('POLICY') expected 'POLICIES', got " ~ result) %}
+    {% endif %}
+
+    {# Test 16: multi-word consonant + Y type gets IES #}
+    {% set result = dbt_dataengineers_utils._grants_pluralize_object_type('MASKING POLICY') %}
+    {% if result != 'MASKING POLICIES' %}
+        {% do failures.append("Test 16 FAILED: pluralize('MASKING POLICY') expected 'MASKING POLICIES', got " ~ result) %}
+    {% endif %}
+
+    {# Test 17: lowercase input is normalized to uppercase before pluralizing #}
+    {% set result = dbt_dataengineers_utils._grants_pluralize_object_type('authentication policy') %}
+    {% if result != 'AUTHENTICATION POLICIES' %}
+        {% do failures.append("Test 17 FAILED: pluralize('authentication policy') expected 'AUTHENTICATION POLICIES', got " ~ result) %}
+    {% endif %}
+
+    {# Test 18: vowel-preceded Y does not trigger the IES rule (e.g. a hypothetical "RELAY" -> "RELAYS") #}
+    {% set result = dbt_dataengineers_utils._grants_pluralize_object_type('RELAY') %}
+    {% if result != 'RELAYS' %}
+        {% do failures.append("Test 18 FAILED: pluralize('RELAY') expected 'RELAYS', got " ~ result) %}
+    {% endif %}
+
+    {# Test 19: other common Snowflake object types pluralize with a plain S #}
+    {% set result = dbt_dataengineers_utils._grants_pluralize_object_type('FUNCTION') %}
+    {% if result != 'FUNCTIONS' %}
+        {% do failures.append("Test 19 FAILED: pluralize('FUNCTION') expected 'FUNCTIONS', got " ~ result) %}
+    {% endif %}
+
     {# ── Report results ── #}
     {% if failures | length > 0 %}
         {% for f in failures %}
@@ -108,6 +146,6 @@
         {% endfor %}
         {{ exceptions.raise_compiler_error("test_grants_helpers: " ~ (failures | length) ~ " test(s) failed. See log above.") }}
     {% else %}
-        {% do log("test_grants_helpers: all 13 tests passed", info=True) %}
+        {% do log("test_grants_helpers: all 19 tests passed", info=True) %}
     {% endif %}
 {% endmacro %}

@@ -24,7 +24,7 @@
     {% for role_name in role_names %}
         {% set stmt %}
             create database role if not exists {{ target.database }}.{{ role_name | lower }}
-            {%- if comment %} comment = '{{ comment }}'{% endif -%};
+            {%- if comment %} comment = '{{ comment | replace("'", "''") }}'{% endif -%};
         {% endset %}
         {% do log(stmt, info=True) %}
         {% set _ = run_query(stmt) %}

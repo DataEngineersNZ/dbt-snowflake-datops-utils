@@ -24,16 +24,17 @@
     {% endif %}
 
     {% set grant_statements = [] %}
+    {% set plural_type = dbt_dataengineers_utils._grants_pluralize_object_type(object_type) | lower %}
     {% for schema_name in schema_list %}
         {% for database_role in database_role_list %}
             {% set stmt %}
-                grant {{ permission_list | join(', ') | lower }} on all {{ object_type | lower }}s in schema {{ target.database }}.{{ schema_name }} to database role {{ target.database }}.{{ database_role | lower }};
+                grant {{ permission_list | join(', ') | lower }} on all {{ plural_type }} in schema {{ target.database }}.{{ schema_name }} to database role {{ target.database }}.{{ database_role | lower }};
             {% endset %}
             {% do grant_statements.append(stmt | trim) %}
         {% endfor %}
     {% endfor %}
 
-    {% do log('grant_database_role_object_privileges: granting ' ~ (permission_list | join(', ')) ~ ' on all ' ~ (object_type | lower) ~ 's in ' ~ (schema_list | length) ~ ' schema(s) to ' ~ (database_role_list | length) ~ ' database role(s)', info=True) %}
+    {% do log('grant_database_role_object_privileges: granting ' ~ (permission_list | join(', ')) ~ ' on all ' ~ plural_type ~ ' in ' ~ (schema_list | length) ~ ' schema(s) to ' ~ (database_role_list | length) ~ ' database role(s)', info=True) %}
     {% for stmt in grant_statements %}
         {% do log(stmt, info=True) %}
         {% set _ = run_query(stmt) %}
