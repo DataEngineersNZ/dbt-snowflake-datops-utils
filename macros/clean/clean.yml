@@ -12,6 +12,9 @@ macros:
       - name: dry_run
         type: boolean
         description: specifies if the macro should run in dry run mode
+      - name: current_project_only
+        type: boolean
+        description: when true, only functions/procedures defined in the current (root) dbt project protect a deployed object from cleanup; objects matching a node from an installed package are treated as orphaned. Defaults to false (unfiltered, matches pre-existing behavior).
 
   - name: clean_generic
     description: Reconcile streams / tasks / stages vs dbt definitions; drop those no longer present.
@@ -27,6 +30,9 @@ macros:
       - name: dry_run
         type: boolean
         description: specifies if the macro should run in dry run mode
+      - name: current_project_only
+        type: boolean
+        description: when true, only objects defined in the current (root) dbt project protect a deployed object from cleanup; objects matching a node from an installed package are treated as orphaned. Defaults to false (unfiltered, matches pre-existing behavior).
 
   - name: clean_models
     description: Reconcile dbt tables, external tables & views with deployed objects; remove orphans.
@@ -39,6 +45,9 @@ macros:
       - name: dry_run
         type: boolean
         description: specifies if the macro should run in dry run mode
+      - name: current_project_only
+        type: boolean
+        description: when true, only models/seeds/snapshots defined in the current (root) dbt project protect a deployed object from cleanup; objects matching a node from an installed package are treated as orphaned. Defaults to false (unfiltered, matches pre-existing behavior).
 
   - name: clean_objects
     description: Convenience orchestrator to run all clean_* macros (suitable for post-hook usage).
@@ -54,6 +63,9 @@ macros:
       - name: object_types
         type: List[string]
         description: List of object types to clean up
+      - name: current_project_only
+        type: boolean
+        description: passed through to every clean_* macro invoked; when true, only nodes defined in the current (root) dbt project protect a deployed object from cleanup. Defaults to false (unfiltered, matches pre-existing behavior).
      
 
   - name: clean_data_metric_functions
@@ -67,6 +79,9 @@ macros:
       - name: dry_run
         type: boolean
         description: specifies if the macro should run in dry run mode
+      - name: current_project_only
+        type: boolean
+        description: when true, only data metric functions defined in the current (root) dbt project protect a deployed object from cleanup; objects matching a node from an installed package are treated as orphaned. Defaults to false (unfiltered, matches pre-existing behavior).
 
   - name: clean_schemas
     description: Reconcile schema list vs dbt; drop schemas no longer defined.
@@ -79,6 +94,9 @@ macros:
       - name: dry_run
         type: boolean
         description: specifies if the macro should run in dry run mode
+      - name: current_project_only
+        type: boolean
+        description: when true, only models defined in the current (root) dbt project protect a schema from cleanup (sources remain unfiltered, since they represent pre-existing/externally-managed tables regardless of which package declares them). Defaults to false (unfiltered, matches pre-existing behavior).
 
   - name: drop_object
     description: This macro compares executes 

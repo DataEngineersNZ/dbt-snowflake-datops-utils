@@ -449,3 +449,147 @@ macros:
       - name: grant_roles
         type: List[string]
         description: List of roles to grant SELECT to
+
+  - name: create_database_role
+    description: |
+      Creates one or more database roles in the target database using CREATE DATABASE ROLE IF NOT EXISTS.
+      Idempotent - does not use CREATE OR REPLACE, since recreating a database role drops it from any
+      shares it has been granted to.
+    docs:
+      show: true
+    arguments:
+      - name: database_role_names
+        type: List[string]
+        description: Database role name, or list of database role names, to create (e.g. 'ANALYST_DB_ROLE' or ['READER_DB_ROLE', 'WRITER_DB_ROLE'])
+      - name: comment
+        type: string
+        description: Optional comment to apply to newly created database roles. Default is none.
+
+  - name: grant_database_role_schema_privileges
+    description: |
+      Grants schema-level privileges (e.g. USAGE, MONITOR, CREATE TABLE) on one or more schemas to one
+      or more database roles. Statements are executed unconditionally since GRANT is idempotent.
+    docs:
+      show: true
+    arguments:
+      - name: permissions
+        type: List[string]
+        description: Privilege or list of privileges to grant (e.g. 'USAGE' or ['USAGE', 'MONITOR'])
+      - name: schema_names
+        type: List[string]
+        description: Schema name, or list of schema names, to grant privileges on
+      - name: database_roles
+        type: List[string]
+        description: Database role name, or list of database role names, to grant privileges to
+
+  - name: grant_database_role_object_privileges
+    description: |
+      Grants privileges on ALL objects of a specific type within one or more schemas to one or more
+      database roles, using bulk GRANT ... ON ALL <type>S IN SCHEMA statements. Statements are executed
+      unconditionally since GRANT is idempotent.
+    docs:
+      show: true
+    arguments:
+      - name: object_type
+        type: string
+        description: Type of the object (e.g. TABLE, VIEW, FUNCTION)
+      - name: schema_names
+        type: List[string]
+        description: Schema name, or list of schema names, to grant privileges on
+      - name: permissions
+        type: List[string]
+        description: Privilege or list of privileges to grant (e.g. 'SELECT' or ['SELECT', 'REFERENCES'])
+      - name: database_roles
+        type: List[string]
+        description: Database role name, or list of database role names, to grant privileges to
+
+  - name: grant_database_role_object
+    description: |
+      Grants specified privileges on a specific object (or list of objects) to one or more database roles.
+      Checks existing grants via SHOW GRANTS ON <object> (filtered to granted_to = 'DATABASE_ROLE') and
+      only issues statements for privileges not already held. Grant-only: no revokes are performed.
+    docs:
+      show: true
+    arguments:
+      - name: object_type
+        type: string
+        description: Type of the object (e.g. TABLE, VIEW, SCHEMA)
+      - name: objects
+        type: List[string]
+        description: List of objects to apply the permission to (format = schema.object)
+      - name: grant_types
+        type: List[string]
+        description: List of privilege types to grant (e.g. SELECT, REFERENCES)
+      - name: database_roles
+        type: List[string]
+        description: Database role name, or list of database role names, to grant privileges to
+
+  - name: grant_database_role_to_role
+    description: |
+      Grants a database role to one or more account roles, creating a role hierarchy so the account
+      role inherits the database role's privileges. Statements are executed unconditionally since
+      GRANT DATABASE ROLE is idempotent.
+    docs:
+      show: true
+    arguments:
+      - name: database_role_name
+        type: string
+        description: Name of the database role to grant (must exist in the target database)
+      - name: role_names
+        type: List[string]
+        description: Account role name, or list of account role names, to grant the database role to
+
+  - name: grant_database_role_inherited_privileges
+    description: |
+      Grants Snowflake INHERITED privileges (GRANT INHERITED ... TO DATABASE ROLE ...) so the privilege
+      automatically applies to every current and future object of the given type in scope. Supports three
+      mutually exclusive modes: an explicit schema include list, an exclude list (resolved against all
+      schemas in the database), or neither (scopes to the whole database via a single IN DATABASE
+      statement). Statements are executed unconditionally since GRANT INHERITED is idempotent.
+    docs:
+      show: true
+    arguments:
+      - name: object_type
+        type: string
+        description: Type of the object (e.g. TABLE, VIEW, FUNCTION)
+      - name: permissions
+        type: List[string]
+        description: Privilege or list of privileges to grant (e.g. 'SELECT' or ['SELECT', 'USAGE'])
+      - name: database_roles
+        type: List[string]
+        description: Database role name, or list of database role names, to grant privileges to
+      - name: include_schemas
+        type: List[string]
+        description: Optional explicit list of schemas to scope the inherited grant to. Takes precedence over exclude_schemas.
+      - name: exclude_schemas
+        type: List[string]
+        description: Optional list of schemas to exclude when scoping to the whole database. Ignored if include_schemas is supplied.
+
+  - name: grant_database_role_object_by_prefix
+    description: |
+      Grants a database role on all objects of a type whose name starts with a given prefix, within one
+      or more schemas or across the whole database. Discovers matching object names via
+      SHOW <TYPE>S LIKE '<prefix>%' IN SCHEMA ... (works for tables, views, or any showable object type),
+      then delegates the actual grant and idempotency check to grant_database_role_object.
+    docs:
+      show: true
+    arguments:
+      - name: object_type
+        type: string
+        description: Type of the object (e.g. TABLE, VIEW, FUNCTION)
+      - name: prefix
+        type: string
+        description: Name prefix to match objects against (e.g. 'STG_')
+      - name: grant_types
+        type: List[string]
+        description: List of privilege types to grant (e.g. SELECT, REFERENCES)
+      - name: database_roles
+        type: List[string]
+        description: Database role name, or list of database role names, to grant privileges to
+      - name: include_schemas
+        type: List[string]
+        description: Optional explicit list of schemas to search for matching objects. Takes precedence over exclude_schemas.
+      - name: exclude_schemas
+        type: List[string]
+        description: Optional list of schemas to exclude when searching the whole database. Ignored if include_schemas is supplied.
+

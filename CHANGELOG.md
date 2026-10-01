@@ -1,6 +1,39 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v1.3.0 - 2026-10-02 - Optional Current-Project Scoping for Clean Macros
+
+### Added
+- Added an opt-in `current_project_only` argument (default `False`) to `clean_models`, `clean_data_metric_functions`, `clean_generic`, `clean_functions`, `clean_schemas`, and the `clean_objects` orchestrator (which threads it through to every sub-macro it calls). When `True`, only nodes defined in the current (root) dbt project protect a deployed Snowflake object from cleanup; a model/function/etc. that exists in the database solely because an *installed package* (dependency) materializes a node with that name is treated as orphaned and becomes eligible for drop, the same as any other unmanaged object.
+- Added shared helper `_clean_scope_nodes_to_current_project(nodes, current_project_only=False)` in `macros/clean/_helpers.sql` to keep the filtering logic in one place across all six macros.
+
+### Notes
+- Default (`current_project_only=False`) preserves prior behavior exactly: nodes from installed packages still protect matching objects from cleanup. This is a backward-compatible, opt-in change -- no existing `clean_*` invocation needs to be updated.
+- `sources` are intentionally left unfiltered in `clean_models` and `clean_schemas` regardless of `current_project_only`, since sources represent pre-existing/externally-managed tables that dbt does not create, so they should protect a matching object regardless of which package declares the source.
+- `clean_stale_models` (time-based cleanup, does not reference `graph.nodes`) and `has_matching_nodes` (a generic matcher that already operates on whatever `nodes` list its caller passes in) were not changed.
+- `project_name` is a built-in dbt Jinja context global that resolves to the name of the consuming/root project (from its `dbt_project.yml`), not the package's own name -- confirmed via live `dbt run-operation` testing.
+
+## v1.2.0 - 2026-09-17 - Database Role Grant Macros
+
+### Added
+- Added `create_database_role` macro to create one or more Snowflake database roles (`CREATE DATABASE ROLE IF NOT EXISTS`). Idempotent by design -- deliberately avoids `CREATE OR REPLACE`, since Snowflake docs warn that recreating a database role drops it from any shares it has been granted to.
+- Added `grant_database_role_schema_privileges` macro to grant schema-level privileges (e.g. `USAGE`, `MONITOR`, `CREATE TABLE`) on one or more schemas to one or more database roles.
+- Added `grant_database_role_object_privileges` macro to bulk-grant privileges on ALL objects of a specific type within one or more schemas to one or more database roles (`GRANT ... ON ALL <TYPE>S IN SCHEMA ... TO DATABASE ROLE ...`).
+- Added `grant_database_role_object` macro to grant privileges on specific named objects to one or more database roles, mirroring the existing `grant_object` macro's grant-only, skip-if-already-granted behaviour but for `TO DATABASE ROLE` instead of `TO ROLE`.
+- Added `grant_database_role_to_role` macro to grant a database role to one or more account roles (`GRANT DATABASE ROLE ... TO ROLE ...`), establishing a role hierarchy.
+- Added `grant_database_role_inherited_privileges` macro to grant Snowflake `INHERITED` privileges (`GRANT INHERITED ... ON ALL <TYPE>S IN {DATABASE|SCHEMA} ... TO DATABASE ROLE ...`) so a privilege automatically applies to every current and future object of a type in scope. Supports an explicit schema `include_schemas` list, an `exclude_schemas` list resolved against all schemas in the database, or neither (whole-database scope via a single `IN DATABASE` statement).
+- Added `grant_database_role_object_by_prefix` macro to grant privileges to database roles on all objects of a type whose name starts with a given prefix, within one or more schemas (`include_schemas`) or across the whole database (`exclude_schemas` or neither). Discovers matching object names via `SHOW <TYPE>S LIKE '<prefix>%' IN SCHEMA ...` and delegates the actual grant to `grant_database_role_object`.
+
+### Fixed
+- Fixed `create_database_role`: the `comment` argument was interpolated into the generated SQL without escaping single quotes, so a comment containing an apostrophe (e.g. `O'Reilly`) produced invalid SQL. Single quotes in `comment` are now escaped (`''`) before interpolation.
+- Fixed `grant_database_role_object_privileges`: object type pluralization blindly appended `S`, producing invalid Snowflake syntax for types whose plural isn't formed that way (e.g. `MASKING POLICY` became `MASKING POLICYS` instead of `MASKING POLICIES`). Added a shared `_grants_pluralize_object_type` helper that correctly pluralizes types ending in a consonant + `Y`, and reused it in `grant_database_role_inherited_privileges` and `grant_database_role_object_by_prefix`.
+- Fixed `grant_database_role_object`: the idempotency check compared Snowflake's uppercase `SHOW GRANTS` privilege values against the caller-supplied `grant_types` without normalizing case, so lowercase input (e.g. `['select']`) failed to match an existing `SELECT` grant and caused a duplicate `GRANT` statement to be issued. `grant_types` is now normalized to uppercase before comparison.
+
+### Notes
+- `information_schema.object_privileges` (used by existing bulk coverage-checking helpers such as `_grants_get_schema_full_coverage`) does not reliably surface `DATABASE_ROLE` grantees -- Snowflake's documented `GRANTED_TO` values for that view are `ROLE`, `APPLICATION`, and `APPLICATION ROLE` only. `grant_database_role_schema_privileges`, `grant_database_role_object_privileges`, and `grant_database_role_inherited_privileges` therefore execute their `GRANT` statements unconditionally rather than attempting an unreliable pre-check; this is safe because Snowflake `GRANT` and `GRANT INHERITED` statements are inherently idempotent (re-granting an already-held privilege is a no-op). `grant_database_role_object` instead checks existing state via `SHOW GRANTS ON <object>` filtered to `granted_to = 'DATABASE_ROLE'`, which does correctly report database role grantees; `grant_database_role_object_by_prefix` reuses this same check by delegating to `grant_database_role_object` after resolving matching object names.
+- `GRANT INHERITED` requires the `FEATURE_RBAC_INHERITED_GRANTS` account parameter to be enabled, and is subject to Snowflake's documented limitations: `OWNERSHIP`, account-only privileges, and `USAGE` on `ROLE`/`USER`/`STREAMLIT`/`XMLA_ENDPOINT` cannot be granted as inherited privileges; `ORGANIZATION`, `APPLICATION`, `APPLICATION PACKAGE`, `SHARE`, and `INTEGRATION` cannot be targets of an inherited grant. For executable object types (e.g. `FUNCTION`, `PROCEDURE`, `TASK`), an inherited `USAGE`/`EXECUTE` grant lets the role invoke every current and future owner's-rights object in scope -- review scope carefully for these types.
+- Verified all seven macros live against Snowflake (create role, grant schema/object/inherited/prefix-matched privileges, grant to a role, verify via `SHOW GRANTS` / `SHOW INHERITED GRANTS`, then drop the role) on both dbt-core (1.11.12) and dbt Fusion (2.0.4), including confirming `grant_database_role_object`'s idempotency check correctly skips a privilege already held via a bulk grant.
+
 ## v1.1.0 - 2026-09-16 - dbt Fusion (dbt 2.0) Macro Compatibility Hardening
 
 ### Fixed

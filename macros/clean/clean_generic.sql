@@ -1,7 +1,8 @@
-{% macro clean_generic(object_type, database=target.database, dry_run=True) %}
+{% macro clean_generic(object_type, database=target.database, dry_run=True, current_project_only=False) %}
     {% if execute %}
     {% set snowflake_objects_to_drop = [] %}
     {% set nodes = graph.nodes.values() if graph.nodes else [] %}
+    {% set nodes = dbt_dataengineers_utils._clean_scope_nodes_to_current_project(nodes, current_project_only) %}
 
     {% set get_snowflake_objects %}
          SHOW {{ object_type | upper }}S IN DATABASE {{ database }}

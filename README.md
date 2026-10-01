@@ -2,7 +2,7 @@
 
 A macro-only [dbt](https://github.com/dbt-labs/dbt) package for Snowflake DataOps. Provides utilities for object lifecycle management, RBAC grant orchestration, dimensional modelling helpers, tagging, shares, and more.
 
-- **Version**: 1.1.0
+- **Version**: 1.2.0
 - **dbt**: `>=1.9.4, <3.0.0`
 - **Dependencies**: None (zero external package dependencies)
 - **dbt Fusion**: Compatible
@@ -16,7 +16,7 @@ Add the following to your `packages.yml`:
 ```yaml
 packages:
   - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-utils.git
-    revision: "1.1.0"
+    revision: "1.2.0"
 ```
 
 Then run `dbt deps`.
@@ -59,12 +59,12 @@ The following `vars` can be set in your `dbt_project.yml` or via `--vars` on the
 
 | Macro | Description |
 |---|---|
-| `clean_objects(database, clean_targets, object_types)` | Orchestrate all clean macros for specified object types and environments |
-| `clean_schemas(database, dry_run)` | Drop schemas not defined in the dbt project |
-| `clean_models(database, dry_run)` | Drop orphaned tables/views/dynamic tables/external tables/materialized views |
-| `clean_functions(database, dry_run)` | Drop orphaned UDFs and stored procedures (excludes DMFs) |
-| `clean_data_metric_functions(database, dry_run)` | Drop orphaned Data Metric Functions (DMFs) |
-| `clean_generic(object_type, database, dry_run)` | Drop orphaned tasks/streams/stages/alerts/file formats/network rules/secrets/semantic views/agents |
+| `clean_objects(database, clean_targets, object_types, current_project_only)` | Orchestrate all clean macros for specified object types and environments |
+| `clean_schemas(database, dry_run, current_project_only)` | Drop schemas not defined in the dbt project |
+| `clean_models(database, dry_run, current_project_only)` | Drop orphaned tables/views/dynamic tables/external tables/materialized views |
+| `clean_functions(database, dry_run, current_project_only)` | Drop orphaned UDFs and stored procedures (excludes DMFs) |
+| `clean_data_metric_functions(database, dry_run, current_project_only)` | Drop orphaned Data Metric Functions (DMFs) |
+| `clean_generic(object_type, database, dry_run, current_project_only)` | Drop orphaned tasks/streams/stages/alerts/file formats/network rules/secrets/semantic views/agents |
 | `clean_stale_models(database, schema, days, dry_run)` | Drop models older than N days from a specific schema |
 
 ### database
@@ -120,6 +120,13 @@ The following `vars` can be set in your `dbt_project.yml` or via `--vars` on the
 | `grant_semantic_views_privileges(exclude_schemas, grant_roles, include_future_grants)` | Grant SELECT on semantic views across all schemas |
 | `grant_privileges(domain_schemas)` | Environment-aware orchestrator that calls multiple grant macros |
 | `grants_smoke_test(role, sample_schema)` | CI/dry-run validation harness for grant macros |
+| `create_database_role(database_role_names, comment)` | Create one or more database roles (idempotent via `IF NOT EXISTS`) |
+| `grant_database_role_schema_privileges(permissions, schema_names, database_roles)` | Grant schema-level privileges (e.g. USAGE) to one or more database roles |
+| `grant_database_role_object_privileges(object_type, schema_names, permissions, database_roles)` | Bulk grant privileges on all objects of a type within a schema to database roles |
+| `grant_database_role_object(object_type, objects, grant_types, database_roles)` | Grant privileges on specific objects to database roles (grant-only, no revokes) |
+| `grant_database_role_to_role(database_role_name, role_names)` | Grant a database role to one or more account roles |
+| `grant_database_role_inherited_privileges(object_type, permissions, database_roles, include_schemas, exclude_schemas)` | Grant INHERITED privileges (auto-covers current and future objects) at schema or database level to database roles |
+| `grant_database_role_object_by_prefix(object_type, prefix, grant_types, database_roles, include_schemas, exclude_schemas)` | Grant privileges to database roles on all objects of a type whose name starts with a prefix |
 
 ### merge
 

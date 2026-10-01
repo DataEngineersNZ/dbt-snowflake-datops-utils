@@ -57,6 +57,19 @@ These ideas intentionally deferred to keep current refactor incremental.
     {% do return(roles | map('upper') | list) %}
 {% endmacro %}
 
+{# Pluralize a Snowflake object type for use in ON ALL <TYPE>S / SHOW <TYPE>S statements.
+   Handles the common irregular case of types ending in a consonant + 'Y' (e.g. POLICY -> POLICIES,
+   AUTHENTICATION POLICY -> AUTHENTICATION POLICIES). Falls back to a plain trailing 'S' otherwise. #}
+{% macro _grants_pluralize_object_type(object_type) %}
+    {% set upper_type = object_type | upper %}
+    {% set vowels = ['A', 'E', 'I', 'O', 'U'] %}
+    {% if upper_type | length >= 2 and upper_type[-1] == 'Y' and upper_type[-2] not in vowels %}
+        {% do return(upper_type[:-1] ~ 'IES') %}
+    {% else %}
+        {% do return(upper_type ~ 'S') %}
+    {% endif %}
+{% endmacro %}
+
 {% macro _grants_log_list(prefix, items) %}
     {% do log(prefix ~ (items | join(', ')), info=True) %}
 {% endmacro %}

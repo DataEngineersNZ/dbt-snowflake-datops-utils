@@ -1,4 +1,4 @@
-{% macro clean_objects(database=target.database, clean_targets=['local-dev', 'unit-test', 'test', 'prod'], object_types= ['schemas', 'functions_and_procedures', 'data_metric_functions', 'tasks', 'streams', 'stages', 'tables_and_views', 'alerts', 'file_formats', 'semantic_views', 'agents']) %}
+{% macro clean_objects(database=target.database, clean_targets=['local-dev', 'unit-test', 'test', 'prod'], object_types= ['schemas', 'functions_and_procedures', 'data_metric_functions', 'tasks', 'streams', 'stages', 'tables_and_views', 'alerts', 'file_formats', 'semantic_views', 'agents'], current_project_only=False) %}
     {%if execute %}
         {% if flags.WHICH in ['run', 'build', 'run-operation'] %}
             {% if target.name in clean_targets %}
@@ -7,43 +7,43 @@
                 {% set dry_run = true %}
             {% endif %}
             {% if 'schemas' in object_types %}
-                {% do dbt_dataengineers_utils.clean_schemas(database, dry_run) %}
+                {% do dbt_dataengineers_utils.clean_schemas(database, dry_run, current_project_only) %}
             {% endif %}
             {% if 'functions_and_procedures' in object_types %}
-                {% do dbt_dataengineers_utils.clean_functions(database, dry_run) %}
+                {% do dbt_dataengineers_utils.clean_functions(database, dry_run, current_project_only) %}
             {% endif %}
             {% if 'data_metric_functions' in object_types %}
-                {% do dbt_dataengineers_utils.clean_data_metric_functions(database, dry_run) %}
+                {% do dbt_dataengineers_utils.clean_data_metric_functions(database, dry_run, current_project_only) %}
             {% endif %}
             {% if 'tasks' in object_types %}
-                {% do dbt_dataengineers_utils.clean_generic("TASK", database, dry_run) %}
+                {% do dbt_dataengineers_utils.clean_generic("TASK", database, dry_run, current_project_only) %}
             {% endif %}
             {% if 'streams' in object_types %}
-                {% do dbt_dataengineers_utils.clean_generic("STREAM", database, dry_run) %}
+                {% do dbt_dataengineers_utils.clean_generic("STREAM", database, dry_run, current_project_only) %}
             {% endif %}
              {% if 'stages' in object_types %}
-                {% do dbt_dataengineers_utils.clean_generic("STAGE", database, dry_run) %}
+                {% do dbt_dataengineers_utils.clean_generic("STAGE", database, dry_run, current_project_only) %}
             {% endif %}
             {% if 'alerts' in object_types %}
-                {% do dbt_dataengineers_utils.clean_generic("ALERT", database, dry_run) %}
+                {% do dbt_dataengineers_utils.clean_generic("ALERT", database, dry_run, current_project_only) %}
             {% endif %}
             {% if 'file_formats' in object_types %}
-                {% do dbt_dataengineers_utils.clean_generic("FILE FORMAT", database, dry_run) %}
+                {% do dbt_dataengineers_utils.clean_generic("FILE FORMAT", database, dry_run, current_project_only) %}
             {% endif %}
             {% if 'network_rules' in object_types %}
-                {% do dbt_dataengineers_utils.clean_generic("NETWORK RULE", database, dry_run) %}
+                {% do dbt_dataengineers_utils.clean_generic("NETWORK RULE", database, dry_run, current_project_only) %}
             {% endif %}
             {% if 'secrets' in object_types %}
-                {% do dbt_dataengineers_utils.clean_generic("SECRET", database, dry_run) %}
+                {% do dbt_dataengineers_utils.clean_generic("SECRET", database, dry_run, current_project_only) %}
             {% endif %}
             {% if 'semantic_views' in object_types %}
-                {% do dbt_dataengineers_utils.clean_generic("SEMANTIC VIEW", database, dry_run) %}
+                {% do dbt_dataengineers_utils.clean_generic("SEMANTIC VIEW", database, dry_run, current_project_only) %}
             {% endif %}
             {% if 'agents' in object_types %}
-                {% do dbt_dataengineers_utils.clean_generic("AGENT", database, dry_run) %}
+                {% do dbt_dataengineers_utils.clean_generic("AGENT", database, dry_run, current_project_only) %}
             {% endif %}
             {% if 'tables_and_views' in object_types %}
-                {% do dbt_dataengineers_utils.clean_models(database, dry_run) %}
+                {% do dbt_dataengineers_utils.clean_models(database, dry_run, current_project_only) %}
             {% endif %}
         {% endif %}
     {% endif %}
