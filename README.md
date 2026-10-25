@@ -196,7 +196,7 @@ The following `vars` can be set in your `dbt_project.yml` or via `--vars` on the
 
 | Macro | Description |
 |---|---|
-| `enable_dependent_tasks(root_task, enabled_targets)` | Enable all dependent tasks for a root task in allowed environments |
+| `enable_dependent_tasks(root_task, enabled_targets)` | Enable all dependent tasks for a root task in allowed environments. Only enables when the root task is currently `SUSPENDED`; skips with a log message if it's already `STARTED` (e.g. a partial run), and raises an error if the task can't be found |
 | `execute_task(task_name, enabled_targets)` | Execute a task in allowed environments |
 
 ---

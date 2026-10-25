@@ -12,21 +12,56 @@
                 {% endfor %}
                 {% for node in matching_nodes %}
                     {% set task_name = target.database + "." + node.schema + "." + node.name %}
-                    {% set state_query %}
-                        show tasks ilike '{{ node.name }}' in schema {{ target.database }}.{{ node.schema }}
-                        ->>
-                        select "state" as state
-                        from $1
+                    {#- SHOW TASKS only supports LIKE (already case-insensitive, per Snowflake docs), not ILIKE.
+                        LIKE wildcards ('_' and '%') mean the pattern can also match unrelated tasks (e.g. a
+                        task named 'load_orders' would also match 'loadxorders'), so the result is filtered
+                        down to the exact task name below instead of trusting row 0 of the SHOW output.
+                        The state check and the enable call are combined into a single Snowflake Scripting
+                        anonymous block so they execute as one atomic statement: this avoids a race where the
+                        task's state changes between a separate check and a separate enable call, and the
+                        EXCEPTION handler treats "already started" (i.e. another process enabled it
+                        concurrently) as a success instead of failing the run. -#}
+                    {% set enable_sql %}
+                        execute immediate $$
+                        declare
+                            v_state varchar default null;
+                        begin
+                            show tasks like '{{ node.name }}' in schema {{ target.database }}.{{ node.schema }};
+                            select "state" into v_state
+                            from table(result_scan(last_query_id()))
+                            where upper("name") = upper('{{ node.name }}')
+                            limit 1;
+
+                            if (v_state is null) then
+                                return 'MISSING';
+                            end if;
+
+                            if (upper(v_state) = 'SUSPENDED') then
+                                call system$task_dependents_enable('{{ task_name }}');
+                                return 'ENABLED';
+                            else
+                                return 'SKIPPED:' || v_state;
+                            end if;
+                        exception
+                            when other then
+                                if (contains(upper(sqlerrm), 'NOT SUSPENDED')) then
+                                    return 'ENABLED_CONCURRENTLY';
+                                end if;
+                                raise;
+                        end;
+                        $$
                     {% endset %}
-                    {% set state_results = run_query(state_query) %}
-                    {% set task_state = (state_results[0][0] | upper) if state_results and state_results | length > 0 else none %}
-                    {% if task_state == 'SUSPENDED' %}
-                        {{ log("Enabling task and dependant tasks: " ~ task_name, info=True) }}
-                        {% call statement('enable_depenant_tasks') %}
-                            SELECT SYSTEM$TASK_DEPENDENTS_ENABLE('{{task_name}}');
-                        {% endcall %}
+                    {% set enable_results = run_query(enable_sql) %}
+                    {% set outcome = (enable_results[0][0] | string) if enable_results and enable_results | length > 0 else none %}
+
+                    {% if outcome is none or outcome == 'MISSING' %}
+                        {{ exceptions.raise_compiler_error("enable_dependent_tasks: task " ~ task_name ~ " was not found via SHOW TASKS in schema " ~ target.database ~ "." ~ node.schema ~ ". Cannot verify its state before enabling dependents.") }}
+                    {% elif outcome in ['ENABLED', 'ENABLED_CONCURRENTLY'] %}
+                        {{ log("Enabled task and dependent tasks: " ~ task_name, info=True) }}
+                    {% elif outcome.startswith('SKIPPED:') %}
+                        {{ log("Skipping enable_dependent_tasks for " ~ task_name ~ ": task is not suspended (current state: " ~ outcome[8:] ~ "). This is expected during partial runs where the task was not recreated.", info=True) }}
                     {% else %}
-                        {{ log("Skipping enable_dependent_tasks for " ~ task_name ~ ": task is not suspended (current state: " ~ (task_state or 'UNKNOWN') ~ "). This is expected during partial runs where the task was not recreated.", info=True) }}
+                        {{ exceptions.raise_compiler_error("enable_dependent_tasks: unexpected result '" ~ outcome ~ "' while enabling dependents for " ~ task_name) }}
                     {% endif %}
                 {% endfor %}
             {% endif %}

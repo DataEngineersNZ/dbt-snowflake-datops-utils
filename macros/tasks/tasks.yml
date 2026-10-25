@@ -2,7 +2,7 @@ version: 2
 
 macros:
   - name: enable_dependent_tasks
-    description: Enable all dependent (downstream) tasks for a given root task when target allowed.
+    description: Enable all dependent (downstream) tasks for a given root task when target allowed. Only calls SYSTEM$TASK_DEPENDENTS_ENABLE when the root task's current state is SUSPENDED; if it is already STARTED (e.g. during a partial dbt run), the task is skipped with an info log instead of failing the run. Raises a compiler error if the root task cannot be found via SHOW TASKS.
     docs:
       show: true
     arguments:
