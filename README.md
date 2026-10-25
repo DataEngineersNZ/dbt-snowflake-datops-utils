@@ -2,7 +2,7 @@
 
 A macro-only [dbt](https://github.com/dbt-labs/dbt) package for Snowflake DataOps. Provides utilities for object lifecycle management, RBAC grant orchestration, dimensional modelling helpers, tagging, shares, and more.
 
-- **Version**: 1.3.0
+- **Version**: 1.3.1
 - **dbt**: `>=1.9.4, <3.0.0`
 - **Dependencies**: None (zero external package dependencies)
 - **dbt Fusion**: Compatible
@@ -16,7 +16,7 @@ Add the following to your `packages.yml`:
 ```yaml
 packages:
   - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-utils.git
-    revision: "1.3.0"
+    revision: "1.3.1"
 ```
 
 Then run `dbt deps`.
@@ -196,7 +196,7 @@ The following `vars` can be set in your `dbt_project.yml` or via `--vars` on the
 
 | Macro | Description |
 |---|---|
-| `enable_dependent_tasks(root_task, enabled_targets)` | Enable all dependent tasks for a root task in allowed environments |
+| `enable_dependent_tasks(root_task, enabled_targets)` | Enable all dependent tasks for a root task in allowed environments. Only enables when the root task is currently `SUSPENDED`; skips with a log message if it's already `STARTED` (e.g. a partial run), and raises an error if the task can't be found |
 | `execute_task(task_name, enabled_targets)` | Execute a task in allowed environments |
 
 ---

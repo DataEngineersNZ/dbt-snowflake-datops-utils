@@ -1,6 +1,16 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v1.3.1 - 2026-10-25 - Suspended-State Check for enable_dependent_tasks
+
+### Fixed
+- Fixed `enable_dependent_tasks`: the macro now checks the current task state before calling `SYSTEM$TASK_DEPENDENTS_ENABLE`, and only calls it when the task is `SUSPENDED`. Previously, during partial dbt runs (where the root task node was not recreated/altered and was therefore already `STARTED`), the macro would call `SYSTEM$TASK_DEPENDENTS_ENABLE` unconditionally and Snowflake would raise an error. Tasks that are not suspended are now skipped with an info-level log message instead of failing the run.
+- Fixed the state check to use `SHOW TASKS LIKE` instead of the invalid `SHOW TASKS ILIKE` (`SHOW TASKS` does not accept `ILIKE`; `LIKE` is already case-insensitive for this command), and to filter the result to the exact (case-insensitive) task name instead of trusting the first row returned. Without this, a `LIKE` wildcard match (e.g. `_` matching any single character) against another task in the same schema could read the wrong task's state, causing the macro to skip a suspended root or fail against a non-suspended one.
+- The macro now raises a compiler error if the root task cannot be found via `SHOW TASKS`, instead of silently logging a skip, so a missing/misnamed task is surfaced instead of leaving its dependents disabled.
+
+### Notes
+- The state check and the `SYSTEM$TASK_DEPENDENTS_ENABLE` call are still two separate statements (check-then-act), as before; a task enabled by a concurrent process in the brief window between the two can still cause the dbt run to fail. This is a known, narrow limitation and is not addressed by this release.
+
 ## v1.3.0 - 2026-10-02 - Optional Current-Project Scoping for Clean Macros
 
 ### Added
