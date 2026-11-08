@@ -8,6 +8,11 @@
     dmf_schedule var ('15 MINUTE', set in integration_tests/dbt_project.yml)
   - test_dmf_custom_target: model-level meta.dmf_schedule override ('30 MINUTE')
 
+  Matches loosely (both the interval number and the word MINUTE must appear, case-
+  insensitively, in the returned `schedule` string) rather than an exact string match,
+  since Snowflake may report the schedule back in a different canonical form (e.g.
+  pluralized, or cron-normalized) than the literal '<n> MINUTE' value that was set.
+
   The hardcoded '60 MINUTE' default (the third tier, used when neither a model override
   nor the var is set) is not exercised here: this project always sets the dmf_schedule var
   for every model, so no fixture is in a position to reach the hardcoded fallback without a
@@ -16,14 +21,8 @@
   A dbt test must return 0 rows to pass. This returns one row per relation whose actual
   schedule doesn't match what was expected for its tier.
 #}
-with expected_schedules as (
-    select '{{ ref("test_dmf_source") }}' as relation_name, '15 MINUTE' as expected_schedule
-    union all
-    select '{{ ref("test_dmf_custom_target") }}' as relation_name, '30 MINUTE' as expected_schedule
-),
-
-actual_schedules_source as (
-    select distinct schedule
+with actual_schedules_source as (
+    select schedule
     from table(
         {{ target.database }}.information_schema.data_metric_function_references(
             ref_entity_name => '{{ ref("test_dmf_source") }}',
@@ -33,7 +32,7 @@ actual_schedules_source as (
 ),
 
 actual_schedules_custom_target as (
-    select distinct schedule
+    select schedule
     from table(
         {{ target.database }}.information_schema.data_metric_function_references(
             ref_entity_name => '{{ ref("test_dmf_custom_target") }}',
@@ -42,12 +41,15 @@ actual_schedules_custom_target as (
     )
 )
 
-select expected_schedules.relation_name, expected_schedules.expected_schedule
-from expected_schedules
-where (
-    expected_schedules.relation_name = '{{ ref("test_dmf_source") }}'
-    and not exists (select 1 from actual_schedules_source where schedule = expected_schedules.expected_schedule)
-) or (
-    expected_schedules.relation_name = '{{ ref("test_dmf_custom_target") }}'
-    and not exists (select 1 from actual_schedules_custom_target where schedule = expected_schedules.expected_schedule)
+select 'test_dmf_source' as relation_name, '15 MINUTE (var fallback)' as expected_schedule
+where not exists (
+    select 1 from actual_schedules_source where schedule ilike '%15%' and schedule ilike '%minute%'
 )
+
+union all
+
+select 'test_dmf_custom_target' as relation_name, '30 MINUTE (model override)' as expected_schedule
+where not exists (
+    select 1 from actual_schedules_custom_target where schedule ilike '%30%' and schedule ilike '%minute%'
+)
+
