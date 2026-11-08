@@ -19,6 +19,7 @@ This file contains the changelog for the Data Engineers Snowflake DataOps Utils 
 ### Notes
 - Known limitation shared with `apply_meta_as_tags`: column/relation identifiers are uppercased rather than rendered with dbt's actual quoting config, so a quoted, genuinely case-sensitive column or alias name will not resolve correctly. Not addressed in this release.
 - Each DMF attachment is a separate Snowflake DDL statement; if a later statement in the same post-hook fails, earlier statements in that run (the schedule, or earlier DMF attachments) are not rolled back. This is an inherent property of Snowflake DDL (not transactional across statements), not something this macro attempts to reconcile.
+- On dbt-core (not dbt-fusion), a model using `meta.dmf_custom` must add a `-- depends_on: {{ ref(...) }}` hint as the first line of its .sql file for each referenced custom DMF. dbt-core's static dependency inference only scans the model's own .sql text for literal `ref()` calls and can't trace one that lives inside a macro invoked indirectly via `post_hook`; without the hint, dbt-core raises "dbt was unable to infer all dependencies" at compile time.
 
 ## v1.3.1 - 2026-10-25 - Suspended-State Check for enable_dependent_tasks
 

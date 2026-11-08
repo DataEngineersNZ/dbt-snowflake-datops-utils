@@ -42,6 +42,16 @@
        the DAG dependency during manifest compilation -- without it, dbt has no guarantee the
        custom DMF is built before this model's post-hook tries to attach it.
 
+       On dbt-core specifically (not dbt-fusion), this `ref()`-inside-a-macro pattern is NOT
+       enough on its own: dbt-core's static dependency inference only scans the model's own
+       .sql file text for literal `ref()` calls, and can't trace one that lives inside a macro
+       invoked indirectly via `post_hook`. Any model using `meta.dmf_custom` must also add an
+       explicit hint as the first line of its .sql file, naming every referenced custom DMF:
+         -- depends_on: {{ ref('my_custom_dmf_model') }}
+       Without this, dbt-core raises "dbt was unable to infer all dependencies" at compile
+       time. See `integration_tests/models/data_metric_functions/test_dmf_custom_target.sql`
+       for a working example.
+
     Sets DATA_METRIC_SCHEDULE on the object once per run before attaching any DMF, since a
     freshly (re)created object has no schedule set yet. Resolved in this order:
       1. the model's own `config.meta.dmf_schedule` (per-model override)

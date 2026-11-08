@@ -301,9 +301,10 @@ Meta keys ending with `_type` are mapped to tags with `_classification`. The `de
 
 Attaches Snowflake Data Metric Functions (DMFs) to a model during `post-hook`, re-applied on every run since `CREATE OR REPLACE TABLE|VIEW` drops any previously attached DMF bindings from scratch. Only `table`, `view`, and `materialized_view` are supported -- see the macro's docstring for why `incremental`/`snapshot` are not.
 
-**Model SQL file** (`stg_orders.sql`) -- set `post-hook` and model-level `meta` here via `config()`, not in the model's schema YAML: a hook string rendered from a model-level YAML `config:` block doesn't reliably resolve package macro namespaces on dbt-core, so the hook silently never attaches anything:
+**Model SQL file** (`stg_orders.sql`) -- set `post-hook` and model-level `meta` here via `config()`, not in the model's schema YAML: a hook string rendered from a model-level YAML `config:` block doesn't reliably resolve package macro namespaces on dbt-core, so the hook silently never attaches anything. If you use `dmf_custom`, also add a `depends_on` hint as the very first line (dbt-core only -- its static dependency inference can't trace a `ref()` call that lives inside a macro invoked via `post_hook`; dbt-fusion doesn't need this):
 
 ```sql
+-- depends_on: {{ ref('my_custom_order_total_check') }}
 {{ config(
     materialized='view',
     post_hook=["{{ dbt_dataengineers_utils.apply_data_metric_functions() }}"],

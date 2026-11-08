@@ -1,6 +1,13 @@
+-- depends_on: {{ ref('test_custom_dmf') }}
 -- Fixture model that attaches the custom DMF (test_custom_dmf) via apply_data_metric_functions'
 -- model-level `meta.dmf_custom` support -- a direct regression test for custom DMF attachment
 -- (ref() resolution, DAG ordering, and the ALTER ... ADD DATA METRIC FUNCTION <custom> syntax).
+--
+-- The `depends_on` hint above is required on dbt-core (not dbt-fusion): dbt-core's static
+-- dependency inference only scans the model's own .sql file text for literal ref() calls --
+-- it can't trace a ref() that lives inside a macro invoked indirectly via post_hook. Without
+-- this hint, dbt-core raises "dbt was unable to infer all dependencies" at compile time.
+-- Any consuming project using meta.dmf_custom on dbt-core needs this same hint.
 --
 -- post-hook/meta are set here (not in the schema YAML's model-level `config:` block) --
 -- see test_dmf_source.sql for why.
