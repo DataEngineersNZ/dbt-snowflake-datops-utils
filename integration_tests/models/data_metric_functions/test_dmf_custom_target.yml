@@ -2,18 +2,7 @@ version: 2
 
 models:
   - name: test_dmf_custom_target
-    description: Fixture model for apply_data_metric_functions integration tests (custom DMF attachment via meta.dmf_custom).
-    config:
-      materialized: view
-      post-hook:
-        - "{{ dbt_dataengineers_utils.apply_data_metric_functions() }}"
-      meta:
-        dmf_schedule: "30 MINUTE"
-        dmf_custom:
-          - ref: test_custom_dmf
-            columns: [dmf_custom_test_value]
-            expectation_name: dmf_custom_target_no_negative_values
-            expectation_value: 0
+    description: Fixture model for apply_data_metric_functions integration tests (custom DMF attachment via meta.dmf_custom). materialized/post-hook/meta are set in the .sql file, not here.
     columns:
       - name: dmf_custom_test_id
         data_type: NUMBER

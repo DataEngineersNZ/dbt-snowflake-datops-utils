@@ -2,11 +2,7 @@ version: 2
 
 models:
   - name: test_dmf_source
-    description: Fixture model for apply_data_metric_functions integration tests (system DMFs).
-    config:
-      materialized: view
-      post-hook:
-        - "{{ dbt_dataengineers_utils.apply_data_metric_functions() }}"
+    description: Fixture model for apply_data_metric_functions integration tests (system DMFs). materialized/post-hook are set in the .sql file, not here.
     columns:
       - name: dmf_test_id
         data_type: NUMBER
