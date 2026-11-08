@@ -13,7 +13,9 @@ macros:
       model-level `config.meta.dmf_custom` list of `{ref, columns, expectation_name,
       expectation_value}` entries. Sets `DATA_METRIC_SCHEDULE` on the object once per run,
       resolved in order: the model's own `config.meta.dmf_schedule`, then the `dmf_schedule`
-      var, then `60 MINUTE` as the final fallback.
+      var, then `60 MINUTE` as the final fallback. Only `table`, `view`, and `materialized_view`
+      models are supported (raises a compiler error otherwise) -- see the macro's own
+      docstring for why `incremental`/`snapshot` cannot be supported safely.
     docs:
       show: true
     arguments: []

@@ -19,8 +19,10 @@
        will surface a real (expected) `DUPLICATE_COUNT` violation, not a bug in this macro.
 
        `dmf_accepted_values` accepts a mix of strings and numbers; string values are rendered
-       as single-quoted SQL literals (with embedded single quotes escaped), numeric values
-       are rendered unquoted, so the generated `IN (...)` clause is valid SQL either way.
+       as single-quoted SQL literals with backslashes and embedded single quotes escaped
+       (backslashes first, so a literal `\` in the value isn't later misread as the start of
+       an escape sequence by Snowflake's string literal parser); numeric values are rendered
+       unquoted, so the generated `IN (...)` clause is valid SQL either way.
 
     2. Custom DMFs (authored via the `dbt_dataengineers_materializations.data_metric_function`
        materialization), via a model-level `meta.dmf_custom` list (set under `config.meta` at
@@ -31,35 +33,70 @@
              expectation_name: my_check   # optional; omit to attach without an expectation
              expectation_value: 0         # optional; defaults to 0 when expectation_name is set
 
-       The custom DMF's actual relation (database/schema/name) is resolved via `ref(entry.ref)`
-       rather than assumed, so renames/relocations of the DMF model are picked up automatically.
-       Referencing it via `ref()` inside this post-hook also establishes the dbt DAG dependency,
-       so the custom DMF is guaranteed to exist before this model's post-hook tries to attach it.
+       The custom DMF's actual relation (database/schema/name) is resolved via
+       `builtins.ref(entry.ref)` (dbt's unmodified ref, bypassing any project-level `ref()`
+       override, so the DMF's true fully-qualified relation is always used regardless of a
+       consuming project's own ref override behavior) rather than assumed, so renames/
+       relocations of the DMF model are picked up automatically. This resolution happens
+       unconditionally (not only when `execute` is true) specifically so dbt's parser records
+       the DAG dependency during manifest compilation -- without it, dbt has no guarantee the
+       custom DMF is built before this model's post-hook tries to attach it.
 
     Sets DATA_METRIC_SCHEDULE on the object once per run before attaching any DMF, since a
     freshly (re)created object has no schedule set yet. Resolved in this order:
       1. the model's own `config.meta.dmf_schedule` (per-model override)
       2. the `dmf_schedule` var (project-wide default, set in `dbt_project.yml` or `--vars`)
       3. '60 MINUTE' (hardcoded fallback if neither of the above is set)
+
+    Supported materializations: `table`, `view`, `materialized_view`. All three are fully
+    recreated (`CREATE OR REPLACE`) on every run, which is what makes "unconditionally ADD
+    every configured DMF on every run" safe -- Snowflake drops all prior DMF bindings as part
+    of that recreation, so there's nothing to reconcile and no removed-from-meta binding can
+    linger. Deliberately NOT supported: `incremental`, `snapshot`, or any other materialization
+    that persists the same physical object across runs -- on a persisted object, a second run
+    would try to ADD a binding that's already attached and Snowflake would reject it. Calling
+    this macro on an unsupported materialization raises a clear compiler error rather than
+    guessing and failing later with an obscure Snowflake error.
+
+    Known limitation shared with `apply_meta_as_tags`: column/relation identifiers are
+    uppercased rather than rendered with dbt's actual quoting config, so a quoted, genuinely
+    case-sensitive column or alias name will not resolve correctly.
 -#}
-    {% if execute %}
-        {%- set materialization_map = {"table": "table", "view": "view", "incremental": "table", "snapshot": "table", "immutable_table": "table", "materialized_view": "view"} -%}
-        {%- set materialization = materialization_map.get(model.config.get("materialized"), "view") -%}
-        {%- set model_schema = model.schema | upper -%}
-        {%- set model_alias = model.alias | upper -%}
-        {%- set relation_reference = model.database ~ "." ~ model_schema ~ "." ~ model_alias -%}
-        {%- set model_meta = model.config.get("meta", {}) -%}
-        {%- set custom_dmfs = model_meta.get("dmf_custom", []) -%}
+    {%- set materialization_map = {"table": "table", "view": "view", "materialized_view": "materialized view"} -%}
+    {%- set model_materialized = model.config.get("materialized") -%}
+    {%- set materialization = materialization_map.get(model_materialized) -%}
+    {%- set model_schema = model.schema | upper -%}
+    {%- set model_alias = model.alias | upper -%}
+    {%- set relation_reference = model.database ~ "." ~ model_schema ~ "." ~ model_alias -%}
+    {%- set model_meta = model.config.get("meta", {}) -%}
+    {%- set custom_dmfs = model_meta.get("dmf_custom", []) -%}
 
-        {%- set columns_with_dmf = [] -%}
-        {% for column in model.columns %}
-            {%- set column_meta = model.columns[column].config.get("meta", {}) if model.columns[column].config is defined else model.columns[column].get("meta", {}) -%}
-            {% if column_meta.get("dmf_not_null") or column_meta.get("dmf_unique") or column_meta.get("dmf_accepted_values") %}
-                {%- do columns_with_dmf.append(column) -%}
-            {% endif %}
-        {% endfor %}
+    {#- Resolved unconditionally (outside any `execute` guard) so dbt's parser records the
+       DAG dependency on every custom DMF model, regardless of a project-level ref() override. -#}
+    {%- set custom_dmf_relations = {} -%}
+    {% for custom_dmf in custom_dmfs %}
+        {%- do custom_dmf_relations.update({custom_dmf["ref"]: builtins.ref(custom_dmf["ref"])}) -%}
+    {% endfor %}
 
-        {% if columns_with_dmf | length > 0 or custom_dmfs | length > 0 %}
+    {%- set columns_with_dmf = [] -%}
+    {% for column in model.columns %}
+        {%- set column_meta = model.columns[column].config.get("meta", {}) if model.columns[column].config is defined else model.columns[column].get("meta", {}) -%}
+        {% if column_meta.get("dmf_not_null") or column_meta.get("dmf_unique") or column_meta.get("dmf_accepted_values") %}
+            {%- do columns_with_dmf.append(column) -%}
+        {% endif %}
+    {% endfor %}
+
+    {% if columns_with_dmf | length > 0 or custom_dmfs | length > 0 %}
+        {% if materialization is none %}
+            {{ exceptions.raise_compiler_error(
+                "apply_data_metric_functions: unsupported materialized='" ~ model_materialized ~ "' for model " ~ model.unique_id ~
+                ". Only " ~ materialization_map.keys() | join(', ') ~ " are supported -- this macro unconditionally re-ADDs every" ~
+                " configured DMF on each run, which only works for materializations that are fully recreated (CREATE OR REPLACE)" ~
+                " every run. incremental/snapshot-style materializations persist the same object, so a second run would try to ADD" ~
+                " a binding that is already attached and Snowflake would reject it."
+            ) }}
+        {% endif %}
+        {% if execute %}
             {{ log("Applying data metric functions for " ~ model_schema | lower ~ "." ~ model_alias | lower, info=True) }}
 
             {%- set dmf_schedule = model_meta.get("dmf_schedule", var("dmf_schedule", "60 MINUTE")) -%}
@@ -95,7 +132,8 @@
                     {%- set accepted_values_literals = [] -%}
                     {%- for accepted_value in accepted_values_list -%}
                         {%- if accepted_value is string -%}
-                            {%- do accepted_values_literals.append("'" ~ accepted_value | replace("'", "''") ~ "'") -%}
+                            {%- set escaped_value = accepted_value | replace("\\", "\\\\") | replace("'", "''") -%}
+                            {%- do accepted_values_literals.append("'" ~ escaped_value ~ "'") -%}
                         {%- else -%}
                             {%- do accepted_values_literals.append(accepted_value | string) -%}
                         {%- endif -%}
@@ -111,7 +149,7 @@
             {% endfor %}
 
             {% for custom_dmf in custom_dmfs %}
-                {%- set custom_dmf_relation = ref(custom_dmf["ref"]) -%}
+                {%- set custom_dmf_relation = custom_dmf_relations[custom_dmf["ref"]] -%}
                 {%- set custom_dmf_columns = custom_dmf.get("columns", []) | map("upper") | join(", ") -%}
                 {%- set custom_dmf_statement_name = "dmf_custom_" ~ custom_dmf["ref"] -%}
                 {% if custom_dmf.get("expectation_name") %}
@@ -133,4 +171,5 @@
         {% endif %}
     {% endif %}
 {% endmacro %}
+
 

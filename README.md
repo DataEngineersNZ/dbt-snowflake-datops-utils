@@ -299,9 +299,35 @@ Meta keys ending with `_type` are mapped to tags with `_classification`. The `de
 
 ### apply_data_metric_functions
 
-Attaches Snowflake Data Metric Functions (DMFs) to a model during `post-hook`, re-applied on every run since `CREATE OR REPLACE TABLE|VIEW` drops any previously attached DMF bindings from scratch.
+Attaches Snowflake Data Metric Functions (DMFs) to a model during `post-hook`, re-applied on every run since `CREATE OR REPLACE TABLE|VIEW` drops any previously attached DMF bindings from scratch. Only `table`, `view`, and `materialized_view` are supported -- see the macro's docstring for why `incremental`/`snapshot` are not.
 
-**Model YAML:**
+**Model SQL file** (`stg_orders.sql`) -- set `post-hook` and model-level `meta` here via `config()`, not in the model's schema YAML: a hook string rendered from a model-level YAML `config:` block doesn't reliably resolve package macro namespaces on dbt-core, so the hook silently never attaches anything:
+
+```sql
+{{ config(
+    materialized='view',
+    post_hook=["{{ dbt_dataengineers_utils.apply_data_metric_functions() }}"],
+    meta={
+        # Optional: override the schedule for this model only.
+        # Falls back to the `dmf_schedule` var, then '60 MINUTE', if omitted.
+        "dmf_schedule": "30 MINUTE",
+        # Optional: attach a custom DMF (authored via the data_metric_function
+        # materialization in dbt_dataengineers_materializations) to this model.
+        "dmf_custom": [
+            {
+                "ref": "my_custom_order_total_check",
+                "columns": ["order_total", "discount_total"],
+                "expectation_name": "order_total_reconciles",
+                "expectation_value": 0
+            }
+        ]
+    }
+) }}
+
+select ...
+```
+
+**Model YAML** (`stg_orders.yml`) -- column-level DMF flags go under each column's `config.meta`:
 
 ```yaml
 version: 2
@@ -309,21 +335,6 @@ version: 2
 models:
   - name: stg_orders
     description: Staging model for orders.
-    config:
-      materialized: view
-      post-hook:
-        - "{{ dbt_dataengineers_utils.apply_data_metric_functions() }}"
-      meta:
-        # Optional: override the schedule for this model only.
-        # Falls back to the `dmf_schedule` var, then '60 MINUTE', if omitted.
-        dmf_schedule: "30 MINUTE"
-        # Optional: attach a custom DMF (authored via the data_metric_function
-        # materialization in dbt_dataengineers_materializations) to this model.
-        dmf_custom:
-          - ref: my_custom_order_total_check   # the dbt model name for the custom DMF
-            columns: [order_total, discount_total]
-            expectation_name: order_total_reconciles
-            expectation_value: 0
     columns:
       - name: order_id
         data_type: NUMBER
@@ -356,8 +367,8 @@ vars:
 ```
 
 Key points:
-- `post-hook` plus the `dmf_not_null` / `dmf_unique` / `dmf_accepted_values` keys go under **column**-level `config.meta`.
-- `dmf_custom` and `dmf_schedule` go under **model**-level `config.meta` (not per-column), since a custom DMF's argument list can span multiple columns.
+- `post-hook` and the model-level `dmf_custom` / `dmf_schedule` meta keys go in the **SQL file's** `config()` call -- not the model's schema YAML.
+- The `dmf_not_null` / `dmf_unique` / `dmf_accepted_values` keys go under each **column**'s `config.meta` in the schema YAML.
 - Everything is additive -- only set the keys relevant to that column/model; omit `dmf_custom`/`dmf_schedule` entirely to use system DMFs on the default schedule.
 
 ---
