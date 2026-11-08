@@ -295,6 +295,73 @@ Meta keys ending with `_type` are mapped to tags with `_classification`. The `de
 
 ---
 
+## Data Metric Functions
+
+### apply_data_metric_functions
+
+Attaches Snowflake Data Metric Functions (DMFs) to a model during `post-hook`, re-applied on every run since `CREATE OR REPLACE TABLE|VIEW` drops any previously attached DMF bindings from scratch.
+
+**Model YAML:**
+
+```yaml
+version: 2
+
+models:
+  - name: stg_orders
+    description: Staging model for orders.
+    config:
+      materialized: view
+      post-hook:
+        - "{{ dbt_dataengineers_utils.apply_data_metric_functions() }}"
+      meta:
+        # Optional: override the schedule for this model only.
+        # Falls back to the `dmf_schedule` var, then '60 MINUTE', if omitted.
+        dmf_schedule: "30 MINUTE"
+        # Optional: attach a custom DMF (authored via the data_metric_function
+        # materialization in dbt_dataengineers_materializations) to this model.
+        dmf_custom:
+          - ref: my_custom_order_total_check   # the dbt model name for the custom DMF
+            columns: [order_total, discount_total]
+            expectation_name: order_total_reconciles
+            expectation_value: 0
+    columns:
+      - name: order_id
+        data_type: NUMBER
+        description: Unique order identifier.
+        config:
+          meta:
+            dmf_not_null: true   # -> SNOWFLAKE.CORE.NULL_COUNT
+            dmf_unique: true     # -> SNOWFLAKE.CORE.DUPLICATE_COUNT (only for genuinely-unique columns)
+
+      - name: order_status
+        data_type: TEXT
+        description: Order status.
+        config:
+          meta:
+            dmf_accepted_values: ['open', 'shipped', 'closed']   # -> SNOWFLAKE.CORE.ACCEPTED_VALUES
+
+      - name: priority_code
+        data_type: NUMBER
+        description: Numeric priority code.
+        config:
+          meta:
+            dmf_accepted_values: [1, 2, 3]   # numeric values work too (rendered unquoted)
+```
+
+**dbt_project.yml (optional, project-wide schedule default):**
+
+```yaml
+vars:
+  dmf_schedule: "60 MINUTE"
+```
+
+Key points:
+- `post-hook` plus the `dmf_not_null` / `dmf_unique` / `dmf_accepted_values` keys go under **column**-level `config.meta`.
+- `dmf_custom` and `dmf_schedule` go under **model**-level `config.meta` (not per-column), since a custom DMF's argument list can span multiple columns.
+- Everything is additive -- only set the keys relevant to that column/model; omit `dmf_custom`/`dmf_schedule` entirely to use system DMFs on the default schedule.
+
+---
+
 ## Object Lifecycle (clean macros)
 
 The `clean_objects` macro orchestrates removal of Snowflake objects not defined in the dbt project. Use it as a post-hook or via `run-operation`:
