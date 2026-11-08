@@ -1,0 +1,19 @@
+version: 2
+
+macros:
+  - name: apply_data_metric_functions
+    description: |
+      Attach Snowflake Data Metric Functions (DMFs) to a model based on `meta` flags,
+      re-applied on every run via a post-hook (since `CREATE OR REPLACE` drops any
+      previously attached DMF bindings). Supported per-column `config.meta` keys:
+      `dmf_not_null` (NULL_COUNT), `dmf_unique` (DUPLICATE_COUNT, only for genuinely-unique
+      columns), and `dmf_accepted_values` (ACCEPTED_VALUES, a list of strings and/or numbers).
+      Also supports attaching custom DMFs (authored via the
+      `dbt_dataengineers_materializations.data_metric_function` materialization) via a
+      model-level `config.meta.dmf_custom` list of `{ref, columns, expectation_name,
+      expectation_value}` entries. Sets `DATA_METRIC_SCHEDULE` on the object once per run,
+      resolved in order: the model's own `config.meta.dmf_schedule`, then the `dmf_schedule`
+      var, then `60 MINUTE` as the final fallback.
+    docs:
+      show: true
+    arguments: []

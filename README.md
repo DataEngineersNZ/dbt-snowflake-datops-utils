@@ -2,7 +2,7 @@
 
 A macro-only [dbt](https://github.com/dbt-labs/dbt) package for Snowflake DataOps. Provides utilities for object lifecycle management, RBAC grant orchestration, dimensional modelling helpers, tagging, shares, and more.
 
-- **Version**: 1.3.1
+- **Version**: 1.4.0
 - **dbt**: `>=1.9.4, <3.0.0`
 - **Dependencies**: None (zero external package dependencies)
 - **dbt Fusion**: Compatible
@@ -16,7 +16,7 @@ Add the following to your `packages.yml`:
 ```yaml
 packages:
   - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-utils.git
-    revision: "1.3.1"
+    revision: "1.4.0"
 ```
 
 Then run `dbt deps`.
@@ -40,6 +40,7 @@ The following `vars` can be set in your `dbt_project.yml` or via `--vars` on the
 | `unknown_member_surrogate_key` | *(required)* | `unknown_member` | Surrogate key value for the unknown member row |
 | `surrogate_key_treat_nulls_as_empty_strings` | `false` | `generate_surrogate_key` | When true, NULLs become `''` instead of a sentinel string |
 | `grants_dry_run` | `false` | Grant macros | When true, log all grant/revoke statements without executing |
+| `dmf_schedule` | `"60 MINUTE"` | `apply_data_metric_functions` | Project-wide DATA_METRIC_SCHEDULE; overridden per-model by `config.meta.dmf_schedule` |
 
 ---
 
@@ -66,6 +67,12 @@ The following `vars` can be set in your `dbt_project.yml` or via `--vars` on the
 | `clean_data_metric_functions(database, dry_run, current_project_only)` | Drop orphaned Data Metric Functions (DMFs) |
 | `clean_generic(object_type, database, dry_run, current_project_only)` | Drop orphaned tasks/streams/stages/alerts/file formats/network rules/secrets/semantic views/agents |
 | `clean_stale_models(database, schema, days, dry_run)` | Drop models older than N days from a specific schema |
+
+### data_metric_functions
+
+| Macro | Description |
+|---|---|
+| `apply_data_metric_functions()` | Post-hook: attach system DMFs (`dmf_not_null`, `dmf_unique`, `dmf_accepted_values` per-column `meta`) and/or custom DMFs (model-level `meta.dmf_custom`, for DMFs authored via `dbt_dataengineers_materializations`' `data_metric_function` materialization) to the current model. Also sets `DATA_METRIC_SCHEDULE` (model `meta.dmf_schedule` > `dmf_schedule` var > `60 MINUTE`). |
 
 ### database
 
@@ -320,3 +327,5 @@ dbt build
 - **checks**: `get_populated_array`, `get_populated_array_value_as_string`, `get_populated_array_value_or_string_as_string`, `get_populated_numeric_value`, `get_populated_string_value`
 - **modelling**: `date_key`, `time_key`, `datetime_from_dim`, `datetime_to_date_dim`, `datetime_to_time_dim`, `dimension_id`, `generate_surrogate_key`
 - **parse**: `to_date`, `num_to_date`, `string_to_num`, `null_to_empty_string`, `first_day_of_month`, `last_day_of_month`, `string_epoch_to_timestamp_ltz`, `string_epoch_to_timestamp_ntz`
+- **data_metric_functions**: `apply_data_metric_functions` -- live-verified against `INFORMATION_SCHEMA.DATA_METRIC_FUNCTION_REFERENCES`, covering system DMFs (`dmf_not_null`, `dmf_unique`, `dmf_accepted_values` with both string and numeric enum values -- the string case is a regression test for a SQL-quoting bug), a custom DMF attached via model-level `meta.dmf_custom` (requires the `dbt_dataengineers_materializations` package, installed only in `integration_tests/packages.yml`), and the `dmf_schedule` fallback chain (model meta > var > default)
+

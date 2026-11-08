@@ -1,0 +1,29 @@
+version: 2
+
+models:
+  - name: test_dmf_source
+    description: Fixture model for apply_data_metric_functions integration tests (system DMFs).
+    config:
+      materialized: view
+      post-hook:
+        - "{{ dbt_dataengineers_utils.apply_data_metric_functions() }}"
+    columns:
+      - name: dmf_test_id
+        data_type: NUMBER
+        description: Unique row identifier.
+        config:
+          meta:
+            dmf_not_null: true
+            dmf_unique: true
+      - name: dmf_test_status
+        data_type: TEXT
+        description: String-valued enum column -- regression test for the accepted_values SQL-quoting fix.
+        config:
+          meta:
+            dmf_accepted_values: ['open', 'closed']
+      - name: dmf_test_priority
+        data_type: NUMBER
+        description: Numeric-valued enum column -- regression test for the pre-existing numeric path.
+        config:
+          meta:
+            dmf_accepted_values: [1, 2, 3]

@@ -1,6 +1,17 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v1.4.0 - 2026-11-08 - apply_data_metric_functions
+
+### Added
+- Added `apply_data_metric_functions` macro (new `macros/data_metric_functions/` directory): a post-hook that attaches Snowflake Data Metric Functions (DMFs) to a model, re-applied on every run since `CREATE OR REPLACE TABLE|VIEW` drops any previously attached DMF bindings from scratch. Ported from a consuming project where it had already been running in production, and generalized for reuse across projects.
+  - **System DMFs** via per-column `config.meta` keys: `dmf_not_null` -> `SNOWFLAKE.CORE.NULL_COUNT`, `dmf_unique` -> `SNOWFLAKE.CORE.DUPLICATE_COUNT` (intended only for genuinely-unique columns, e.g. a `merge`-style model's primary key), `dmf_accepted_values` -> `SNOWFLAKE.CORE.ACCEPTED_VALUES` (a list of strings and/or numbers).
+  - **Custom DMFs** (authored via `dbt_dataengineers_materializations`' `data_metric_function` materialization) via a model-level `config.meta.dmf_custom` list of `{ref, columns, expectation_name, expectation_value}` entries. The custom DMF's relation is resolved via `ref(entry.ref)` rather than assumed, so renames/relocations are picked up automatically, and the `ref()` call establishes the dbt DAG dependency so the custom DMF exists before the target model's post-hook tries to attach it.
+  - `DATA_METRIC_SCHEDULE` is set on the object once per run, resolved in order: the model's own `config.meta.dmf_schedule`, then the new `dmf_schedule` var, then `'60 MINUTE'` as the final hardcoded fallback.
+
+### Fixed
+- Fixed a SQL-quoting bug in `dmf_accepted_values` rendering: string enum values were previously rendered unquoted (`map('string') | join(', ')`), so a column with string accepted values (e.g. `['open', 'closed']`) produced an invalid `IN (open, closed)` clause (parsed as bare identifiers, not string literals) and made the post-hook fail outright. String values are now rendered as single-quoted SQL literals (with embedded single quotes escaped); numeric values remain unquoted.
+
 ## v1.3.1 - 2026-10-25 - Suspended-State Check for enable_dependent_tasks
 
 ### Fixed
