@@ -81,6 +81,12 @@
     given, with no quoting applied, since there's no per-column quote metadata to consult
     for a name supplied through a custom DMF's `columns` list -- pass an already-quoted
     string (e.g. `'"CustomerId"'`) there if the referenced column is case-sensitive.
+
+    EXPECTATION names are always wrapped in `adapter.quote(...)` regardless of column
+    quoting, since they're built by concatenating the model alias and column name (for
+    system DMFs) or taken as given from `meta.dmf_custom[].expectation_name` -- either can
+    legitimately contain a space or other character that isn't valid in an unquoted
+    Snowflake identifier (e.g. a column literally named "Order Status").
 -#}
     {%- set materialization_map = {
         "table": {"schedule": "table", "dmf": "table"},
@@ -140,7 +146,7 @@
                         alter {{ dmf_materialization }} {{ relation_reference }}
                             add data metric function snowflake.core.null_count
                             on ({{ column_identifier }})
-                            expectation {{ expectation_prefix }}_not_null (value = 0)
+                            expectation {{ adapter.quote(expectation_prefix ~ "_not_null") }} (value = 0)
                     {%- endcall -%}
                 {% endif %}
 
@@ -149,7 +155,7 @@
                         alter {{ dmf_materialization }} {{ relation_reference }}
                             add data metric function snowflake.core.duplicate_count
                             on ({{ column_identifier }})
-                            expectation {{ expectation_prefix }}_unique (value = 0)
+                            expectation {{ adapter.quote(expectation_prefix ~ "_unique") }} (value = 0)
                     {%- endcall -%}
                 {% endif %}
 
@@ -175,7 +181,7 @@
                         alter {{ dmf_materialization }} {{ relation_reference }}
                             add data metric function snowflake.core.accepted_values
                             on ({{ column_identifier }}, {{ column_identifier }} -> {{ column_identifier }} in ({{ accepted_values_sql }}))
-                            expectation {{ expectation_prefix }}_accepted_values (value = 0)
+                            expectation {{ adapter.quote(expectation_prefix ~ "_accepted_values") }} (value = 0)
                     {%- endcall -%}
                 {% endif %}
             {% endfor %}
@@ -197,7 +203,7 @@
                         alter {{ dmf_materialization }} {{ relation_reference }}
                             add data metric function {{ custom_dmf_relation }}
                             on ({{ custom_dmf_columns }})
-                            expectation {{ custom_dmf["expectation_name"] }} (value = {{ custom_dmf_expectation_value }})
+                            expectation {{ adapter.quote(custom_dmf["expectation_name"]) }} (value = {{ custom_dmf_expectation_value }})
                     {%- endcall -%}
                 {% else %}
                     {%- call statement(custom_dmf_statement_name, fetch_result=True) -%}
