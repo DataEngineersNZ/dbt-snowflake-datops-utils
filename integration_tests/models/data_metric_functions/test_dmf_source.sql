@@ -6,8 +6,11 @@
 --
 -- post-hook is set here (not in the schema YAML's model-level `config:` block) because
 -- dbt-core doesn't reliably resolve package macro namespaces when a hook string is
--- rendered from a model-level YAML config -- the same {{ dbt_dataengineers_utils....() }}
--- pattern works fine from a SQL file's config() call or from dbt_project.yml.
+-- rendered from a model-level YAML config -- the same macro call (as a post_hook config
+-- value below) works fine from a SQL file's config() call or from dbt_project.yml.
+-- NOTE: do not write literal Jinja expression delimiters in comments in this file --
+-- dbt renders the whole file as a Jinja template before executing it as SQL, so even a
+-- `--` comment containing Jinja-expression-shaped text gets parsed, not ignored.
 {{ config(
     materialized='view',
     post_hook=["{{ dbt_dataengineers_utils.apply_data_metric_functions() }}"]
