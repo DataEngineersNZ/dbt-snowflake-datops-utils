@@ -1,0 +1,12 @@
+version: 2
+
+models:
+  - name: test_dmf_custom_target
+    description: Fixture model for apply_data_metric_functions integration tests (custom DMF attachment via meta.dmf_custom). materialized/post-hook/meta are set in the .sql file, not here.
+    columns:
+      - name: dmf_custom_test_id
+        data_type: NUMBER
+        description: Unique row identifier.
+      - name: dmf_custom_test_value
+        data_type: NUMBER
+        description: Value checked by the custom DMF (test_custom_dmf) for negative values.

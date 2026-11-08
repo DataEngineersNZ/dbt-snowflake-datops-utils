@@ -11,3 +11,9 @@ test-paths: ["tests"]
 macro-paths: ["macros"]
 target-path: "target"
 clean-targets: ["target", "dbt_packages"]
+
+vars:
+  # Exercises the var-level fallback tier of apply_data_metric_functions' schedule
+  # resolution (model meta > this var > hardcoded '60 MINUTE' default).
+  dmf_schedule: "15 MINUTE"
+

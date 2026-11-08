@@ -1,2 +1,6 @@
 packages:
   - local: ../
+  # Needed only for integration tests: provides the data_metric_function materialization
+  # that apply_data_metric_functions' custom-DMF attachment path (meta.dmf_custom) targets.
+  - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-materilizations
+    revision: 1.2.0
