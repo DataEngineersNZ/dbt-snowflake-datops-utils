@@ -155,6 +155,12 @@
 
                 {% if column_meta.get("dmf_accepted_values") %}
                     {%- set accepted_values_list = column_meta.get("dmf_accepted_values") -%}
+                    {% if accepted_values_list | length == 0 %}
+                        {{ exceptions.raise_compiler_error(
+                            "apply_data_metric_functions: " ~ model.unique_id ~ " column '" ~ column ~
+                            "' sets dmf_accepted_values to an empty list, which would render an invalid SQL 'IN ()' clause."
+                        ) }}
+                    {% endif %}
                     {%- set accepted_values_literals = [] -%}
                     {%- for accepted_value in accepted_values_list -%}
                         {%- if accepted_value is string -%}
@@ -176,7 +182,14 @@
 
             {% for custom_dmf in custom_dmfs %}
                 {%- set custom_dmf_relation = custom_dmf_relations[custom_dmf["ref"]] -%}
-                {%- set custom_dmf_columns = custom_dmf.get("columns", []) | join(", ") -%}
+                {%- set custom_dmf_column_list = custom_dmf.get("columns", []) -%}
+                {% if custom_dmf_column_list | length == 0 %}
+                    {{ exceptions.raise_compiler_error(
+                        "apply_data_metric_functions: " ~ model.unique_id ~ " dmf_custom entry for ref '" ~ custom_dmf["ref"] ~
+                        "' has no columns (or an empty columns list), which would render an invalid SQL 'ON ()' clause."
+                    ) }}
+                {% endif %}
+                {%- set custom_dmf_columns = custom_dmf_column_list | join(", ") -%}
                 {%- set custom_dmf_statement_name = "dmf_custom_" ~ custom_dmf["ref"] -%}
                 {% if custom_dmf.get("expectation_name") %}
                     {%- set custom_dmf_expectation_value = custom_dmf.get("expectation_value", 0) -%}
