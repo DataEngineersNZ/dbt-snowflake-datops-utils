@@ -68,16 +68,32 @@
     this macro on an unsupported materialization raises a clear compiler error rather than
     guessing and failing later with an obscure Snowflake error.
 
-    Known limitation shared with `apply_meta_as_tags`: column/relation identifiers are
-    uppercased rather than rendered with dbt's actual quoting config, so a quoted, genuinely
-    case-sensitive column or alias name will not resolve correctly.
+    `materialized_view` needs two different ALTER keywords, not one: Snowflake requires
+    `ALTER MATERIALIZED VIEW` to set `DATA_METRIC_SCHEDULE`, but `ALTER VIEW` (not `ALTER
+    MATERIALIZED VIEW`) to ADD/DROP a DMF binding. The macro resolves these separately.
+
+    Identifiers are rendered with dbt's actual quoting, not blindly uppercased: the target
+    relation uses `this` (dbt's own correctly-quoted reference to the current model), and
+    each column uses `adapter.quote(column)` only when that column's `quote: true` is set
+    (matching dbt's own quoting convention), otherwise the plain column name -- Snowflake
+    resolves an unquoted identifier case-insensitively, so no uppercasing is needed there
+    either. `dmf_custom` column names are the one exception: they're taken from `meta` as
+    given, with no quoting applied, since there's no per-column quote metadata to consult
+    for a name supplied through a custom DMF's `columns` list -- pass an already-quoted
+    string (e.g. `'"CustomerId"'`) there if the referenced column is case-sensitive.
 -#}
-    {%- set materialization_map = {"table": "table", "view": "view", "materialized_view": "materialized view"} -%}
+    {%- set materialization_map = {
+        "table": {"schedule": "table", "dmf": "table"},
+        "view": {"schedule": "view", "dmf": "view"},
+        "materialized_view": {"schedule": "materialized view", "dmf": "view"}
+    } -%}
     {%- set model_materialized = model.config.get("materialized") -%}
     {%- set materialization = materialization_map.get(model_materialized) -%}
+    {%- set schedule_materialization = materialization.get("schedule") if materialization else none -%}
+    {%- set dmf_materialization = materialization.get("dmf") if materialization else none -%}
     {%- set model_schema = model.schema | upper -%}
     {%- set model_alias = model.alias | upper -%}
-    {%- set relation_reference = model.database ~ "." ~ model_schema ~ "." ~ model_alias -%}
+    {%- set relation_reference = this -%}
     {%- set model_meta = model.config.get("meta", {}) -%}
     {%- set custom_dmfs = model_meta.get("dmf_custom", []) -%}
 
@@ -111,28 +127,28 @@
 
             {%- set dmf_schedule = model_meta.get("dmf_schedule", var("dmf_schedule", "60 MINUTE")) -%}
             {%- call statement("set_dmf_schedule", fetch_result=True) -%}
-                alter {{ materialization }} {{ relation_reference }} set data_metric_schedule = '{{ dmf_schedule }}'
+                alter {{ schedule_materialization }} {{ relation_reference }} set data_metric_schedule = '{{ dmf_schedule }}'
             {%- endcall -%}
 
             {% for column in columns_with_dmf %}
                 {%- set column_meta = model.columns[column].config.get("meta", {}) if model.columns[column].config is defined else model.columns[column].get("meta", {}) -%}
-                {%- set column_upper = column | upper -%}
+                {%- set column_identifier = adapter.quote(column) if model.columns[column].get("quote") else column -%}
                 {%- set expectation_prefix = model_alias | lower ~ "_" ~ column | lower -%}
 
                 {% if column_meta.get("dmf_not_null") %}
                     {%- call statement("dmf_not_null_" ~ column, fetch_result=True) -%}
-                        alter {{ materialization }} {{ relation_reference }}
+                        alter {{ dmf_materialization }} {{ relation_reference }}
                             add data metric function snowflake.core.null_count
-                            on ({{ column_upper }})
+                            on ({{ column_identifier }})
                             expectation {{ expectation_prefix }}_not_null (value = 0)
                     {%- endcall -%}
                 {% endif %}
 
                 {% if column_meta.get("dmf_unique") %}
                     {%- call statement("dmf_unique_" ~ column, fetch_result=True) -%}
-                        alter {{ materialization }} {{ relation_reference }}
+                        alter {{ dmf_materialization }} {{ relation_reference }}
                             add data metric function snowflake.core.duplicate_count
-                            on ({{ column_upper }})
+                            on ({{ column_identifier }})
                             expectation {{ expectation_prefix }}_unique (value = 0)
                     {%- endcall -%}
                 {% endif %}
@@ -150,9 +166,9 @@
                     {%- endfor -%}
                     {%- set accepted_values_sql = accepted_values_literals | join(", ") -%}
                     {%- call statement("dmf_accepted_values_" ~ column, fetch_result=True) -%}
-                        alter {{ materialization }} {{ relation_reference }}
+                        alter {{ dmf_materialization }} {{ relation_reference }}
                             add data metric function snowflake.core.accepted_values
-                            on ({{ column_upper }}, {{ column_upper }} -> {{ column_upper }} in ({{ accepted_values_sql }}))
+                            on ({{ column_identifier }}, {{ column_identifier }} -> {{ column_identifier }} in ({{ accepted_values_sql }}))
                             expectation {{ expectation_prefix }}_accepted_values (value = 0)
                     {%- endcall -%}
                 {% endif %}
@@ -160,19 +176,19 @@
 
             {% for custom_dmf in custom_dmfs %}
                 {%- set custom_dmf_relation = custom_dmf_relations[custom_dmf["ref"]] -%}
-                {%- set custom_dmf_columns = custom_dmf.get("columns", []) | map("upper") | join(", ") -%}
+                {%- set custom_dmf_columns = custom_dmf.get("columns", []) | join(", ") -%}
                 {%- set custom_dmf_statement_name = "dmf_custom_" ~ custom_dmf["ref"] -%}
                 {% if custom_dmf.get("expectation_name") %}
                     {%- set custom_dmf_expectation_value = custom_dmf.get("expectation_value", 0) -%}
                     {%- call statement(custom_dmf_statement_name, fetch_result=True) -%}
-                        alter {{ materialization }} {{ relation_reference }}
+                        alter {{ dmf_materialization }} {{ relation_reference }}
                             add data metric function {{ custom_dmf_relation }}
                             on ({{ custom_dmf_columns }})
                             expectation {{ custom_dmf["expectation_name"] }} (value = {{ custom_dmf_expectation_value }})
                     {%- endcall -%}
                 {% else %}
                     {%- call statement(custom_dmf_statement_name, fetch_result=True) -%}
-                        alter {{ materialization }} {{ relation_reference }}
+                        alter {{ dmf_materialization }} {{ relation_reference }}
                             add data metric function {{ custom_dmf_relation }}
                             on ({{ custom_dmf_columns }})
                     {%- endcall -%}

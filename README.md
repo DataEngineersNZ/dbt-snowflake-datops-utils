@@ -309,11 +309,7 @@ Attaches Snowflake Data Metric Functions (DMFs) to a model during `post-hook`, r
     materialized='view',
     post_hook=["{{ dbt_dataengineers_utils.apply_data_metric_functions() }}"],
     meta={
-        # Optional: override the schedule for this model only.
-        # Falls back to the `dmf_schedule` var, then '60 MINUTE', if omitted.
         "dmf_schedule": "30 MINUTE",
-        # Optional: attach a custom DMF (authored via the data_metric_function
-        # materialization in dbt_dataengineers_materializations) to this model.
         "dmf_custom": [
             {
                 "ref": "my_custom_order_total_check",
@@ -327,6 +323,9 @@ Attaches Snowflake Data Metric Functions (DMFs) to a model during `post-hook`, r
 
 select ...
 ```
+
+- `meta.dmf_schedule` is optional -- it overrides the schedule for this model only, falling back to the `dmf_schedule` var, then `'60 MINUTE'`, if omitted.
+- `meta.dmf_custom` is optional -- it attaches a custom DMF (authored via the `data_metric_function` materialization in `dbt_dataengineers_materializations`) to this model. Omit it entirely if you only need system DMFs.
 
 **Model YAML** (`stg_orders.yml`) -- column-level DMF flags go under each column's `config.meta`:
 
