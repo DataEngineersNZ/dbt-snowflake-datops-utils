@@ -582,7 +582,9 @@ macros:
       automatically applies to every current and future object of the given type in scope. Supports three
       mutually exclusive modes: an explicit schema include list, an exclude list (resolved against all
       schemas in the database), or neither (scopes to the whole database via a single IN DATABASE
-      statement). Statements are executed unconditionally since GRANT INHERITED is idempotent.
+      statement). An explicitly empty include_schemas list ([]) is treated as "scope to nothing" and
+      returns early as a no-op -- it never falls back to exclude_schemas or whole-database scope.
+      Statements are executed unconditionally since GRANT INHERITED is idempotent.
     docs:
       show: true
     arguments:
@@ -607,8 +609,10 @@ macros:
       Revokes Snowflake INHERITED privileges (REVOKE INHERITED ... FROM DATABASE ROLE ...) from one or
       more database roles. Mirrors grant_database_role_inherited_privileges's scoping modes (explicit
       include list, exclude list, or whole-database), but revokes directly on the named schema(s) rather
-      than via INHERITED when object_type is SCHEMA and include_schemas is supplied. Statements are
-      executed unconditionally since REVOKE on a grant the role doesn't hold is a safe no-op.
+      than via INHERITED when object_type is SCHEMA and include_schemas is supplied. An explicitly empty
+      include_schemas list ([]) is treated as "scope to nothing" and returns early as a no-op -- it never
+      falls back to exclude_schemas or whole-database scope. Statements are executed unconditionally since
+      REVOKE on a grant the role doesn't hold is a safe no-op.
     docs:
       show: true
     arguments:
@@ -679,6 +683,7 @@ macros:
           optional, ignored if include_schemas is set), roles (dict of target name -> list of account role
           names, optional), applications (dict of target name -> list of application names, optional),
           revoke_inherited (optional list of {object_type, permissions, include_schemas, exclude_schemas}
-          dicts to explicitly revoke), revoke_objects (optional list of {object_type, objects, grant_types}
-          dicts to explicitly revoke)
+          dicts to explicitly revoke -- an entry that omits include_schemas/exclude_schemas falls back to
+          the role's own top-level include_schemas/exclude_schemas, not an unscoped whole-database revoke),
+          revoke_objects (optional list of {object_type, objects, grant_types} dicts to explicitly revoke)
 

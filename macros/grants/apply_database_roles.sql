@@ -32,8 +32,19 @@
        `applications`) -- you must explicitly list what to revoke. This is intentional: Snowflake has no
        reliable way to pre-check a database role's existing inherited grants (no SHOW INHERITED GRANTS /
        no IS_INHERITED column on SHOW GRANTS TO DATABASE ROLE on all account versions), so automatic
-       diff-and-revoke isn't feasible to build reliably. Revokes run before grants each invocation, which
-       is safe since REVOKE on a grant that doesn't exist is a no-op in Snowflake. #}
+       diff-and-revoke isn't feasible to build reliably. Revokes run before grants for each role (not
+       guaranteed globally across roles in the payload, but roles are independent of each other so this
+       doesn't matter), which is safe since REVOKE on a grant that doesn't exist is a no-op in Snowflake.
+
+       A `revoke_inherited` entry that omits `include_schemas`/`exclude_schemas` falls back to the role's
+       own top-level `include_schemas`/`exclude_schemas` (not an unscoped whole-database revoke) -- set
+       either key explicitly on the entry (even to `none`) to override that fallback.
+
+       IMPORTANT Snowflake limitation (not specific to this macro): inherited grants provide no
+       object-level exceptions. If an `inherited` entry already covers an object via a container-level
+       GRANT INHERITED, a `revoke_objects` entry for that same object/privilege will NOT remove access --
+       the inherited grant still applies. `revoke_objects` only removes a *direct* (non-inherited) grant;
+       it cannot carve an exception out of a broader inherited grant. #}
     {% if flags.WHICH not in ['run', 'build', 'run-operation'] %}
         {% do log('Skipping apply_database_roles: not run/build/run-operation context', info=True) %}
         {% do return(none) %}
@@ -49,24 +60,28 @@
         {% do dbt_dataengineers_utils.create_database_role([db_role], cfg.get('comment')) %}
     {% endfor %}
 
-    {# 2. revoke anything explicitly marked for removal -- runs before the grants below so a role being
-       narrowed (e.g. from whole-database to a single schema) doesn't momentarily hold both the old and
-       new scope for longer than necessary. #}
+    {# 2. for each role: revoke anything explicitly marked for removal, then apply inherited grants and
+       account role / application mapping. Revoke-before-grant per role is enough -- roles don't depend
+       on each other, so there's no need to revoke every role before granting any of them. #}
     {% for db_role, cfg in database_roles.items() %}
+        {% set include_schemas = cfg.get('include_schemas') %}
+        {% set exclude_schemas = cfg.get('exclude_schemas') %}
+
         {% for r in cfg.get('revoke_inherited', []) %}
-            {% do dbt_dataengineers_utils.revoke_database_role_inherited_privileges(r.object_type, r.permissions, [db_role], include_schemas=r.get('include_schemas'), exclude_schemas=r.get('exclude_schemas')) %}
+            {% do dbt_dataengineers_utils.revoke_database_role_inherited_privileges(
+                r.object_type,
+                r.permissions,
+                [db_role],
+                include_schemas=r.get('include_schemas', include_schemas),
+                exclude_schemas=r.get('exclude_schemas', exclude_schemas)
+            ) %}
         {% endfor %}
         {% for r in cfg.get('revoke_objects', []) %}
             {% do dbt_dataengineers_utils.revoke_database_role_object(r.object_type, r.objects, r.grant_types, [db_role]) %}
         {% endfor %}
-    {% endfor %}
 
-    {# 3. apply inherited grants + account role / application mapping for every database role. #}
-    {% for db_role, cfg in database_roles.items() %}
-        {% set include_schemas = cfg.get('include_schemas') %}
-        {% set exclude_schemas = cfg.get('exclude_schemas') %}
         {% for g in cfg.get('inherited', []) %}
-            {% if g.object_type == 'SCHEMA' and include_schemas %}
+            {% if g.object_type | upper == 'SCHEMA' and include_schemas %}
                 {# a named schema's own USAGE/MONITOR grant isn't an inherited/future concept -- a schema
                    can't contain other schemas, so "ON ALL SCHEMAS IN SCHEMA <name>" is nonsensical. Use
                    the direct schema-privilege grant instead. #}

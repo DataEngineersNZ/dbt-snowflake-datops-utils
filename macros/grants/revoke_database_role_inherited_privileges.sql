@@ -28,6 +28,14 @@
         {% do return(none) %}
     {% endif %}
 
+    {# An explicitly empty include_schemas list means "scope to nothing", not "unset" -- without this
+       check it would fall through to the exclude_schemas/whole-database branches below and revoke far
+       more broadly than an empty list implies. #}
+    {% if include_schemas is not none and include_schemas | length == 0 %}
+        {% do log('revoke_database_role_inherited_privileges: include_schemas is an empty list, nothing to do', info=True) %}
+        {% do return(none) %}
+    {% endif %}
+
     {% set revoke_statements = [] %}
 
     {% if object_type | upper == 'SCHEMA' and include_schemas and include_schemas | length > 0 %}

@@ -31,6 +31,14 @@
         {% do return(none) %}
     {% endif %}
 
+    {# An explicitly empty include_schemas list means "scope to nothing", not "unset" -- without this
+       check it would fall through to the exclude_schemas/whole-database branches below and grant far
+       more broadly than an empty list implies. #}
+    {% if include_schemas is not none and include_schemas | length == 0 %}
+        {% do log('grant_database_role_inherited_privileges: include_schemas is an empty list, nothing to do', info=True) %}
+        {% do return(none) %}
+    {% endif %}
+
     {% set plural_type = dbt_dataengineers_utils._grants_pluralize_object_type(object_type) | lower %}
     {% set grant_statements = [] %}
 
