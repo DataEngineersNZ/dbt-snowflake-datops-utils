@@ -1,6 +1,45 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v1.5.1 - 2026-11-20 - Second round of PR #44 review fixes
+
+### Fixed
+- Fixed `grant_database_role_inherited_privileges`/`revoke_database_role_inherited_privileges` only routing
+  `SCHEMA`-type privileges to a direct (non-`INHERITED`) grant/revoke when `include_schemas` was explicitly
+  set -- the `exclude_schemas` and whole-database modes still generated invalid
+  `GRANT INHERITED ... ON ALL SCHEMAS IN SCHEMA <name>` SQL for `SCHEMA` type. Both macros now resolve an
+  `is_schema_type` check uniformly across all three scoping modes: a schema list is resolved first (via
+  `include_schemas`, or `_grants_collect_schemas` for `exclude_schemas`/whole-database), then direct
+  `GRANT`/`REVOKE ... ON SCHEMA <db>.<schema> ... DATABASE ROLE ...` statements are issued per schema for
+  `SCHEMA` type; non-`SCHEMA` types still use the original `INHERITED` statements (including the single
+  `IN DATABASE` statement with no schema enumeration for the non-`SCHEMA` whole-database case, preserving
+  prior performance characteristics).
+- Reverted the `apply_database_roles` `revoke_inherited` fallback-to-the-role's-top-level-scope behavior
+  added in the previous round of fixes. `revoke_inherited` entries once again pass through
+  `r.get('include_schemas')`/`r.get('exclude_schemas')` directly, with no fallback to the role's own
+  `include_schemas`/`exclude_schemas`. The fallback caused two bugs: specifying only one of
+  `include_schemas`/`exclude_schemas` on an entry still pulled in the role's *other* key, producing the
+  wrong scope; and the primary use case for `revoke_inherited` -- cleaning up a role's old, broader scope
+  while narrowing it going forward -- actively needs the revoke to target the *old* scope, not the role's
+  new, narrower `include_schemas`.
+
+### Changed
+- Simplified `apply_database_roles`: removed its own `SCHEMA` + `include_schemas` special-case branching
+  (previously calling `grant_database_role_schema_privileges` directly for that one case), since
+  `grant_database_role_inherited_privileges`/`revoke_database_role_inherited_privileges` now handle `SCHEMA`
+  correctly for every scoping mode internally. `apply_database_roles` now always calls
+  `grant_database_role_inherited_privileges` for every `inherited` entry, with no `object_type` branching
+  of its own.
+- `integration_tests/macros/test_database_role_macros.sql`: `role_a`/`role_b` test role names are now
+  uppercased (`| upper`) to guard against a lowercase/mixed-case `target.schema` producing a role name
+  whose casing doesn't match Snowflake's uppercase-normalized unquoted identifiers when compared against
+  `row.grantee_name` later in the test.
+- Updated `README.md`'s "Database Roles" section and `macros/grants/grants.yml` descriptions to match:
+  `revoke_inherited` entries are documented as independent of the role's top-level `include_schemas`/
+  `exclude_schemas` (omitting both on an entry scopes to the whole database), the stale "falls back to
+  role's scope" claim was removed, and the `include_schemas`/`SCHEMA` handling is now described as applying
+  uniformly across all scoping modes rather than only `include_schemas`.
+
 ## v1.5.0 - 2026-11-19 - apply_database_roles and revoke_database_role_object
 
 ### Added

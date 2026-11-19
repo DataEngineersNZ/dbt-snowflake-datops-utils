@@ -4,8 +4,11 @@
        grants, and maps each role to the account roles and/or applications configured for the current
        target. Delegates to the existing per-step macros -- create_database_role,
        revoke_database_role_inherited_privileges, revoke_database_role_object,
-       grant_database_role_schema_privileges, grant_database_role_inherited_privileges,
-       grant_database_role_to_role, and grant_database_role_to_application.
+       grant_database_role_inherited_privileges, grant_database_role_to_role, and
+       grant_database_role_to_application. (SCHEMA-type privileges are granted/revoked directly rather
+       than via INHERITED -- a schema can't contain other schemas -- but that routing lives entirely
+       inside grant_database_role_inherited_privileges/revoke_database_role_inherited_privileges now, not
+       here, so it's handled consistently for every scoping mode.)
 
        Expected shape of `database_roles` (keyed by database role name):
          {
@@ -36,9 +39,13 @@
        guaranteed globally across roles in the payload, but roles are independent of each other so this
        doesn't matter), which is safe since REVOKE on a grant that doesn't exist is a no-op in Snowflake.
 
-       A `revoke_inherited` entry that omits `include_schemas`/`exclude_schemas` falls back to the role's
-       own top-level `include_schemas`/`exclude_schemas` (not an unscoped whole-database revoke) -- set
-       either key explicitly on the entry (even to `none`) to override that fallback.
+       Each `revoke_inherited` entry's `include_schemas`/`exclude_schemas` is completely independent of
+       the role's own top-level `include_schemas`/`exclude_schemas` -- it is NOT inherited/merged from the
+       role's grant scope. Omitting both on an entry scopes that revoke to the whole database. This is
+       deliberate: the main use case for `revoke_inherited` is cleaning up a role's *previous*, typically
+       broader, scope as part of narrowing it (e.g. a role used to have whole-database `SELECT`, now
+       narrowed to one schema) -- the revoke needs to target the OLD (often whole-database) scope, not
+       the role's new, narrower `include_schemas`.
 
        IMPORTANT Snowflake limitation (not specific to this macro): inherited grants provide no
        object-level exceptions. If an `inherited` entry already covers an object via a container-level
@@ -64,31 +71,20 @@
        account role / application mapping. Revoke-before-grant per role is enough -- roles don't depend
        on each other, so there's no need to revoke every role before granting any of them. #}
     {% for db_role, cfg in database_roles.items() %}
-        {% set include_schemas = cfg.get('include_schemas') %}
-        {% set exclude_schemas = cfg.get('exclude_schemas') %}
-
         {% for r in cfg.get('revoke_inherited', []) %}
             {% do dbt_dataengineers_utils.revoke_database_role_inherited_privileges(
-                r.object_type,
-                r.permissions,
-                [db_role],
-                include_schemas=r.get('include_schemas', include_schemas),
-                exclude_schemas=r.get('exclude_schemas', exclude_schemas)
+                r.object_type, r.permissions, [db_role],
+                include_schemas=r.get('include_schemas'), exclude_schemas=r.get('exclude_schemas')
             ) %}
         {% endfor %}
         {% for r in cfg.get('revoke_objects', []) %}
             {% do dbt_dataengineers_utils.revoke_database_role_object(r.object_type, r.objects, r.grant_types, [db_role]) %}
         {% endfor %}
 
+        {% set include_schemas = cfg.get('include_schemas') %}
+        {% set exclude_schemas = cfg.get('exclude_schemas') %}
         {% for g in cfg.get('inherited', []) %}
-            {% if g.object_type | upper == 'SCHEMA' and include_schemas %}
-                {# a named schema's own USAGE/MONITOR grant isn't an inherited/future concept -- a schema
-                   can't contain other schemas, so "ON ALL SCHEMAS IN SCHEMA <name>" is nonsensical. Use
-                   the direct schema-privilege grant instead. #}
-                {% do dbt_dataengineers_utils.grant_database_role_schema_privileges(g.permissions, include_schemas, [db_role]) %}
-            {% else %}
-                {% do dbt_dataengineers_utils.grant_database_role_inherited_privileges(g.object_type, g.permissions, [db_role], include_schemas=include_schemas, exclude_schemas=exclude_schemas) %}
-            {% endif %}
+            {% do dbt_dataengineers_utils.grant_database_role_inherited_privileges(g.object_type, g.permissions, [db_role], include_schemas=include_schemas, exclude_schemas=exclude_schemas) %}
         {% endfor %}
 
         {% set account_roles = cfg.get('roles', {}).get(target.name, []) %}

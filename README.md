@@ -2,7 +2,7 @@
 
 A macro-only [dbt](https://github.com/dbt-labs/dbt) package for Snowflake DataOps. Provides utilities for object lifecycle management, RBAC grant orchestration, dimensional modelling helpers, tagging, shares, and more.
 
-- **Version**: 1.5.0
+- **Version**: 1.5.1
 - **dbt**: `>=1.9.4, <3.0.0`
 - **Dependencies**: None (zero external package dependencies)
 - **dbt Fusion**: Compatible
@@ -16,7 +16,7 @@ Add the following to your `packages.yml`:
 ```yaml
 packages:
   - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-utils.git
-    revision: "1.5.0"
+    revision: "1.5.1"
 ```
 
 Then run `dbt deps`.
@@ -282,11 +282,11 @@ identifiers). Each value is a dict with the following keys:
 |---|---|---|---|
 | `comment` | string | No | Passed to `CREATE DATABASE ROLE ... COMMENT = '...'`. Omit for no comment. Only applied on creation -- if the role already exists, its existing comment is left as-is (`create_database_role` uses `CREATE DATABASE ROLE IF NOT EXISTS`, intentionally not `CREATE OR REPLACE`, which Snowflake docs warn drops the role from any shares it's granted to). |
 | `inherited` | list of dicts | No (default `[]`) | Current + future privilege grants. Each entry: `{'object_type': '<TYPE>', 'permissions': ['<PRIV>', ...]}`. `object_type` is a singular Snowflake object type (e.g. `TABLE`, `VIEW`, `SCHEMA`, `DYNAMIC TABLE`, `TASK`, `PROCEDURE`), case-insensitive. `permissions` is a list of privilege names (e.g. `['SELECT']`, `['USAGE', 'MONITOR']`). |
-| `include_schemas` | list of strings, or omit/`none` | No | Scopes every `inherited` entry (and any `revoke_inherited` entry that doesn't set its own `include_schemas`/`exclude_schemas`) to these named schemas. Takes precedence over `exclude_schemas`. When `object_type` is `SCHEMA`, scoping to named schemas issues a direct schema-level grant/revoke instead of `INHERITED` (a schema can't contain other schemas). An explicitly empty list (`[]`) means "scope to nothing" (a safe no-op), not "unset" -- it will never fall back to `exclude_schemas` or whole-database scope. |
+| `include_schemas` | list of strings, or omit/`none` | No | Scopes every `inherited` entry to these named schemas. Takes precedence over `exclude_schemas`. Does NOT affect `revoke_inherited` entries -- each one has its own, independent `include_schemas`/`exclude_schemas` (see below). When `object_type` is `SCHEMA`, scoping to named schemas issues a direct schema-level grant instead of `INHERITED` (a schema can't contain other schemas); this applies for every scoping mode, including whole-database. An explicitly empty list (`[]`) means "scope to nothing" (a safe no-op), not "unset" -- it will never fall back to `exclude_schemas` or whole-database scope. |
 | `exclude_schemas` | list of strings, or omit/`none` | No | Scopes to every schema in the database *except* these. Ignored if `include_schemas` is set. |
 | `roles` | dict of `{target_name: [account_role, ...]}` | No (default `{}`) | Account roles to grant this database role to, per dbt target (e.g. `{'prod': ['ANALYST_ROLE'], 'test': ['ANALYST_ROLE']}`). Only the list for the *current* `target.name` is used; omit a target or use `[]` for "nothing to grant in this target". |
 | `applications` | dict of `{target_name: [application_name, ...]}` | No, omit entirely if unused | Snowflake Native Apps to grant this database role to directly (not via an account role), per dbt target. Same per-target lookup behavior as `roles`. |
-| `revoke_inherited` | list of dicts | No, omit entirely if unused | Explicit inherited-privilege revokes, run **before** grants. Each entry: `{'object_type': '<TYPE>', 'permissions': ['<PRIV>', ...], 'include_schemas': [...] (optional), 'exclude_schemas': [...] (optional)}`. An entry that omits both `include_schemas` and `exclude_schemas` falls back to the role's own top-level `include_schemas`/`exclude_schemas` -- set either key explicitly on the entry (even to `none`) to scope that one revoke differently from the role's grants. |
+| `revoke_inherited` | list of dicts | No, omit entirely if unused | Explicit inherited-privilege revokes, run **before** grants. Each entry: `{'object_type': '<TYPE>', 'permissions': ['<PRIV>', ...], 'include_schemas': [...] (optional), 'exclude_schemas': [...] (optional)}`. **Independent of the role's top-level `include_schemas`/`exclude_schemas`** -- omitting both on an entry scopes that revoke to the whole database, not the role's grant scope. This is deliberate: the main use case is cleaning up a role's *previous* (often broader) scope while narrowing it -- see the example below. |
 | `revoke_objects` | list of dicts | No, omit entirely if unused | Explicit object-level privilege revokes, run **before** grants. Each entry: `{'object_type': '<TYPE>', 'objects': ['<SCHEMA.OBJECT>', ...], 'grant_types': ['<PRIV>', ...]}`. `objects` entries need the full `SCHEMA.NAME(ARG_TYPE, ...)` signature for `PROCEDURE`/`FUNCTION` (Snowflake allows overloads). **Only removes a *direct* grant** -- see the inherited-grant caveat below. |
 
 **Full example**
@@ -304,7 +304,10 @@ identifiers). Each value is a dict with the following keys:
     'include_schemas': ['DM'],
     'roles': {'prod': ['BI_TOOL_ROLE'], 'test': ['BI_TOOL_ROLE']},
     'revoke_inherited': [
-      {'object_type': 'TABLE', 'permissions': ['SELECT']}
+      {'object_type': 'SCHEMA',        'permissions': ['USAGE']},
+      {'object_type': 'TABLE',         'permissions': ['SELECT']},
+      {'object_type': 'VIEW',          'permissions': ['SELECT']},
+      {'object_type': 'DYNAMIC TABLE', 'permissions': ['SELECT']}
     ]
   },
   'DB_ROLE_ANALYST': {
@@ -332,10 +335,12 @@ identifiers). Each value is a dict with the following keys:
 {{ dbt_dataengineers_utils.apply_database_roles(database_roles) }}
 ```
 
-`DB_ROLE_READER`'s `revoke_inherited` entry omits `include_schemas`, so it falls back to the role's own
-`include_schemas: ['DM']` above -- useful for a role being narrowed in scope (e.g. it used to have
-whole-database `TABLE` `SELECT`, now narrowed to `DM` only): the fallback means the revoke only ever
-targets the role's *current* intended scope, not a stale one left over from before a payload edit.
+`DB_ROLE_READER`'s `revoke_inherited` entries omit `include_schemas`/`exclude_schemas`, so they scope to
+the **whole database** -- this is the pattern for a role being narrowed in scope (e.g. it used to have
+whole-database `TABLE`/`VIEW`/`DYNAMIC TABLE` `SELECT` and schema `USAGE`, now narrowed to `DM` only):
+the revoke targets the role's *old*, broader scope, while the `inherited` list above grants the *new*,
+narrower one. They're independent entries precisely so the revoke isn't accidentally re-scoped to the
+new `include_schemas` (which would leave the stale whole-database grant in place outside `DM`).
 
 **Semantics an API/codegen agent should rely on**
 
@@ -356,7 +361,7 @@ targets the role's *current* intended scope, not a stale one left over from befo
   it to this payload -- `apply_database_roles` only has grant-side support for `inherited`/`roles`/
   `applications`.
 - One-time migration/cleanup revokes for a role being narrowed in scope belong in that role's
-  `revoke_inherited` entry (see `DB_ROLE_READER` above) rather than a separate hand-written `REVOKE`
+  `revoke_inherited` list (see `DB_ROLE_READER` above) rather than a separate hand-written `REVOKE`
   statement -- they're safe to leave in the payload indefinitely.
 - **Inherited grants have no object-level exceptions (a genuine Snowflake limitation, not specific to this
   macro).** If a role's `inherited` list already covers an object via a container-level `GRANT INHERITED`
@@ -380,8 +385,10 @@ targets the role's *current* intended scope, not a stale one left over from befo
 - Snowflake's `GRANT`/`REVOKE` DDL has no multi-statement transactions, so a `revoke_inherited`/
   `revoke_objects`/grant sequence for a role isn't atomic: if a later statement in the sequence fails (or
   the run is interrupted), earlier statements in that same `apply_database_roles` call are not rolled back.
-  Statements are idempotent, so simply re-running the same payload converges the role back to the intended
-  state.
+  This also means two concurrent `apply_database_roles` calls for the *same* role (e.g. parallel CI runs)
+  can interleave and leave a mix of both configurations' privileges. Statements are idempotent, so simply
+  re-running the same payload converges the role back to the intended state; avoid running
+  `apply_database_roles` for the same role from more than one place at a time.
 
 ---
 

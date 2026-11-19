@@ -1,17 +1,21 @@
 {% macro grant_database_role_inherited_privileges(object_type, permissions, database_roles, include_schemas=none, exclude_schemas=none) %}
     {# Grants Snowflake INHERITED privileges (GRANT INHERITED ... ON ALL <TYPE>S IN {DATABASE|SCHEMA} ... TO
        DATABASE ROLE ...) so the privilege automatically applies to every current and future object of the
-       given type in scope. Three mutually exclusive modes, resolved in this order:
-         1. include_schemas supplied -> one statement per (schema, role).
-         2. include_schemas empty/none but exclude_schemas supplied -> resolve schemas via
-            _grants_collect_schemas(exclude_schemas, is_exclude_list=true), then one statement per
-            (resolved schema, role). This is how database-wide reach with exclusions is achieved, since
-            GRANT INHERITED ... IN DATABASE has no native exclusion syntax.
-         3. Neither supplied -> a single statement per role scoped to IN DATABASE (true whole-database
-            reach, no per-schema enumeration).
+       given type in scope. Three mutually exclusive scoping modes: an explicit include_schemas list, an
+       exclude_schemas list (resolved against all schemas in the database via _grants_collect_schemas), or
+       neither (whole database).
+
+       SCHEMA is a special case regardless of scoping mode: a schema can't contain other schemas, so
+       "GRANT INHERITED ... ON ALL SCHEMAS IN SCHEMA <name>" is invalid, and there's no "ON ALL SCHEMAS IN
+       DATABASE" either -- a schema-level privilege (e.g. USAGE, MONITOR) is always granted directly on
+       each named schema instead of via INHERITED. This applies uniformly across all three scoping modes:
+       include_schemas grants directly on those schemas; exclude_schemas resolves the schema list via
+       _grants_collect_schemas and grants directly on each; whole-database resolves every schema in the
+       database (via the same helper with an empty exclude list) and grants directly on each.
+
        Executed unconditionally: there is no reliable pre-check for existing DATABASE_ROLE inherited
-       grantees, and GRANT INHERITED is idempotent (re-granting an already-held inherited grant is a
-       safe no-op). #}
+       grantees, and both GRANT INHERITED and the direct-grant fallback for SCHEMA are idempotent
+       (re-granting an already-held grant is a safe no-op). #}
     {% if flags.WHICH not in ['run', 'build', 'run-operation'] %}
         {% do log('Skipping grant_database_role_inherited_privileges: not run/build/run-operation context', info=True) %}
         {% do return(none) %}
@@ -39,23 +43,34 @@
         {% do return(none) %}
     {% endif %}
 
-    {% set plural_type = dbt_dataengineers_utils._grants_pluralize_object_type(object_type) | lower %}
+    {% set is_schema_type = object_type | upper == 'SCHEMA' %}
     {% set grant_statements = [] %}
 
     {% if include_schemas and include_schemas | length > 0 %}
         {% set schema_list = [include_schemas] if include_schemas is string else include_schemas %}
         {% do log('grant_database_role_inherited_privileges: using explicit include_schemas (' ~ (schema_list | length) ~ ' schema(s))', info=True) %}
+    {% elif exclude_schemas is not none %}
+        {% set schema_list = dbt_dataengineers_utils._grants_collect_schemas(exclude_schemas, is_exclude_list=true) %}
+        {% do log('grant_database_role_inherited_privileges: using exclude_schemas, resolved ' ~ (schema_list | length) ~ ' schema(s)', info=True) %}
+    {% elif is_schema_type %}
+        {% set schema_list = dbt_dataengineers_utils._grants_collect_schemas([], is_exclude_list=true) %}
+        {% do log('grant_database_role_inherited_privileges: SCHEMA with no schema filters -- resolved all ' ~ (schema_list | length) ~ ' schema(s) in the database for direct grants', info=True) %}
+    {% else %}
+        {% set schema_list = [] %}
+        {% do log('grant_database_role_inherited_privileges: no schema filters supplied, scoping to IN DATABASE ' ~ target.database, info=True) %}
+    {% endif %}
+
+    {% if is_schema_type %}
         {% for schema_name in schema_list %}
             {% for database_role in database_role_list %}
                 {% set stmt %}
-                    grant inherited {{ permission_list | join(', ') | lower }} on all {{ plural_type }} in schema {{ target.database }}.{{ schema_name }} to database role {{ target.database }}.{{ database_role | lower }};
+                    grant {{ permission_list | join(', ') | lower }} on schema {{ target.database }}.{{ schema_name }} to database role {{ target.database }}.{{ database_role | lower }};
                 {% endset %}
                 {% do grant_statements.append(stmt | trim) %}
             {% endfor %}
         {% endfor %}
-    {% elif exclude_schemas is not none %}
-        {% set schema_list = dbt_dataengineers_utils._grants_collect_schemas(exclude_schemas, is_exclude_list=true) %}
-        {% do log('grant_database_role_inherited_privileges: using exclude_schemas, resolved ' ~ (schema_list | length) ~ ' schema(s)', info=True) %}
+    {% elif schema_list | length > 0 %}
+        {% set plural_type = dbt_dataengineers_utils._grants_pluralize_object_type(object_type) | lower %}
         {% for schema_name in schema_list %}
             {% for database_role in database_role_list %}
                 {% set stmt %}
@@ -65,7 +80,7 @@
             {% endfor %}
         {% endfor %}
     {% else %}
-        {% do log('grant_database_role_inherited_privileges: no schema filters supplied, scoping to IN DATABASE ' ~ target.database, info=True) %}
+        {% set plural_type = dbt_dataengineers_utils._grants_pluralize_object_type(object_type) | lower %}
         {% for database_role in database_role_list %}
             {% set stmt %}
                 grant inherited {{ permission_list | join(', ') | lower }} on all {{ plural_type }} in database {{ target.database }} to database role {{ target.database }}.{{ database_role | lower }};
@@ -79,7 +94,7 @@
         {% do return(none) %}
     {% endif %}
 
-    {% do log('grant_database_role_inherited_privileges: granting inherited ' ~ (permission_list | join(', ')) ~ ' on all ' ~ plural_type ~ ' to ' ~ (database_role_list | length) ~ ' database role(s)', info=True) %}
+    {% do log('grant_database_role_inherited_privileges: granting ' ~ (permission_list | join(', ')) ~ ' on ' ~ (object_type | lower) ~ ' object(s) to ' ~ (database_role_list | length) ~ ' database role(s)', info=True) %}
     {% for stmt in grant_statements %}
         {% do log(stmt, info=True) %}
         {% set _ = run_query(stmt) %}

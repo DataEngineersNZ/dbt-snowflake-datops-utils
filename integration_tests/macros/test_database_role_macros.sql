@@ -44,8 +44,8 @@
 
     {% set failures = [] %}
     {% set test_schema = target.schema %}
-    {% set role_a = 'ZZ_TEST_DBROLE_PRIMARY_' ~ test_schema %}
-    {% set role_b = 'ZZ_TEST_DBROLE_APPLY_' ~ test_schema %}
+    {% set role_a = ('ZZ_TEST_DBROLE_PRIMARY_' ~ test_schema) | upper %}
+    {% set role_b = ('ZZ_TEST_DBROLE_APPLY_' ~ test_schema) | upper %}
 
     {# Drop any leftovers from a previous failed run so this test is repeatable. #}
     {% do run_query('drop database role if exists ' ~ target.database ~ '.' ~ role_a ~ ';') %}
