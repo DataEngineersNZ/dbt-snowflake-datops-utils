@@ -2,7 +2,7 @@
 
 A macro-only [dbt](https://github.com/dbt-labs/dbt) package for Snowflake DataOps. Provides utilities for object lifecycle management, RBAC grant orchestration, dimensional modelling helpers, tagging, shares, and more.
 
-- **Version**: 1.5.1
+- **Version**: 1.5.2
 - **dbt**: `>=1.9.4, <3.0.0`
 - **Dependencies**: None (zero external package dependencies)
 - **dbt Fusion**: Compatible
@@ -16,7 +16,7 @@ Add the following to your `packages.yml`:
 ```yaml
 packages:
   - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-utils.git
-    revision: "1.5.1"
+    revision: "1.5.2"
 ```
 
 Then run `dbt deps`.
@@ -282,7 +282,7 @@ identifiers). Each value is a dict with the following keys:
 |---|---|---|---|
 | `comment` | string | No | Passed to `CREATE DATABASE ROLE ... COMMENT = '...'`. Omit for no comment. Only applied on creation -- if the role already exists, its existing comment is left as-is (`create_database_role` uses `CREATE DATABASE ROLE IF NOT EXISTS`, intentionally not `CREATE OR REPLACE`, which Snowflake docs warn drops the role from any shares it's granted to). |
 | `inherited` | list of dicts | No (default `[]`) | Current + future privilege grants. Each entry: `{'object_type': '<TYPE>', 'permissions': ['<PRIV>', ...]}`. `object_type` is a singular Snowflake object type (e.g. `TABLE`, `VIEW`, `SCHEMA`, `DYNAMIC TABLE`, `TASK`, `PROCEDURE`), case-insensitive. `permissions` is a list of privilege names (e.g. `['SELECT']`, `['USAGE', 'MONITOR']`). |
-| `include_schemas` | list of strings, or omit/`none` | No | Scopes every `inherited` entry to these named schemas. Takes precedence over `exclude_schemas`. Does NOT affect `revoke_inherited` entries -- each one has its own, independent `include_schemas`/`exclude_schemas` (see below). When `object_type` is `SCHEMA`, scoping to named schemas issues a direct schema-level grant instead of `INHERITED` (a schema can't contain other schemas); this applies for every scoping mode, including whole-database. An explicitly empty list (`[]`) means "scope to nothing" (a safe no-op), not "unset" -- it will never fall back to `exclude_schemas` or whole-database scope. |
+| `include_schemas` | list of strings, or omit/`none` | No | Scopes every `inherited` entry to these named schemas. Takes precedence over `exclude_schemas`. Does NOT affect `revoke_inherited` entries -- each one has its own, independent `include_schemas`/`exclude_schemas` (see below). When `object_type` is `SCHEMA` and either `include_schemas` or `exclude_schemas` resolves to a named list of schemas, that privilege is granted/revoked directly on each named schema instead of via `INHERITED` (a schema can't contain other schemas, so `INHERITED ... IN SCHEMA` is invalid, and there's no native syntax to exclude specific schemas from an `IN DATABASE` grant). When *neither* is set (true whole-database scope), `SCHEMA` behaves like any other type and uses a single `INHERITED ... IN DATABASE` statement, which -- unlike the named-list path -- also covers schemas created later. An explicitly empty list (`[]`) means "scope to nothing" (a safe no-op), not "unset" -- it will never fall back to `exclude_schemas` or whole-database scope. |
 | `exclude_schemas` | list of strings, or omit/`none` | No | Scopes to every schema in the database *except* these. Ignored if `include_schemas` is set. |
 | `roles` | dict of `{target_name: [account_role, ...]}` | No (default `{}`) | Account roles to grant this database role to, per dbt target (e.g. `{'prod': ['ANALYST_ROLE'], 'test': ['ANALYST_ROLE']}`). Only the list for the *current* `target.name` is used; omit a target or use `[]` for "nothing to grant in this target". |
 | `applications` | dict of `{target_name: [application_name, ...]}` | No, omit entirely if unused | Snowflake Native Apps to grant this database role to directly (not via an account role), per dbt target. Same per-target lookup behavior as `roles`. |
@@ -386,9 +386,12 @@ new `include_schemas` (which would leave the stale whole-database grant in place
   `revoke_objects`/grant sequence for a role isn't atomic: if a later statement in the sequence fails (or
   the run is interrupted), earlier statements in that same `apply_database_roles` call are not rolled back.
   This also means two concurrent `apply_database_roles` calls for the *same* role (e.g. parallel CI runs)
-  can interleave and leave a mix of both configurations' privileges. Statements are idempotent, so simply
-  re-running the same payload converges the role back to the intended state; avoid running
-  `apply_database_roles` for the same role from more than one place at a time.
+  can interleave and leave a mix of both configurations' privileges -- avoid running `apply_database_roles`
+  for the same role from more than one place at a time. Re-running the *same* payload after an interrupted
+  run is safe (every statement is idempotent, so it converges to that payload's intended state), but since
+  this macro performs no reconciliation, re-running a *different* (e.g. narrower) payload does NOT revoke
+  privileges a previous, different payload granted -- any no-longer-wanted grant from an old payload must
+  be removed explicitly via `revoke_inherited`/`revoke_objects` in the new one.
 
 ---
 

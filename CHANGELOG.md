@@ -1,6 +1,30 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v1.5.2 - 2026-11-20 - Third round of PR #44 review fixes (SCHEMA/INHERITED correctness)
+
+### Fixed
+- Fixed `grant_database_role_inherited_privileges`/`revoke_database_role_inherited_privileges`: a named
+  schema list (from `include_schemas`, or `exclude_schemas` resolved via `_grants_collect_schemas`) that
+  resolves to zero schemas (e.g. `exclude_schemas` excludes every schema in the database) previously fell
+  through to a whole-database statement -- granting/revoking far more broadly than an empty resolved list
+  should. It now correctly produces zero statements (a no-op) instead.
+- Fixed `grant_database_role_inherited_privileges`/`revoke_database_role_inherited_privileges` for
+  `SCHEMA`-type privileges with **no** `include_schemas`/`exclude_schemas` filter (true whole-database
+  scope): the previous round of fixes always routed `SCHEMA` to a direct, non-`INHERITED` grant/revoke on
+  each currently-existing schema. That's correct when a named schema list is involved (a schema can't
+  contain other schemas, so `INHERITED ... IN SCHEMA` is invalid either way), but wrong for the no-filter
+  case -- `SCHEMA` **is** a valid `INHERITED` target when the container is `DATABASE` (only `SCHEMA`-in-
+  `SCHEMA` is rejected), so the whole-database case now uses a single `GRANT`/`REVOKE INHERITED ... ON ALL
+  SCHEMAS IN DATABASE ...` statement like any other type. This both restores automatic coverage of schemas
+  created later (lost by the always-direct approach) and ensures a `REVOKE INHERITED ... IN DATABASE`
+  actually removes a matching database-level `GRANT INHERITED` (a direct per-existing-schema revoke would
+  not).
+- Corrected an overclaiming README statement: re-running the *same* `apply_database_roles` payload after a
+  partial failure is safe (every statement is idempotent), but since the macro performs no reconciliation,
+  re-running a *different* (e.g. narrower) payload does NOT revoke privileges a previous, different
+  payload granted. The README now says so explicitly instead of implying general "convergence".
+
 ## v1.5.1 - 2026-11-20 - Second round of PR #44 review fixes
 
 ### Fixed

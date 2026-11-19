@@ -5,17 +5,25 @@
        exclude_schemas list (resolved against all schemas in the database via _grants_collect_schemas), or
        neither (whole database).
 
-       SCHEMA is a special case regardless of scoping mode: a schema can't contain other schemas, so
-       "GRANT INHERITED ... ON ALL SCHEMAS IN SCHEMA <name>" is invalid, and there's no "ON ALL SCHEMAS IN
-       DATABASE" either -- a schema-level privilege (e.g. USAGE, MONITOR) is always granted directly on
-       each named schema instead of via INHERITED. This applies uniformly across all three scoping modes:
-       include_schemas grants directly on those schemas; exclude_schemas resolves the schema list via
-       _grants_collect_schemas and grants directly on each; whole-database resolves every schema in the
-       database (via the same helper with an empty exclude list) and grants directly on each.
+       SCHEMA is a special case only when include_schemas or exclude_schemas resolves to a concrete list of
+       named schemas: a schema can't contain other schemas, so "GRANT INHERITED ... ON ALL SCHEMAS IN
+       SCHEMA <name>" is invalid, and there's no native syntax to exclude specific schemas from an
+       IN DATABASE grant either -- so for a named schema list (whichever of include/exclude produced it),
+       SCHEMA-type privileges are granted directly on each named schema instead of via INHERITED.
+
+       When NEITHER include_schemas nor exclude_schemas is supplied (true whole-database scope), SCHEMA
+       behaves like any other object type: SCHEMA is a valid INHERITED target when the container is
+       DATABASE (only SCHEMA-in-SCHEMA is rejected), so a single `GRANT INHERITED ... ON ALL SCHEMAS IN
+       DATABASE ...` statement is used -- this also automatically covers schemas created later, which the
+       named-list direct-grant path cannot (Snowflake has no "all current and future schemas except
+       these" primitive).
+
+       A named schema list that resolves to zero schemas (e.g. exclude_schemas excludes every schema in
+       the database) correctly produces zero statements -- it must NOT fall back to whole-database scope.
 
        Executed unconditionally: there is no reliable pre-check for existing DATABASE_ROLE inherited
-       grantees, and both GRANT INHERITED and the direct-grant fallback for SCHEMA are idempotent
-       (re-granting an already-held grant is a safe no-op). #}
+       grantees, and both GRANT INHERITED and the direct-grant fallback for a named SCHEMA list are
+       idempotent (re-granting an already-held grant is a safe no-op). #}
     {% if flags.WHICH not in ['run', 'build', 'run-operation'] %}
         {% do log('Skipping grant_database_role_inherited_privileges: not run/build/run-operation context', info=True) %}
         {% do return(none) %}
@@ -49,37 +57,45 @@
     {% if include_schemas and include_schemas | length > 0 %}
         {% set schema_list = [include_schemas] if include_schemas is string else include_schemas %}
         {% do log('grant_database_role_inherited_privileges: using explicit include_schemas (' ~ (schema_list | length) ~ ' schema(s))', info=True) %}
+        {% set has_named_list = true %}
     {% elif exclude_schemas is not none %}
         {% set schema_list = dbt_dataengineers_utils._grants_collect_schemas(exclude_schemas, is_exclude_list=true) %}
         {% do log('grant_database_role_inherited_privileges: using exclude_schemas, resolved ' ~ (schema_list | length) ~ ' schema(s)', info=True) %}
-    {% elif is_schema_type %}
-        {% set schema_list = dbt_dataengineers_utils._grants_collect_schemas([], is_exclude_list=true) %}
-        {% do log('grant_database_role_inherited_privileges: SCHEMA with no schema filters -- resolved all ' ~ (schema_list | length) ~ ' schema(s) in the database for direct grants', info=True) %}
+        {% set has_named_list = true %}
     {% else %}
         {% set schema_list = [] %}
+        {% set has_named_list = false %}
         {% do log('grant_database_role_inherited_privileges: no schema filters supplied, scoping to IN DATABASE ' ~ target.database, info=True) %}
     {% endif %}
 
-    {% if is_schema_type %}
-        {% for schema_name in schema_list %}
-            {% for database_role in database_role_list %}
-                {% set stmt %}
-                    grant {{ permission_list | join(', ') | lower }} on schema {{ target.database }}.{{ schema_name }} to database role {{ target.database }}.{{ database_role | lower }};
-                {% endset %}
-                {% do grant_statements.append(stmt | trim) %}
+    {% if has_named_list %}
+        {# A named list (from include_schemas or resolved exclude_schemas) may legitimately be empty --
+           e.g. exclude_schemas excludes every schema -- in which case the for loops below simply produce
+           zero statements. This must never fall back to whole-database scope. #}
+        {% if is_schema_type %}
+            {% for schema_name in schema_list %}
+                {% for database_role in database_role_list %}
+                    {% set stmt %}
+                        grant {{ permission_list | join(', ') | lower }} on schema {{ target.database }}.{{ schema_name }} to database role {{ target.database }}.{{ database_role | lower }};
+                    {% endset %}
+                    {% do grant_statements.append(stmt | trim) %}
+                {% endfor %}
             {% endfor %}
-        {% endfor %}
-    {% elif schema_list | length > 0 %}
-        {% set plural_type = dbt_dataengineers_utils._grants_pluralize_object_type(object_type) | lower %}
-        {% for schema_name in schema_list %}
-            {% for database_role in database_role_list %}
-                {% set stmt %}
-                    grant inherited {{ permission_list | join(', ') | lower }} on all {{ plural_type }} in schema {{ target.database }}.{{ schema_name }} to database role {{ target.database }}.{{ database_role | lower }};
-                {% endset %}
-                {% do grant_statements.append(stmt | trim) %}
+        {% else %}
+            {% set plural_type = dbt_dataengineers_utils._grants_pluralize_object_type(object_type) | lower %}
+            {% for schema_name in schema_list %}
+                {% for database_role in database_role_list %}
+                    {% set stmt %}
+                        grant inherited {{ permission_list | join(', ') | lower }} on all {{ plural_type }} in schema {{ target.database }}.{{ schema_name }} to database role {{ target.database }}.{{ database_role | lower }};
+                    {% endset %}
+                    {% do grant_statements.append(stmt | trim) %}
+                {% endfor %}
             {% endfor %}
-        {% endfor %}
+        {% endif %}
     {% else %}
+        {# Whole-database scope: SCHEMA is a valid INHERITED target when the container is DATABASE (only
+           SCHEMA-in-SCHEMA is rejected), so this also covers schemas created later -- unlike the named-list
+           direct-grant path above, which can only ever cover schemas that already exist. #}
         {% set plural_type = dbt_dataengineers_utils._grants_pluralize_object_type(object_type) | lower %}
         {% for database_role in database_role_list %}
             {% set stmt %}

@@ -5,10 +5,11 @@
        target. Delegates to the existing per-step macros -- create_database_role,
        revoke_database_role_inherited_privileges, revoke_database_role_object,
        grant_database_role_inherited_privileges, grant_database_role_to_role, and
-       grant_database_role_to_application. (SCHEMA-type privileges are granted/revoked directly rather
-       than via INHERITED -- a schema can't contain other schemas -- but that routing lives entirely
-       inside grant_database_role_inherited_privileges/revoke_database_role_inherited_privileges now, not
-       here, so it's handled consistently for every scoping mode.)
+       grant_database_role_to_application. (SCHEMA-type privileges are routed to a direct grant/revoke
+       instead of INHERITED only when include_schemas/exclude_schemas resolves to a named schema list --
+       whole-database SCHEMA scope still uses INHERITED, same as any other type. That routing lives
+       entirely inside grant_database_role_inherited_privileges/revoke_database_role_inherited_privileges
+       now, not here, so it's handled consistently for every scoping mode.)
 
        Expected shape of `database_roles` (keyed by database role name):
          {

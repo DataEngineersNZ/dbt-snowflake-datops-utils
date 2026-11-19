@@ -582,12 +582,15 @@ macros:
       automatically applies to every current and future object of the given type in scope. Supports three
       mutually exclusive modes: an explicit schema include list, an exclude list (resolved against all
       schemas in the database), or neither (scopes to the whole database via a single IN DATABASE
-      statement). SCHEMA-type privileges are a special case in every mode: since a schema can't contain
-      other schemas, they're always granted directly on each named schema (resolving the full schema list
-      first for exclude/whole-database modes) instead of via INHERITED. An explicitly empty
-      include_schemas list ([]) is treated as "scope to nothing" and returns early as a no-op -- it never
-      falls back to exclude_schemas or whole-database scope. Statements are executed unconditionally since
-      both GRANT INHERITED and the SCHEMA direct-grant fallback are idempotent.
+      statement). SCHEMA-type privileges are a special case only when include_schemas or exclude_schemas
+      resolves to a named schema list: since a schema can't contain other schemas, they're granted
+      directly on each named schema instead of via INHERITED. When neither is supplied (true
+      whole-database scope), SCHEMA uses the same single IN DATABASE INHERITED statement as any other
+      type (SCHEMA is a valid INHERITED target when the container is DATABASE), which also covers schemas
+      created later -- unlike the named-list direct-grant path. An explicitly empty include_schemas list
+      ([]) is treated as "scope to nothing" and returns early as a no-op -- it never falls back to
+      exclude_schemas or whole-database scope. Statements are executed unconditionally since both GRANT
+      INHERITED and the named-list SCHEMA direct-grant path are idempotent.
     docs:
       show: true
     arguments:
@@ -611,12 +614,15 @@ macros:
     description: |
       Revokes Snowflake INHERITED privileges (REVOKE INHERITED ... FROM DATABASE ROLE ...) from one or
       more database roles. Mirrors grant_database_role_inherited_privileges's scoping modes (explicit
-      include list, exclude list, or whole-database) and its SCHEMA special case: SCHEMA-type privileges
-      are always revoked directly on each named schema (resolving the full schema list first for
-      exclude/whole-database modes) rather than via REVOKE INHERITED, regardless of scoping mode. An
-      explicitly empty include_schemas list ([]) is treated as "scope to nothing" and returns early as a
-      no-op -- it never falls back to exclude_schemas or whole-database scope. Statements are executed
-      unconditionally since REVOKE on a grant the role doesn't hold is a safe no-op.
+      include list, exclude list, or whole-database) and its SCHEMA special case: when include_schemas or
+      exclude_schemas resolves to a named schema list, SCHEMA-type privileges are revoked directly on each
+      named schema rather than via REVOKE INHERITED; when neither is supplied (whole-database scope),
+      SCHEMA uses the same single IN DATABASE REVOKE INHERITED statement as any other type -- required so
+      a matching database-level GRANT INHERITED is actually removed, including for schemas created after
+      that grant was made. An explicitly empty include_schemas list ([]) is treated as "scope to nothing"
+      and returns early as a no-op -- it never falls back to exclude_schemas or whole-database scope.
+      Statements are executed unconditionally since REVOKE on a grant the role doesn't hold is a safe
+      no-op.
     docs:
       show: true
     arguments:

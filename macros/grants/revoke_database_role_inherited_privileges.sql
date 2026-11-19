@@ -1,12 +1,20 @@
 {% macro revoke_database_role_inherited_privileges(object_type, permissions, database_roles, include_schemas=none, exclude_schemas=none) %}
     {# Revokes Snowflake INHERITED privileges (REVOKE INHERITED ... ON ALL <TYPE>S IN {DATABASE|SCHEMA} ...
        FROM DATABASE ROLE ...) from one or more database roles. Mirrors
-       grant_database_role_inherited_privileges's three scoping modes (include_schemas, exclude_schemas
-       resolved via _grants_collect_schemas, or whole-database) and its SCHEMA special case: a schema
-       can't contain other schemas, so a schema-level privilege is always revoked directly on each named
-       schema instead of via REVOKE INHERITED, regardless of which scoping mode supplied the schema list
-       (including whole-database, where every schema in the database is resolved via the same helper used
-       for exclude_schemas, with an empty exclude list).
+       grant_database_role_inherited_privileges's three scoping modes and its SCHEMA special case:
+
+       - include_schemas / exclude_schemas (a named schema list): SCHEMA-type privileges are revoked
+         directly on each named schema (a schema can't contain other schemas, so "ON ALL SCHEMAS IN
+         SCHEMA <name>" is invalid); non-SCHEMA types use REVOKE INHERITED per named schema. A named list
+         that resolves to zero schemas (e.g. exclude_schemas excludes every schema) correctly produces
+         zero statements -- it must NOT fall back to whole-database scope.
+       - Neither supplied (true whole-database scope): SCHEMA is a valid INHERITED target when the
+         container is DATABASE, so a single `REVOKE INHERITED ... ON ALL SCHEMAS IN DATABASE ...`
+         statement is used, same as any other object type. This is required, not just preferred: if the
+         role's existing grant for this scope was itself a database-level `GRANT INHERITED ... ON ALL
+         SCHEMAS IN DATABASE`, revoking directly on each currently-existing schema would NOT remove that
+         database-level grant (and would miss any schema created after the grant too) -- only a REVOKE
+         INHERITED on the same DATABASE container actually removes it.
 
        Executed unconditionally: REVOKE on a privilege/scope the database role doesn't currently hold is a
        safe no-op in Snowflake, so no pre-check is required. #}
@@ -43,36 +51,41 @@
     {% if include_schemas and include_schemas | length > 0 %}
         {% set schema_list = [include_schemas] if include_schemas is string else include_schemas %}
         {% do log('revoke_database_role_inherited_privileges: using explicit include_schemas (' ~ (schema_list | length) ~ ' schema(s))', info=True) %}
+        {% set has_named_list = true %}
     {% elif exclude_schemas is not none %}
         {% set schema_list = dbt_dataengineers_utils._grants_collect_schemas(exclude_schemas, is_exclude_list=true) %}
         {% do log('revoke_database_role_inherited_privileges: using exclude_schemas, resolved ' ~ (schema_list | length) ~ ' schema(s)', info=True) %}
-    {% elif is_schema_type %}
-        {% set schema_list = dbt_dataengineers_utils._grants_collect_schemas([], is_exclude_list=true) %}
-        {% do log('revoke_database_role_inherited_privileges: SCHEMA with no schema filters -- resolved all ' ~ (schema_list | length) ~ ' schema(s) in the database for direct revokes', info=True) %}
+        {% set has_named_list = true %}
     {% else %}
         {% set schema_list = [] %}
+        {% set has_named_list = false %}
         {% do log('revoke_database_role_inherited_privileges: no schema filters supplied, scoping to IN DATABASE ' ~ target.database, info=True) %}
     {% endif %}
 
-    {% if is_schema_type %}
-        {% for schema_name in schema_list %}
-            {% for database_role in database_role_list %}
-                {% for permission in permission_list %}
-                    {% do revoke_statements.append('revoke ' ~ (permission | lower) ~ ' on schema ' ~ target.database ~ '.' ~ schema_name ~ ' from database role ' ~ target.database ~ '.' ~ (database_role | lower) ~ ';') %}
+    {% if has_named_list %}
+        {% if is_schema_type %}
+            {% for schema_name in schema_list %}
+                {% for database_role in database_role_list %}
+                    {% for permission in permission_list %}
+                        {% do revoke_statements.append('revoke ' ~ (permission | lower) ~ ' on schema ' ~ target.database ~ '.' ~ schema_name ~ ' from database role ' ~ target.database ~ '.' ~ (database_role | lower) ~ ';') %}
+                    {% endfor %}
                 {% endfor %}
             {% endfor %}
-        {% endfor %}
-    {% elif schema_list | length > 0 %}
-        {% set plural_type = dbt_dataengineers_utils._grants_pluralize_object_type(object_type) | lower %}
-        {% for schema_name in schema_list %}
-            {% for database_role in database_role_list %}
-                {% set stmt %}
-                    revoke inherited {{ permission_list | join(', ') | lower }} on all {{ plural_type }} in schema {{ target.database }}.{{ schema_name }} from database role {{ target.database }}.{{ database_role | lower }};
-                {% endset %}
-                {% do revoke_statements.append(stmt | trim) %}
+        {% else %}
+            {% set plural_type = dbt_dataengineers_utils._grants_pluralize_object_type(object_type) | lower %}
+            {% for schema_name in schema_list %}
+                {% for database_role in database_role_list %}
+                    {% set stmt %}
+                        revoke inherited {{ permission_list | join(', ') | lower }} on all {{ plural_type }} in schema {{ target.database }}.{{ schema_name }} from database role {{ target.database }}.{{ database_role | lower }};
+                    {% endset %}
+                    {% do revoke_statements.append(stmt | trim) %}
+                {% endfor %}
             {% endfor %}
-        {% endfor %}
+        {% endif %}
     {% else %}
+        {# Whole-database scope: must use REVOKE INHERITED on the DATABASE container (not direct per-schema
+           revokes) so it actually removes a matching database-level GRANT INHERITED and covers schemas
+           created since that grant was made -- see the macro-level note above. #}
         {% set plural_type = dbt_dataengineers_utils._grants_pluralize_object_type(object_type) | lower %}
         {% for database_role in database_role_list %}
             {% set stmt %}
