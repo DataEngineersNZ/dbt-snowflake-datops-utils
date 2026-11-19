@@ -66,9 +66,7 @@
         {% if is_schema_type %}
             {% for schema_name in schema_list %}
                 {% for database_role in database_role_list %}
-                    {% for permission in permission_list %}
-                        {% do revoke_statements.append('revoke ' ~ (permission | lower) ~ ' on schema ' ~ target.database ~ '.' ~ schema_name ~ ' from database role ' ~ target.database ~ '.' ~ (database_role | lower) ~ ';') %}
-                    {% endfor %}
+                    {% do revoke_statements.append('revoke ' ~ (permission_list | join(', ') | lower) ~ ' on schema ' ~ target.database ~ '.' ~ schema_name ~ ' from database role ' ~ target.database ~ '.' ~ (database_role | lower) ~ ';') %}
                 {% endfor %}
             {% endfor %}
         {% else %}
