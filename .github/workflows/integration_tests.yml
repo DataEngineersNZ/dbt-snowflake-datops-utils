@@ -6,6 +6,15 @@ on:
   pull_request:
     branches: [main, master]
 
+# All runs of this workflow -- regardless of branch or PR -- share the same
+# SNOWFLAKE_DATABASE/schema pair (DBT_CI_TESTS / DBT_CI_TESTS_FUSION). A fixed
+# (branch-independent) concurrency group queues overlapping runs instead of
+# letting them race against the same scratch objects (e.g. one run's teardown
+# dropping a database role the other run is still granting/checking).
+concurrency:
+  group: integration-tests-shared-snowflake-db
+  cancel-in-progress: false
+
 env:
   DBT_PROFILES_DIR: ${{ github.workspace }}/integration_tests
 
