@@ -92,3 +92,4 @@ jobs:
           dbt run-operation test_grants_helpers
           dbt run-operation test_grants_idempotency
           dbt run-operation test_clean_macros
+          dbt run-operation test_database_role_macros
