@@ -1,83 +1,16 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
-## v1.5.2 - 2026-11-20 - Third round of PR #44 review fixes (SCHEMA/INHERITED correctness)
-
-### Fixed
-- Fixed `grant_database_role_inherited_privileges`/`revoke_database_role_inherited_privileges`: a named
-  schema list (from `include_schemas`, or `exclude_schemas` resolved via `_grants_collect_schemas`) that
-  resolves to zero schemas (e.g. `exclude_schemas` excludes every schema in the database) previously fell
-  through to a whole-database statement -- granting/revoking far more broadly than an empty resolved list
-  should. It now correctly produces zero statements (a no-op) instead.
-- Fixed `grant_database_role_inherited_privileges`/`revoke_database_role_inherited_privileges` for
-  `SCHEMA`-type privileges with **no** `include_schemas`/`exclude_schemas` filter (true whole-database
-  scope): the previous round of fixes always routed `SCHEMA` to a direct, non-`INHERITED` grant/revoke on
-  each currently-existing schema. That's correct when a named schema list is involved (a schema can't
-  contain other schemas, so `INHERITED ... IN SCHEMA` is invalid either way), but wrong for the no-filter
-  case -- `SCHEMA` **is** a valid `INHERITED` target when the container is `DATABASE` (only `SCHEMA`-in-
-  `SCHEMA` is rejected), so the whole-database case now uses a single `GRANT`/`REVOKE INHERITED ... ON ALL
-  SCHEMAS IN DATABASE ...` statement like any other type. This both restores automatic coverage of schemas
-  created later (lost by the always-direct approach) and ensures a `REVOKE INHERITED ... IN DATABASE`
-  actually removes a matching database-level `GRANT INHERITED` (a direct per-existing-schema revoke would
-  not).
-- Corrected an overclaiming README statement: re-running the *same* `apply_database_roles` payload after a
-  partial failure is safe (every statement is idempotent), but since the macro performs no reconciliation,
-  re-running a *different* (e.g. narrower) payload does NOT revoke privileges a previous, different
-  payload granted. The README now says so explicitly instead of implying general "convergence".
-
-## v1.5.1 - 2026-11-20 - Second round of PR #44 review fixes
-
-### Fixed
-- Fixed `grant_database_role_inherited_privileges`/`revoke_database_role_inherited_privileges` only routing
-  `SCHEMA`-type privileges to a direct (non-`INHERITED`) grant/revoke when `include_schemas` was explicitly
-  set -- the `exclude_schemas` and whole-database modes still generated invalid
-  `GRANT INHERITED ... ON ALL SCHEMAS IN SCHEMA <name>` SQL for `SCHEMA` type. Both macros now resolve an
-  `is_schema_type` check uniformly across all three scoping modes: a schema list is resolved first (via
-  `include_schemas`, or `_grants_collect_schemas` for `exclude_schemas`/whole-database), then direct
-  `GRANT`/`REVOKE ... ON SCHEMA <db>.<schema> ... DATABASE ROLE ...` statements are issued per schema for
-  `SCHEMA` type; non-`SCHEMA` types still use the original `INHERITED` statements (including the single
-  `IN DATABASE` statement with no schema enumeration for the non-`SCHEMA` whole-database case, preserving
-  prior performance characteristics).
-- Reverted the `apply_database_roles` `revoke_inherited` fallback-to-the-role's-top-level-scope behavior
-  added in the previous round of fixes. `revoke_inherited` entries once again pass through
-  `r.get('include_schemas')`/`r.get('exclude_schemas')` directly, with no fallback to the role's own
-  `include_schemas`/`exclude_schemas`. The fallback caused two bugs: specifying only one of
-  `include_schemas`/`exclude_schemas` on an entry still pulled in the role's *other* key, producing the
-  wrong scope; and the primary use case for `revoke_inherited` -- cleaning up a role's old, broader scope
-  while narrowing it going forward -- actively needs the revoke to target the *old* scope, not the role's
-  new, narrower `include_schemas`.
-
-### Changed
-- Simplified `apply_database_roles`: removed its own `SCHEMA` + `include_schemas` special-case branching
-  (previously calling `grant_database_role_schema_privileges` directly for that one case), since
-  `grant_database_role_inherited_privileges`/`revoke_database_role_inherited_privileges` now handle `SCHEMA`
-  correctly for every scoping mode internally. `apply_database_roles` now always calls
-  `grant_database_role_inherited_privileges` for every `inherited` entry, with no `object_type` branching
-  of its own.
-- `integration_tests/macros/test_database_role_macros.sql`: `role_a`/`role_b` test role names are now
-  uppercased (`| upper`) to guard against a lowercase/mixed-case `target.schema` producing a role name
-  whose casing doesn't match Snowflake's uppercase-normalized unquoted identifiers when compared against
-  `row.grantee_name` later in the test.
-- Updated `README.md`'s "Database Roles" section and `macros/grants/grants.yml` descriptions to match:
-  `revoke_inherited` entries are documented as independent of the role's top-level `include_schemas`/
-  `exclude_schemas` (omitting both on an entry scopes to the whole database), the stale "falls back to
-  role's scope" claim was removed, and the `include_schemas`/`SCHEMA` handling is now described as applying
-  uniformly across all scoping modes rather than only `include_schemas`.
-
-## v1.5.0 - 2026-11-19 - apply_database_roles and revoke_database_role_object
+## v1.5.0 - 2026-11-20 - apply_database_roles, database-role revokes
 
 ### Added
-- Added `apply_database_roles(database_roles)` macro (`macros/grants/apply_database_roles.sql`): a declarative orchestrator that takes a single dict keyed by database role name -- each value configuring a `comment`, `inherited` privilege grants, `include_schemas`/`exclude_schemas` scoping, per-target `roles` (account roles) / `applications` mappings, and optional explicit `revoke_inherited`/`revoke_objects` lists -- and drives `create_database_role`, `revoke_database_role_inherited_privileges`, `revoke_database_role_object`, `grant_database_role_schema_privileges`, `grant_database_role_inherited_privileges`, `grant_database_role_to_role`, and `grant_database_role_to_application` on the caller's behalf. Lets a consuming project collapse a hand-rolled multi-step database-role setup block into a single macro call against one payload. `revoke_inherited`/`revoke_objects` are explicit-only, not automatic reconciliation: Snowflake has no reliable way to pre-check a database role's existing inherited grants on all account versions (no `SHOW INHERITED GRANTS` / no `IS_INHERITED` column on `SHOW GRANTS TO DATABASE ROLE` everywhere), so nothing not declared in the payload is ever auto-revoked.
+- Added `apply_database_roles(database_roles)` macro (`macros/grants/apply_database_roles.sql`): a declarative orchestrator that takes a single dict keyed by database role name -- each value configuring a `comment`, `inherited` (current + future) privilege grants, `include_schemas`/`exclude_schemas` scoping, per-target `roles` (account roles) / `applications` mappings, and optional explicit `revoke_inherited`/`revoke_objects` lists -- and drives `create_database_role`, `revoke_database_role_inherited_privileges`, `revoke_database_role_object`, `grant_database_role_inherited_privileges`, `grant_database_role_to_role`, and `grant_database_role_to_application` on the caller's behalf. Lets a consuming project collapse a hand-rolled multi-step database-role setup block into a single macro call against one payload.
+  - `revoke_inherited`/`revoke_objects` are explicit-only, not automatic reconciliation: Snowflake has no reliable way to pre-check a database role's existing inherited grants on all account versions (no `SHOW INHERITED GRANTS` / no `IS_INHERITED` column on `SHOW GRANTS TO DATABASE ROLE` everywhere), so nothing not declared in the payload is ever auto-revoked. Revokes run before grants for each role.
+  - Each `revoke_inherited` entry's `include_schemas`/`exclude_schemas` is fully independent of the role's own top-level scope -- omitting both on an entry scopes that revoke to the whole database. This is deliberate: the main use case is cleaning up a role's *previous*, typically broader, scope while narrowing it going forward, which needs the revoke to target the *old* scope, not the role's new, narrower `include_schemas`.
+  - Inherited grants have no object-level exceptions (a genuine Snowflake limitation): a `revoke_objects` entry cannot remove access already granted via an overlapping `inherited`/`GRANT INHERITED` entry for the same object and privilege, regardless of statement order. `revoke_objects` only removes a *direct* (non-inherited) grant.
 - Added `revoke_database_role_object(object_type, objects, grant_types, database_roles)` macro (`macros/grants/revoke_database_role_object.sql`), mirroring `grant_database_role_object`'s signature and object-identifier conventions (including `schema.name(arg_types)` for procedures/functions) but issuing `REVOKE` instead of `GRANT`. Fills the gap where a database role needs to lose a specific object-level privilege (e.g. `SELECT` on a table) -- previously only possible by hand-writing the `REVOKE` statement, since the existing `grant_database_role_*` macros are grant-only.
-- Added `revoke_database_role_inherited_privileges(object_type, permissions, database_roles, include_schemas, exclude_schemas)` macro (`macros/grants/revoke_database_role_inherited_privileges.sql`), mirroring `grant_database_role_inherited_privileges`'s scoping modes but issuing `REVOKE INHERITED` (or a direct schema-level `REVOKE` for the `SCHEMA` + `include_schemas` case, matching the grant-side workaround). Used by `apply_database_roles`'s `revoke_inherited` payload key, and also usable standalone for one-off cleanup (e.g. narrowing a role's previously broader scope) in place of hand-written `REVOKE INHERITED` statements.
-- Added `integration_tests/macros/test_database_role_macros.sql` (`dbt run-operation test_database_role_macros`), live-verifying `create_database_role`, `grant_database_role_schema_privileges`, `grant_database_role_object`/`revoke_database_role_object`, `grant_database_role_to_role`, and `apply_database_roles` (full payload: create + `inherited`/`revoke_inherited` scoped via `include_schemas` + `revoke_objects` + `roles` mapping) against a live Snowflake connection, with cleanup of the scratch database roles it creates. Deliberately does NOT exercise the `GRANT`/`REVOKE INHERITED` keyword itself or `grant_database_role_to_application` live: `INHERITED` is not available on every Snowflake account/edition (confirmed live: `Unsupported feature 'INHERITED'`), `run_query()` failures can't be caught in Jinja/dbt macros (no try/except), so a live `INHERITED` call would risk breaking this test on any account without the feature enabled; granting to an application needs a real installed Native App. Added to the CI integration test step in `.github/workflows/integration_tests.yml`.
-
-### Fixed
-- Fixed `apply_database_roles` treating an `inherited`/`revoke_inherited` entry's `object_type: 'SCHEMA'` check case-sensitively (`g.object_type == 'SCHEMA'`), so a lowercase/mixed-case `'schema'` value fell through to `grant_database_role_inherited_privileges`/`revoke_database_role_inherited_privileges` and generated invalid `ON ALL SCHEMAS IN SCHEMA <name>` SQL instead of routing to the direct schema-level grant/revoke. Now compares case-insensitively.
-- Fixed `grant_database_role_inherited_privileges` and `revoke_database_role_inherited_privileges` treating an explicitly empty `include_schemas: []` as "unset", silently falling through to `exclude_schemas` or whole-database scope instead of scoping to nothing. Both macros now return early (no-op) when `include_schemas` is a non-`none`, zero-length list.
-- Fixed `apply_database_roles`'s `revoke_inherited` entries always passing `None` for `include_schemas`/`exclude_schemas` when an entry didn't specify its own, causing an unscoped whole-database revoke even when the role's top-level `include_schemas`/`exclude_schemas` narrowed its grants. Entries now fall back to the role's own top-level scope when they don't specify their own (matching the documented behavior).
-- Corrected the `apply_database_roles` README documentation and payload example: a `revoke_objects` entry cannot remove access already granted via an overlapping `inherited`/`GRANT INHERITED` entry for the same object and privilege -- Snowflake's inherited grants provide no object-level exceptions, regardless of statement order. The previous example incorrectly implied this was possible; added an explicit semantics note and removed the misleading example.
-- Fixed `integration_tests/macros/test_database_role_macros.sql` using fixed database-scoped role names (`ZZ_TEST_DBROLE_PRIMARY`/`_APPLY`) that could race between the `dbt-core` and `dbt-fusion` CI matrix legs, which run concurrently against the same database (only `target.schema` differs between them). Role names are now suffixed with `target.schema`. Also fixed positional row-index access (`object_rows[0][0]`) in favor of named uppercase-keyed column access, and strengthened the `apply_database_roles` test to actually prove its `revoke_inherited`/`revoke_objects` payload keys remove a previously-granted privilege, instead of only revoking privileges that were never granted in the first place (a vacuous pass either way).
+- Added `revoke_database_role_inherited_privileges(object_type, permissions, database_roles, include_schemas, exclude_schemas)` macro (`macros/grants/revoke_database_role_inherited_privileges.sql`), mirroring `grant_database_role_inherited_privileges`'s three scoping modes: an explicit `include_schemas` list, an `exclude_schemas` list (resolved against all schemas in the database), or neither (whole database). `SCHEMA`-type privileges are a special case only when `include_schemas`/`exclude_schemas` resolves to a named schema list -- a schema can't contain other schemas, so they're revoked directly on each named schema instead of via `REVOKE INHERITED`; for true whole-database scope (no filters), `SCHEMA` uses the same single `IN DATABASE` `REVOKE INHERITED` statement as any other type (`SCHEMA` is a valid `INHERITED` target when the container is `DATABASE`), since only a matching-scope `REVOKE INHERITED` actually removes a pre-existing `GRANT INHERITED` and covers schemas created since that grant was made. An explicitly empty `include_schemas`/resolved `exclude_schemas` list correctly produces zero statements rather than falling back to a broader scope. `grant_database_role_inherited_privileges` was updated to match this same `SCHEMA` routing on the grant side. Used by `apply_database_roles`'s `revoke_inherited` payload key, and also usable standalone.
+- Added `integration_tests/macros/test_database_role_macros.sql` (`dbt run-operation test_database_role_macros`), live-verifying `create_database_role`, `grant_database_role_schema_privileges`, `grant_database_role_object`/`revoke_database_role_object`, `grant_database_role_to_role`, and `apply_database_roles` (full payload: create + `inherited`/`revoke_inherited` scoped via `include_schemas` + `revoke_objects` + `roles` mapping, proving the revoke paths actually remove a previously-granted privilege) against a live Snowflake connection, with cleanup of the scratch database roles it creates. Role names are suffixed with `target.schema` and uppercased, since database roles are database-scoped (shared across the `dbt-core`/`dbt-fusion` CI matrix legs) and Snowflake normalizes unquoted identifiers to uppercase. Deliberately does NOT exercise the `GRANT`/`REVOKE INHERITED` keyword itself (for whole-database `SCHEMA` or any non-`SCHEMA` type) or `grant_database_role_to_application` live: `INHERITED` is not available on every Snowflake account/edition (confirmed live: `Unsupported feature 'INHERITED'`), and `run_query()` failures can't be caught in Jinja/dbt macros (no try/except), so a live `INHERITED` call would risk breaking this test on any account without the feature enabled; granting to an application needs a real installed Native App. Added to the CI integration test step in `.github/workflows/integration_tests.yml`.
 
 ## v1.4.1 - 2026-11-19 - grant_database_role_to_application
 
