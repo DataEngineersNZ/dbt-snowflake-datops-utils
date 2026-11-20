@@ -155,12 +155,15 @@
        revoke_inherited (direct schema revoke, not REVOKE INHERITED), revoke_objects, and roles mapping,
        all via a single payload call. To actually prove the revoke paths work (not just that revoking
        something never granted is a trivial no-op), role_b is granted MONITOR on the schema and -- if an
-       object was found above -- SELECT on target_object *before* calling apply_database_roles, so the
-       payload's revoke_inherited/revoke_objects entries have something real to remove. role_b must exist
-       before it can be granted anything, so create it explicitly here -- apply_database_roles's own
-       create_database_role call below is a no-op against an already-existing role (CREATE ... IF NOT
-       EXISTS), so this doesn't change what Test 6 is verifying. #}
-    {{ dbt_dataengineers_utils.create_database_role([role_b], 'Integration test role for apply_database_roles') }}
+       object was found above -- SELECT on target_object *before* the main apply_database_roles call below,
+       so that call's revoke_inherited/revoke_objects entries have something real to remove.
+
+       role_b must exist before it can be granted anything, but it's seeded through a creation-only
+       apply_database_roles call (not a direct create_database_role call) so Test 6a below still exercises
+       apply_database_roles's own creation step -- a direct create_database_role call here would let Test
+       6a pass even if apply_database_roles's creation step were broken or removed entirely, since the role
+       would already exist from this seeding step. #}
+    {{ dbt_dataengineers_utils.apply_database_roles({role_b: {'comment': 'Integration test role for apply_database_roles'}}) }}
     {{ dbt_dataengineers_utils.grant_database_role_schema_privileges(['MONITOR'], [test_schema], [role_b]) }}
     {% if object_rows | length > 0 %}
         {{ dbt_dataengineers_utils.grant_database_role_object('VIEW', [target_object], ['SELECT'], [role_b]) }}
