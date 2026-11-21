@@ -524,6 +524,28 @@ macros:
         type: List[string]
         description: Database role name, or list of database role names, to grant privileges to
 
+  - name: revoke_database_role_object
+    description: |
+      Revokes specified privileges on a specific object (or list of objects) from one or more database
+      roles. Statements are executed unconditionally: REVOKE on a privilege the database role doesn't
+      currently hold is a safe no-op, so no SHOW GRANTS pre-check is performed (unlike
+      grant_database_role_object, which checks first to avoid redundant grants).
+    docs:
+      show: true
+    arguments:
+      - name: object_type
+        type: string
+        description: Type of the object (e.g. TABLE, VIEW, PROCEDURE, FUNCTION)
+      - name: objects
+        type: List[string]
+        description: List of objects to revoke the permission from (format = schema.object, or schema.name(arg_types) for procedures/functions)
+      - name: grant_types
+        type: List[string]
+        description: List of privilege types to revoke (e.g. SELECT, USAGE)
+      - name: database_roles
+        type: List[string]
+        description: Database role name, or list of database role names, to revoke privileges from
+
   - name: grant_database_role_to_role
     description: |
       Grants a database role to one or more account roles, creating a role hierarchy so the account
@@ -539,13 +561,36 @@ macros:
         type: List[string]
         description: Account role name, or list of account role names, to grant the database role to
 
+  - name: grant_database_role_to_application
+    description: |
+      Grants a database role to one or more Snowflake Native Apps, allowing the application to inherit
+      the database role's privileges. Statements are executed unconditionally since GRANT DATABASE ROLE
+      is idempotent.
+    docs:
+      show: true
+    arguments:
+      - name: database_role_name
+        type: string
+        description: Name of the database role to grant (must exist in the target database)
+      - name: application_names
+        type: List[string]
+        description: Application name, or list of application names, to grant the database role to
+
   - name: grant_database_role_inherited_privileges
     description: |
       Grants Snowflake INHERITED privileges (GRANT INHERITED ... TO DATABASE ROLE ...) so the privilege
       automatically applies to every current and future object of the given type in scope. Supports three
       mutually exclusive modes: an explicit schema include list, an exclude list (resolved against all
       schemas in the database), or neither (scopes to the whole database via a single IN DATABASE
-      statement). Statements are executed unconditionally since GRANT INHERITED is idempotent.
+      statement). SCHEMA-type privileges are a special case only when include_schemas or exclude_schemas
+      resolves to a named schema list: since a schema can't contain other schemas, they're granted
+      directly on each named schema instead of via INHERITED. When neither is supplied (true
+      whole-database scope), SCHEMA uses the same single IN DATABASE INHERITED statement as any other
+      type (SCHEMA is a valid INHERITED target when the container is DATABASE), which also covers schemas
+      created later -- unlike the named-list direct-grant path. An explicitly empty include_schemas list
+      ([]) is treated as "scope to nothing" and returns early as a no-op -- it never falls back to
+      exclude_schemas or whole-database scope. Statements are executed unconditionally since both GRANT
+      INHERITED and the named-list SCHEMA direct-grant path are idempotent.
     docs:
       show: true
     arguments:
@@ -561,6 +606,38 @@ macros:
       - name: include_schemas
         type: List[string]
         description: Optional explicit list of schemas to scope the inherited grant to. Takes precedence over exclude_schemas.
+      - name: exclude_schemas
+        type: List[string]
+        description: Optional list of schemas to exclude when scoping to the whole database. Ignored if include_schemas is supplied.
+
+  - name: revoke_database_role_inherited_privileges
+    description: |
+      Revokes Snowflake INHERITED privileges (REVOKE INHERITED ... FROM DATABASE ROLE ...) from one or
+      more database roles. Mirrors grant_database_role_inherited_privileges's scoping modes (explicit
+      include list, exclude list, or whole-database) and its SCHEMA special case: when include_schemas or
+      exclude_schemas resolves to a named schema list, SCHEMA-type privileges are revoked directly on each
+      named schema rather than via REVOKE INHERITED; when neither is supplied (whole-database scope),
+      SCHEMA uses the same single IN DATABASE REVOKE INHERITED statement as any other type -- required so
+      a matching database-level GRANT INHERITED is actually removed, including for schemas created after
+      that grant was made. An explicitly empty include_schemas list ([]) is treated as "scope to nothing"
+      and returns early as a no-op -- it never falls back to exclude_schemas or whole-database scope.
+      Statements are executed unconditionally since REVOKE on a grant the role doesn't hold is a safe
+      no-op.
+    docs:
+      show: true
+    arguments:
+      - name: object_type
+        type: string
+        description: Type of the object (e.g. TABLE, VIEW, SCHEMA)
+      - name: permissions
+        type: List[string]
+        description: Privilege or list of privileges to revoke (e.g. 'SELECT' or ['SELECT', 'USAGE'])
+      - name: database_roles
+        type: List[string]
+        description: Database role name, or list of database role names, to revoke privileges from
+      - name: include_schemas
+        type: List[string]
+        description: Optional explicit list of schemas to scope the revoke to. Takes precedence over exclude_schemas.
       - name: exclude_schemas
         type: List[string]
         description: Optional list of schemas to exclude when scoping to the whole database. Ignored if include_schemas is supplied.
@@ -592,4 +669,30 @@ macros:
       - name: exclude_schemas
         type: List[string]
         description: Optional list of schemas to exclude when searching the whole database. Ignored if include_schemas is supplied.
+
+  - name: apply_database_roles
+    description: |
+      Orchestrates full database role setup from a single declarative payload, keyed by database role
+      name: creates each database role, revokes anything explicitly marked for removal, applies its
+      configured inherited (current + future) privilege grants, and maps it to the account roles and/or
+      applications configured for the current target. Delegates to create_database_role,
+      revoke_database_role_inherited_privileges, revoke_database_role_object,
+      grant_database_role_inherited_privileges, grant_database_role_to_role, and
+      grant_database_role_to_application. revoke_inherited/revoke_objects are explicit-only, not automatic
+      reconciliation -- Snowflake has no reliable way to pre-check a database role's existing inherited
+      grants, so nothing not declared in the payload is ever auto-revoked.
+    docs:
+      show: true
+    arguments:
+      - name: database_roles
+        type: dict
+        description: |
+          Dict keyed by database role name, each value a dict with: comment (string), inherited (list of
+          {object_type, permissions} dicts), include_schemas (list, optional), exclude_schemas (list,
+          optional, ignored if include_schemas is set), roles (dict of target name -> list of account role
+          names, optional), applications (dict of target name -> list of application names, optional),
+          revoke_inherited (optional list of {object_type, permissions, include_schemas, exclude_schemas}
+          dicts to explicitly revoke -- independent of the role's own top-level include_schemas/
+          exclude_schemas; omitting both on an entry scopes that revoke to the whole database),
+          revoke_objects (optional list of {object_type, objects, grant_types} dicts to explicitly revoke)
 

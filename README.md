@@ -2,7 +2,7 @@
 
 A macro-only [dbt](https://github.com/dbt-labs/dbt) package for Snowflake DataOps. Provides utilities for object lifecycle management, RBAC grant orchestration, dimensional modelling helpers, tagging, shares, and more.
 
-- **Version**: 1.4.0
+- **Version**: 1.5.0
 - **dbt**: `>=1.9.4, <3.0.0`
 - **Dependencies**: None (zero external package dependencies)
 - **dbt Fusion**: Compatible
@@ -16,7 +16,7 @@ Add the following to your `packages.yml`:
 ```yaml
 packages:
   - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-utils.git
-    revision: "1.4.0"
+    revision: "1.5.0"
 ```
 
 Then run `dbt deps`.
@@ -131,9 +131,13 @@ The following `vars` can be set in your `dbt_project.yml` or via `--vars` on the
 | `grant_database_role_schema_privileges(permissions, schema_names, database_roles)` | Grant schema-level privileges (e.g. USAGE) to one or more database roles |
 | `grant_database_role_object_privileges(object_type, schema_names, permissions, database_roles)` | Bulk grant privileges on all objects of a type within a schema to database roles |
 | `grant_database_role_object(object_type, objects, grant_types, database_roles)` | Grant privileges on specific objects to database roles (grant-only, no revokes) |
+| `revoke_database_role_object(object_type, objects, grant_types, database_roles)` | Revoke privileges on specific objects from database roles |
 | `grant_database_role_to_role(database_role_name, role_names)` | Grant a database role to one or more account roles |
+| `grant_database_role_to_application(database_role_name, application_names)` | Grant a database role to one or more Snowflake Native Apps |
 | `grant_database_role_inherited_privileges(object_type, permissions, database_roles, include_schemas, exclude_schemas)` | Grant INHERITED privileges (auto-covers current and future objects) at schema or database level to database roles |
+| `revoke_database_role_inherited_privileges(object_type, permissions, database_roles, include_schemas, exclude_schemas)` | Revoke INHERITED privileges at schema or database level from database roles |
 | `grant_database_role_object_by_prefix(object_type, prefix, grant_types, database_roles, include_schemas, exclude_schemas)` | Grant privileges to database roles on all objects of a type whose name starts with a prefix |
+| `apply_database_roles(database_roles)` | Declarative orchestrator: create + explicit revoke + grant + role/application mapping for a dict of database roles |
 
 ### merge
 
@@ -253,6 +257,141 @@ vars:
 
 1. Run with `grants_dry_run: true` and review logs in CI
 2. Approve changes, re-run with dry-run disabled to apply
+
+---
+
+## Database Roles
+
+### apply_database_roles
+
+Declarative orchestrator for an entire database role setup. Pass one `database_roles` dict and it creates
+every database role, applies explicit revokes, applies inherited (current + future) privilege grants, and
+maps each role to the account roles / applications configured for the current target -- replacing a
+hand-rolled, multi-step `create_database_role` / `grant_database_role_*` block with a single macro call.
+
+```jinja
+{{ dbt_dataengineers_utils.apply_database_roles(database_roles) }}
+```
+
+**Payload shape**
+
+`database_roles` is a dict keyed by database role name (string, will be lowercased when used in SQL
+identifiers). Each value is a dict with the following keys:
+
+| Key | Type | Required | Description |
+|---|---|---|---|
+| `comment` | string | No | Passed to `CREATE DATABASE ROLE ... COMMENT = '...'`. Omit for no comment. Only applied on creation -- if the role already exists, its existing comment is left as-is (`create_database_role` uses `CREATE DATABASE ROLE IF NOT EXISTS`, intentionally not `CREATE OR REPLACE`, which Snowflake docs warn drops the role from any shares it's granted to). |
+| `inherited` | list of dicts | No (default `[]`) | Current + future privilege grants. Each entry: `{'object_type': '<TYPE>', 'permissions': ['<PRIV>', ...]}`. `object_type` is a singular Snowflake object type (e.g. `TABLE`, `VIEW`, `SCHEMA`, `DYNAMIC TABLE`, `TASK`, `PROCEDURE`), case-insensitive. `permissions` is a list of privilege names (e.g. `['SELECT']`, `['USAGE', 'MONITOR']`). |
+| `include_schemas` | list of strings, or omit/`none` | No | Scopes every `inherited` entry to these named schemas. Takes precedence over `exclude_schemas`. Does NOT affect `revoke_inherited` entries -- each one has its own, independent `include_schemas`/`exclude_schemas` (see below). When `object_type` is `SCHEMA` and either `include_schemas` or `exclude_schemas` resolves to a named list of schemas, that privilege is granted/revoked directly on each named schema instead of via `INHERITED` (a schema can't contain other schemas, so `INHERITED ... IN SCHEMA` is invalid, and there's no native syntax to exclude specific schemas from an `IN DATABASE` grant). When *neither* is set (true whole-database scope), `SCHEMA` behaves like any other type and uses a single `INHERITED ... IN DATABASE` statement, which -- unlike the named-list path -- also covers schemas created later. An explicitly empty list (`[]`) means "scope to nothing" (a safe no-op), not "unset" -- it will never fall back to `exclude_schemas` or whole-database scope. |
+| `exclude_schemas` | list of strings, or omit/`none` | No | Scopes to every schema in the database *except* these. Ignored if `include_schemas` is set. |
+| `roles` | dict of `{target_name: [account_role, ...]}` | No (default `{}`) | Account roles to grant this database role to, per dbt target (e.g. `{'prod': ['ANALYST_ROLE'], 'test': ['ANALYST_ROLE']}`). Only the list for the *current* `target.name` is used; omit a target or use `[]` for "nothing to grant in this target". |
+| `applications` | dict of `{target_name: [application_name, ...]}` | No, omit entirely if unused | Snowflake Native Apps to grant this database role to directly (not via an account role), per dbt target. Same per-target lookup behavior as `roles`. |
+| `revoke_inherited` | list of dicts | No, omit entirely if unused | Explicit inherited-privilege revokes, run **before** grants. Each entry: `{'object_type': '<TYPE>', 'permissions': ['<PRIV>', ...], 'include_schemas': [...] (optional), 'exclude_schemas': [...] (optional)}`. **Independent of the role's top-level `include_schemas`/`exclude_schemas`** -- omitting both on an entry scopes that revoke to the whole database, not the role's grant scope. This is deliberate: the main use case is cleaning up a role's *previous* (often broader) scope while narrowing it -- see the example below. |
+| `revoke_objects` | list of dicts | No, omit entirely if unused | Explicit object-level privilege revokes, run **before** grants. Each entry: `{'object_type': '<TYPE>', 'objects': ['<SCHEMA.OBJECT>', ...], 'grant_types': ['<PRIV>', ...]}`. `objects` entries need the full `SCHEMA.NAME(ARG_TYPE, ...)` signature for `PROCEDURE`/`FUNCTION` (Snowflake allows overloads). **Only removes a *direct* grant** -- see the inherited-grant caveat below. |
+
+**Full example**
+
+```jinja
+{% set database_roles = {
+  'DB_ROLE_READER': {
+    'comment': 'Read access to the DM (marts) schema only - current and future objects',
+    'inherited': [
+      {'object_type': 'SCHEMA',        'permissions': ['USAGE']},
+      {'object_type': 'TABLE',         'permissions': ['SELECT']},
+      {'object_type': 'VIEW',          'permissions': ['SELECT']},
+      {'object_type': 'DYNAMIC TABLE', 'permissions': ['SELECT']}
+    ],
+    'include_schemas': ['DM'],
+    'roles': {'prod': ['BI_TOOL_ROLE'], 'test': ['BI_TOOL_ROLE']},
+    'revoke_inherited': [
+      {'object_type': 'SCHEMA',        'permissions': ['USAGE']},
+      {'object_type': 'TABLE',         'permissions': ['SELECT']},
+      {'object_type': 'VIEW',          'permissions': ['SELECT']},
+      {'object_type': 'DYNAMIC TABLE', 'permissions': ['SELECT']}
+    ]
+  },
+  'DB_ROLE_ANALYST': {
+    'comment': 'Read access to all schemas/tables/views (current and future)',
+    'inherited': [
+      {'object_type': 'SCHEMA', 'permissions': ['USAGE']},
+      {'object_type': 'TABLE',  'permissions': ['SELECT']},
+      {'object_type': 'VIEW',  'permissions': ['SELECT']}
+    ],
+    'include_schemas': none,
+    'roles': {'prod': ['ANALYST_ROLE']}
+  },
+  'DB_ROLE_PUBLISHER': {
+    'comment': 'Usage on stored procedures so data processing can occur',
+    'inherited': [
+      {'object_type': 'SCHEMA',    'permissions': ['USAGE']},
+      {'object_type': 'PROCEDURE', 'permissions': ['USAGE']}
+    ],
+    'include_schemas': ['DM'],
+    'roles': {},
+    'applications': {'prod': ['MY_NATIVE_APP']}
+  }
+} %}
+
+{{ dbt_dataengineers_utils.apply_database_roles(database_roles) }}
+```
+
+`DB_ROLE_READER`'s `revoke_inherited` entries omit `include_schemas`/`exclude_schemas`, so they scope to
+the **whole database** -- this is the pattern for a role being narrowed in scope (e.g. it used to have
+whole-database `TABLE`/`VIEW`/`DYNAMIC TABLE` `SELECT` and schema `USAGE`, now narrowed to `DM` only):
+the revoke targets the role's *old*, broader scope, while the `inherited` list above grants the *new*,
+narrower one. They're independent entries precisely so the revoke isn't accidentally re-scoped to the
+new `include_schemas` (which would leave the stale whole-database grant in place outside `DM`).
+
+**Semantics an API/codegen agent should rely on**
+
+- `revoke_inherited` / `revoke_objects` are **explicit declarations, not drift detection**: this macro never
+  inspects a role's current grants and never revokes anything you didn't list. Snowflake has no reliable way
+  to pre-check a database role's existing inherited grants on all account versions (no `SHOW INHERITED
+  GRANTS`, no `IS_INHERITED` column on `SHOW GRANTS TO DATABASE ROLE` everywhere), so there is no
+  reconciliation mode -- omitting a key is a no-op, not an implicit revoke.
+- Revokes run before grants for each role (not guaranteed globally across every role in the payload before
+  any role's grants -- roles are independent of each other, so this doesn't matter in practice).
+- All grant/revoke statements are idempotent and safe to leave in the payload on every run (`GRANT`/`GRANT
+  INHERITED` on an already-held grant, and `REVOKE`/`REVOKE INHERITED` on a grant the role doesn't hold, are
+  both safe no-ops in Snowflake).
+- `roles`/`applications` dicts are keyed by dbt target name (`target.name`, e.g. `prod`, `test`, `dev`) --
+  only the entry matching the currently-running target is used; there's no "all targets" wildcard key.
+- To grant a database role access to one specific object (not current+future via `inherited`), use
+  `grant_database_role_object(object_type, objects, grant_types, database_roles)` directly instead of adding
+  it to this payload -- `apply_database_roles` only has grant-side support for `inherited`/`roles`/
+  `applications`.
+- One-time migration/cleanup revokes for a role being narrowed in scope belong in that role's
+  `revoke_inherited` list (see `DB_ROLE_READER` above) rather than a separate hand-written `REVOKE`
+  statement -- they're safe to leave in the payload indefinitely.
+- **Inherited grants have no object-level exceptions (a genuine Snowflake limitation, not specific to this
+  macro).** If a role's `inherited` list already covers an object via a container-level `GRANT INHERITED`
+  (e.g. whole-database `TABLE` `SELECT`, as `DB_ROLE_ANALYST` has above), a `revoke_objects` entry for that
+  same object and privilege will **not** remove access -- the inherited grant still applies regardless of
+  statement order. `revoke_objects` only removes a *direct* (non-inherited) grant, such as one made via
+  `grant_database_role_object`. To exclude specific objects from an otherwise-broad role, narrow the
+  `inherited` scope itself (e.g. `exclude_schemas`, or per-schema `include_schemas` entries that skip the
+  sensitive schema) rather than trying to carve out a per-object exception after the fact.
+
+**Known limitations** (shared with the rest of this package's grant macros, not specific to
+`apply_database_roles`):
+- No identifier quoting, escaping, or allow-list validation is applied to role/schema/object/privilege
+  names before they're interpolated into generated SQL -- consistent with every other `grant_*`/`revoke_*`
+  macro in this package. Treat `database_roles` as trusted, project-authored infrastructure-as-code input
+  (the same trust level as any other dbt project config), not as a surface for untrusted/external input.
+- `exclude_schemas` resolution (via the shared `_grants_collect_schemas` helper, used by several other
+  grant macros in this package) compares schema names case-sensitively against Snowflake's returned schema
+  names. Match the casing Snowflake actually uses (typically uppercase for unquoted identifiers) when
+  listing schemas to exclude.
+- Snowflake's `GRANT`/`REVOKE` DDL has no multi-statement transactions, so a `revoke_inherited`/
+  `revoke_objects`/grant sequence for a role isn't atomic: if a later statement in the sequence fails (or
+  the run is interrupted), earlier statements in that same `apply_database_roles` call are not rolled back.
+  This also means two concurrent `apply_database_roles` calls for the *same* role (e.g. parallel CI runs)
+  can interleave and leave a mix of both configurations' privileges -- avoid running `apply_database_roles`
+  for the same role from more than one place at a time. Re-running the *same* payload after an interrupted
+  run is safe (every statement is idempotent, so it converges to that payload's intended state), but since
+  this macro performs no reconciliation, re-running a *different* (e.g. narrower) payload does NOT revoke
+  privileges a previous, different payload granted -- any no-longer-wanted grant from an old payload must
+  be removed explicitly via `revoke_inherited`/`revoke_objects` in the new one.
 
 ---
 
@@ -401,9 +540,21 @@ dbt build
 
 `dbt build` runs the test models (which call each macro with literal values) and then executes singular tests that assert expected output values. All tests passing means the macros produce correct SQL.
 
+A second set of tests are `run-operation` macros (not run by `dbt build`) that assert against live Snowflake
+state -- run them after `dbt build` so the fixture models/views they depend on exist:
+
+```bash
+dbt run-operation test_has_matching_nodes
+dbt run-operation test_grants_helpers
+dbt run-operation test_grants_idempotency
+dbt run-operation test_clean_macros
+dbt run-operation test_database_role_macros
+```
+
 **What's tested:**
 - **checks**: `get_populated_array`, `get_populated_array_value_as_string`, `get_populated_array_value_or_string_as_string`, `get_populated_numeric_value`, `get_populated_string_value`
 - **modelling**: `date_key`, `time_key`, `datetime_from_dim`, `datetime_to_date_dim`, `datetime_to_time_dim`, `dimension_id`, `generate_surrogate_key`
 - **parse**: `to_date`, `num_to_date`, `string_to_num`, `null_to_empty_string`, `first_day_of_month`, `last_day_of_month`, `string_epoch_to_timestamp_ltz`, `string_epoch_to_timestamp_ntz`
 - **data_metric_functions**: `apply_data_metric_functions` -- live-verified against `INFORMATION_SCHEMA.DATA_METRIC_FUNCTION_REFERENCES`, covering system DMFs (`dmf_not_null`, `dmf_unique`, `dmf_accepted_values` with both string and numeric enum values -- the string case is a regression test for a SQL-quoting bug), a custom DMF attached via model-level `meta.dmf_custom` (requires the `dbt_dataengineers_materializations` package, installed only in `integration_tests/packages.yml`), and the `dmf_schedule` fallback chain (model meta > var > default)
+- **database roles** (`test_database_role_macros`, live-verified): `create_database_role`, `grant_database_role_schema_privileges`, `grant_database_role_object` / `revoke_database_role_object` (against an existing view from another test model), `grant_database_role_to_role`, and `apply_database_roles` (create + `inherited`/`revoke_inherited` with `include_schemas` set + `revoke_objects` + `roles` mapping, all in one payload). `GRANT`/`REVOKE INHERITED` itself and `grant_database_role_to_application` are intentionally **not** exercised live: `INHERITED` isn't available on every Snowflake account/edition (confirmed: `Unsupported feature 'INHERITED'` on at least one tested account), and `run_query()` failures can't be caught in Jinja, so hitting that keyword live here would risk breaking CI on accounts without it enabled; granting to an application needs a real installed Native App. Both are covered only by `dbt parse`/`dbt compile`, not live execution.
 

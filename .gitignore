@@ -9,3 +9,5 @@ integration_tests/logs/
 integration_tests/profiles.yml
 integration_tests/package-lock.yml
 plans/
+
+.cortex
