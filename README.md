@@ -2,7 +2,7 @@
 
 A macro-only [dbt](https://github.com/dbt-labs/dbt) package for Snowflake DataOps. Provides utilities for object lifecycle management, RBAC grant orchestration, dimensional modelling helpers, tagging, shares, and more.
 
-- **Version**: 1.5.0
+- **Version**: 1.5.1
 - **dbt**: `>=1.9.4, <3.0.0`
 - **Dependencies**: None (zero external package dependencies)
 - **dbt Fusion**: Compatible
@@ -16,7 +16,7 @@ Add the following to your `packages.yml`:
 ```yaml
 packages:
   - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-utils.git
-    revision: "1.5.0"
+    revision: "1.5.1"
 ```
 
 Then run `dbt deps`.
@@ -286,6 +286,7 @@ identifiers). Each value is a dict with the following keys:
 | `exclude_schemas` | list of strings, or omit/`none` | No | Scopes to every schema in the database *except* these. Ignored if `include_schemas` is set. |
 | `roles` | dict of `{target_name: [account_role, ...]}` | No (default `{}`) | Account roles to grant this database role to, per dbt target (e.g. `{'prod': ['ANALYST_ROLE'], 'test': ['ANALYST_ROLE']}`). Only the list for the *current* `target.name` is used; omit a target or use `[]` for "nothing to grant in this target". |
 | `applications` | dict of `{target_name: [application_name, ...]}` | No, omit entirely if unused | Snowflake Native Apps to grant this database role to directly (not via an account role), per dbt target. Same per-target lookup behavior as `roles`. |
+| `grant_objects` | list of dicts | No, omit entirely if unused | Explicit object-level privilege grants, run **after** `inherited` grants. Each entry: `{'object_type': '<TYPE>', 'objects': ['<SCHEMA.OBJECT>', ...], 'grant_types': ['<PRIV>', ...]}`. `object_type` can be any grantable Snowflake object type, including non-schema-level ones Snowflake doesn't support `INHERITED` grants for (e.g. `AGENT`). `objects` entries need the full `SCHEMA.NAME(ARG_TYPE, ...)` signature for `PROCEDURE`/`FUNCTION` (Snowflake allows overloads). Pre-checks existing grants, so it's a no-op to leave an already-granted entry in the payload. |
 | `revoke_inherited` | list of dicts | No, omit entirely if unused | Explicit inherited-privilege revokes, run **before** grants. Each entry: `{'object_type': '<TYPE>', 'permissions': ['<PRIV>', ...], 'include_schemas': [...] (optional), 'exclude_schemas': [...] (optional)}`. **Independent of the role's top-level `include_schemas`/`exclude_schemas`** -- omitting both on an entry scopes that revoke to the whole database, not the role's grant scope. This is deliberate: the main use case is cleaning up a role's *previous* (often broader) scope while narrowing it -- see the example below. |
 | `revoke_objects` | list of dicts | No, omit entirely if unused | Explicit object-level privilege revokes, run **before** grants. Each entry: `{'object_type': '<TYPE>', 'objects': ['<SCHEMA.OBJECT>', ...], 'grant_types': ['<PRIV>', ...]}`. `objects` entries need the full `SCHEMA.NAME(ARG_TYPE, ...)` signature for `PROCEDURE`/`FUNCTION` (Snowflake allows overloads). **Only removes a *direct* grant** -- see the inherited-grant caveat below. |
 
@@ -328,7 +329,10 @@ identifiers). Each value is a dict with the following keys:
     ],
     'include_schemas': ['DM'],
     'roles': {},
-    'applications': {'prod': ['MY_NATIVE_APP']}
+    'applications': {'prod': ['MY_NATIVE_APP']},
+    'grant_objects': [
+      {'object_type': 'AGENT', 'objects': ['CORTEX.AGENT_YAG_OPERATIONS'], 'grant_types': ['USAGE']}
+    ]
   }
 } %}
 
@@ -356,10 +360,11 @@ new `include_schemas` (which would leave the stale whole-database grant in place
   both safe no-ops in Snowflake).
 - `roles`/`applications` dicts are keyed by dbt target name (`target.name`, e.g. `prod`, `test`, `dev`) --
   only the entry matching the currently-running target is used; there's no "all targets" wildcard key.
-- To grant a database role access to one specific object (not current+future via `inherited`), use
-  `grant_database_role_object(object_type, objects, grant_types, database_roles)` directly instead of adding
-  it to this payload -- `apply_database_roles` only has grant-side support for `inherited`/`roles`/
-  `applications`.
+- To grant a database role access to one specific object (not current+future via `inherited`), use the
+  `grant_objects` key (e.g. `{'object_type': 'AGENT', 'objects': ['CORTEX.MY_AGENT'], 'grant_types': ['USAGE']}`)
+  -- this is especially relevant for object types Snowflake doesn't support `INHERITED` grants for (e.g.
+  `AGENT`), where `inherited` isn't an option at all. `grant_database_role_object(object_type, objects,
+  grant_types, database_roles)` remains available to call directly outside this payload too.
 - One-time migration/cleanup revokes for a role being narrowed in scope belong in that role's
   `revoke_inherited` list (see `DB_ROLE_READER` above) rather than a separate hand-written `REVOKE`
   statement -- they're safe to leave in the payload indefinitely.
