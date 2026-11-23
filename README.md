@@ -339,7 +339,7 @@ identifiers). Each value is a dict with the following keys:
     'applications': {'prod': ['MY_NATIVE_APP']},
     'grant_objects': [
       {'object_type': 'SCHEMA', 'objects': ['CORTEX'], 'grant_types': ['USAGE']},
-      {'object_type': 'AGENT', 'objects': ['CORTEX.AGENT_YAG_OPERATIONS'], 'grant_types': ['USAGE']}
+      {'object_type': 'AGENT', 'objects': ['CORTEX.AGENT_OPERATIONS'], 'grant_types': ['USAGE']}
     ]
   }
 } %}
@@ -425,8 +425,8 @@ Macros for attaching/detaching Cortex Agents to a Snowflake Intelligence (CoWork
 **Basic usage**
 
 ```jinja
-{{ dbt_dataengineers_utils.add_snowflake_intelligence_agent('SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT', ['CORTEX.AGENT_YAG_DOCS']) }}
-{{ dbt_dataengineers_utils.remove_snowflake_intelligence_agent('SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT', ['CORTEX.AGENT_YAG_DOCS']) }}
+{{ dbt_dataengineers_utils.add_snowflake_intelligence_agent('SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT', ['CORTEX.AGENT_DOCS']) }}
+{{ dbt_dataengineers_utils.remove_snowflake_intelligence_agent('SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT', ['CORTEX.AGENT_DOCS']) }}
 ```
 
 **Full example** -- attaching multiple agents (e.g. as a `run-operation` invoked from CI after an agent's
@@ -437,12 +437,12 @@ definition changes), and detaching one that's being retired:
   {% set si_name = 'SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT' %}
 
   {{ dbt_dataengineers_utils.add_snowflake_intelligence_agent(si_name, [
-    'CORTEX.AGENT_YAG_DOCS',
-    'CORTEX.AGENT_YAG_OPERATIONS'
+    'CORTEX.AGENT_DOCS',
+    'CORTEX.AGENT_OPERATIONS'
   ]) }}
 
   {{ dbt_dataengineers_utils.remove_snowflake_intelligence_agent(si_name, [
-    'CORTEX.AGENT_YAG_LEGACY_SUPPORT'
+    'CORTEX.AGENT_LEGACY_SUPPORT'
   ]) }}
 {% endmacro %}
 ```
@@ -451,14 +451,14 @@ definition changes), and detaching one that's being retired:
 dbt run-operation sync_snowflake_intelligence_agents
 ```
 
-Each `agents` entry (`'CORTEX.AGENT_YAG_DOCS'`) is resolved against the current `target.database` --
+Each `agents` entry (`'CORTEX.AGENT_DOCS'`) is resolved against the current `target.database` --
 never hardcode the database name in the payload itself, so the same macro call attaches/detaches the
 right agent whether it runs against a `dev`, `test`, or `prod` target.
 
 | Argument | Type | Description |
 |---|---|---|
 | `si_name` | string | Name of the Snowflake Intelligence (CoWork) object (e.g. `SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT` -- an account typically has exactly one). An **account-level object**, never qualified with the target database. |
-| `agents` | list of strings | `'SCHEMA.AGENT_NAME'` entries identifying agents in the **current `target.database`**. Not pre-qualified with the database name -- `target.database` is prepended automatically (e.g. `'CORTEX.AGENT_YAG_DOCS'` becomes `<target.database>.CORTEX.AGENT_YAG_DOCS` in the generated SQL), so the agent reference is always built from the current dbt target rather than hardcoded. |
+| `agents` | list of strings | `'SCHEMA.AGENT_NAME'` entries identifying agents in the **current `target.database`**. Not pre-qualified with the database name -- `target.database` is prepended automatically (e.g. `'CORTEX.AGENT_DOCS'` becomes `<target.database>.CORTEX.AGENT_DOCS` in the generated SQL), so the agent reference is always built from the current dbt target rather than hardcoded. |
 
 **Semantics an API/codegen agent should rely on**
 
