@@ -4,8 +4,8 @@
        grants, and maps each role to the account roles and/or applications configured for the current
        target. Delegates to the existing per-step macros -- create_database_role,
        revoke_database_role_inherited_privileges, revoke_database_role_object,
-       grant_database_role_inherited_privileges, grant_database_role_to_role, and
-       grant_database_role_to_application. (SCHEMA-type privileges are routed to a direct grant/revoke
+       grant_database_role_inherited_privileges, grant_database_role_object, grant_database_role_to_role,
+       and grant_database_role_to_application. (SCHEMA-type privileges are routed to a direct grant/revoke
        instead of INHERITED only when include_schemas/exclude_schemas resolves to a named schema list --
        whole-database SCHEMA scope still uses INHERITED, same as any other type. That routing lives
        entirely inside grant_database_role_inherited_privileges/revoke_database_role_inherited_privileges
@@ -20,6 +20,9 @@
              'exclude_schemas': ['<SCHEMA>', ...] | none,       # ignored if include_schemas is set
              'roles': { '<target_name>': ['<ACCOUNT_ROLE>', ...] },        # optional
              'applications': { '<target_name>': ['<APPLICATION>', ...] }, # optional
+             'grant_objects': [                                           # optional, explicit only
+               { 'object_type': '<TYPE>', 'objects': ['<SCHEMA.OBJECT>', ...], 'grant_types': ['<PRIV>', ...] }, ...
+             ],
              'revoke_inherited': [                                        # optional, explicit only --
                { 'object_type': '<TYPE>', 'permissions': ['<PRIV>', ...],  # see note below
                  'include_schemas': [...] | none, 'exclude_schemas': [...] | none }, ...
@@ -86,6 +89,10 @@
         {% set exclude_schemas = cfg.get('exclude_schemas') %}
         {% for g in cfg.get('inherited', []) %}
             {% do dbt_dataengineers_utils.grant_database_role_inherited_privileges(g.object_type, g.permissions, [db_role], include_schemas=include_schemas, exclude_schemas=exclude_schemas) %}
+        {% endfor %}
+
+        {% for g in cfg.get('grant_objects', []) %}
+            {% do dbt_dataengineers_utils.grant_database_role_object(g.object_type, g.objects, g.grant_types, [db_role]) %}
         {% endfor %}
 
         {% set account_roles = cfg.get('roles', {}).get(target.name, []) %}

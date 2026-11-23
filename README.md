@@ -2,7 +2,7 @@
 
 A macro-only [dbt](https://github.com/dbt-labs/dbt) package for Snowflake DataOps. Provides utilities for object lifecycle management, RBAC grant orchestration, dimensional modelling helpers, tagging, shares, and more.
 
-- **Version**: 1.5.0
+- **Version**: 1.6.0
 - **dbt**: `>=1.9.4, <3.0.0`
 - **Dependencies**: None (zero external package dependencies)
 - **dbt Fusion**: Compatible
@@ -16,7 +16,7 @@ Add the following to your `packages.yml`:
 ```yaml
 packages:
   - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-utils.git
-    revision: "1.5.0"
+    revision: "1.6.0"
 ```
 
 Then run `dbt deps`.
@@ -197,6 +197,13 @@ The following `vars` can be set in your `dbt_project.yml` or via `--vars` on the
 | `create_share(share_name, accounts, environments)` | Create/update a Snowflake share and grant usage to accounts |
 | `create_internal_share(share_name, reference_databases, environments)` | Create/update a share with unsecured objects and reference usage on additional databases |
 
+### snowflake_intelligence
+
+| Macro | Description |
+|---|---|
+| `add_snowflake_intelligence_agent(si_name, agents)` | Attach one or more Cortex Agents to a Snowflake Intelligence (CoWork) object |
+| `remove_snowflake_intelligence_agent(si_name, agents)` | Detach one or more Cortex Agents from a Snowflake Intelligence (CoWork) object |
+
 ### tags
 
 | Macro | Description |
@@ -286,6 +293,7 @@ identifiers). Each value is a dict with the following keys:
 | `exclude_schemas` | list of strings, or omit/`none` | No | Scopes to every schema in the database *except* these. Ignored if `include_schemas` is set. |
 | `roles` | dict of `{target_name: [account_role, ...]}` | No (default `{}`) | Account roles to grant this database role to, per dbt target (e.g. `{'prod': ['ANALYST_ROLE'], 'test': ['ANALYST_ROLE']}`). Only the list for the *current* `target.name` is used; omit a target or use `[]` for "nothing to grant in this target". |
 | `applications` | dict of `{target_name: [application_name, ...]}` | No, omit entirely if unused | Snowflake Native Apps to grant this database role to directly (not via an account role), per dbt target. Same per-target lookup behavior as `roles`. |
+| `grant_objects` | list of dicts | No, omit entirely if unused | Explicit object-level privilege grants, run **after** `inherited` grants. Each entry: `{'object_type': '<TYPE>', 'objects': ['<SCHEMA.OBJECT>', ...], 'grant_types': ['<PRIV>', ...]}`. `object_type` must be a schema-level or schema-contained object type **within the current database** -- the delegated macro always qualifies `objects` entries as `target.database.<object>`, so it does not work for account-level object types (e.g. `WAREHOUSE`, `DATABASE`, `INTEGRATION`). This covers object types Snowflake doesn't support `INHERITED` grants for at all (e.g. `AGENT`, which is schema-contained but not eligible for inheritance). For `object_type: 'SCHEMA'`, `objects` entries are schema names alone (not further qualified). `objects` entries need the full `SCHEMA.NAME(ARG_TYPE, ...)` signature for `PROCEDURE`/`FUNCTION` (Snowflake allows overloads). Pre-checks existing grants, so it's a no-op to leave an already-granted entry in the payload. Granting access to an object does not grant `USAGE` on its parent schema -- the role still needs schema `USAGE` (via `inherited`, `grant_objects` with `object_type: 'SCHEMA'`, or a separate `grant_database_role_schema_privileges` call) to resolve into that schema at all. |
 | `revoke_inherited` | list of dicts | No, omit entirely if unused | Explicit inherited-privilege revokes, run **before** grants. Each entry: `{'object_type': '<TYPE>', 'permissions': ['<PRIV>', ...], 'include_schemas': [...] (optional), 'exclude_schemas': [...] (optional)}`. **Independent of the role's top-level `include_schemas`/`exclude_schemas`** -- omitting both on an entry scopes that revoke to the whole database, not the role's grant scope. This is deliberate: the main use case is cleaning up a role's *previous* (often broader) scope while narrowing it -- see the example below. |
 | `revoke_objects` | list of dicts | No, omit entirely if unused | Explicit object-level privilege revokes, run **before** grants. Each entry: `{'object_type': '<TYPE>', 'objects': ['<SCHEMA.OBJECT>', ...], 'grant_types': ['<PRIV>', ...]}`. `objects` entries need the full `SCHEMA.NAME(ARG_TYPE, ...)` signature for `PROCEDURE`/`FUNCTION` (Snowflake allows overloads). **Only removes a *direct* grant** -- see the inherited-grant caveat below. |
 
@@ -328,7 +336,11 @@ identifiers). Each value is a dict with the following keys:
     ],
     'include_schemas': ['DM'],
     'roles': {},
-    'applications': {'prod': ['MY_NATIVE_APP']}
+    'applications': {'prod': ['MY_NATIVE_APP']},
+    'grant_objects': [
+      {'object_type': 'SCHEMA', 'objects': ['CORTEX'], 'grant_types': ['USAGE']},
+      {'object_type': 'AGENT', 'objects': ['CORTEX.AGENT_OPERATIONS'], 'grant_types': ['USAGE']}
+    ]
   }
 } %}
 
@@ -356,10 +368,15 @@ new `include_schemas` (which would leave the stale whole-database grant in place
   both safe no-ops in Snowflake).
 - `roles`/`applications` dicts are keyed by dbt target name (`target.name`, e.g. `prod`, `test`, `dev`) --
   only the entry matching the currently-running target is used; there's no "all targets" wildcard key.
-- To grant a database role access to one specific object (not current+future via `inherited`), use
-  `grant_database_role_object(object_type, objects, grant_types, database_roles)` directly instead of adding
-  it to this payload -- `apply_database_roles` only has grant-side support for `inherited`/`roles`/
-  `applications`.
+- To grant a database role access to one specific object (not current+future via `inherited`), use the
+  `grant_objects` key (e.g. `{'object_type': 'AGENT', 'objects': ['CORTEX.MY_AGENT'], 'grant_types': ['USAGE']}`)
+  -- this is especially relevant for object types Snowflake doesn't support `INHERITED` grants for (e.g.
+  `AGENT`), where `inherited` isn't an option at all. Granting an object doesn't grant `USAGE` on its
+  parent schema -- add a `{'object_type': 'SCHEMA', 'objects': ['<SCHEMA>'], 'grant_types': ['USAGE']}`
+  `grant_objects` entry (or an `inherited` entry that reaches that schema) too, or the role still won't be
+  able to resolve into the schema to use the object (see `DB_ROLE_PUBLISHER`'s `CORTEX` schema grant
+  above). `grant_database_role_object(object_type, objects, grant_types, database_roles)` remains
+  available to call directly outside this payload too.
 - One-time migration/cleanup revokes for a role being narrowed in scope belong in that role's
   `revoke_inherited` list (see `DB_ROLE_READER` above) rather than a separate hand-written `REVOKE`
   statement -- they're safe to leave in the payload indefinitely.
@@ -383,15 +400,101 @@ new `include_schemas` (which would leave the stale whole-database grant in place
   names. Match the casing Snowflake actually uses (typically uppercase for unquoted identifiers) when
   listing schemas to exclude.
 - Snowflake's `GRANT`/`REVOKE` DDL has no multi-statement transactions, so a `revoke_inherited`/
-  `revoke_objects`/grant sequence for a role isn't atomic: if a later statement in the sequence fails (or
-  the run is interrupted), earlier statements in that same `apply_database_roles` call are not rolled back.
-  This also means two concurrent `apply_database_roles` calls for the *same* role (e.g. parallel CI runs)
-  can interleave and leave a mix of both configurations' privileges -- avoid running `apply_database_roles`
+  `revoke_objects`/`grant_objects`/grant sequence for a role isn't atomic: if a later statement in the
+  sequence fails (or the run is interrupted), earlier statements in that same `apply_database_roles` call
+  are not rolled back. This also means two concurrent `apply_database_roles` calls for the *same* role
+  (e.g. parallel CI runs) can interleave and leave a mix of both configurations' privileges -- including
+  a `grant_objects`/`revoke_objects` race where an older, stale invocation's `SHOW GRANTS` pre-check for an
+  object runs before a newer invocation's revoke, then that older invocation's `GRANT` runs after the
+  revoke completes, silently restoring the just-revoked privilege. Avoid running `apply_database_roles`
   for the same role from more than one place at a time. Re-running the *same* payload after an interrupted
   run is safe (every statement is idempotent, so it converges to that payload's intended state), but since
   this macro performs no reconciliation, re-running a *different* (e.g. narrower) payload does NOT revoke
   privileges a previous, different payload granted -- any no-longer-wanted grant from an old payload must
   be removed explicitly via `revoke_inherited`/`revoke_objects` in the new one.
+
+---
+
+## Snowflake Intelligence
+
+Macros for attaching/detaching Cortex Agents to a Snowflake Intelligence (CoWork) object via
+`ALTER SNOWFLAKE INTELLIGENCE <si_name> ADD|DROP AGENT <db>.<schema>.<agent>`.
+
+### add_snowflake_intelligence_agent / remove_snowflake_intelligence_agent
+
+**Basic usage**
+
+```jinja
+{{ dbt_dataengineers_utils.add_snowflake_intelligence_agent('SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT', ['CORTEX.AGENT_DOCS']) }}
+{{ dbt_dataengineers_utils.remove_snowflake_intelligence_agent('SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT', ['CORTEX.AGENT_DOCS']) }}
+```
+
+**Full example** -- attaching multiple agents (e.g. as a `run-operation` invoked from CI after an agent's
+definition changes), and detaching one that's being retired:
+
+```jinja
+{% macro sync_snowflake_intelligence_agents() %}
+  {% set si_name = 'SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT' %}
+
+  {{ dbt_dataengineers_utils.add_snowflake_intelligence_agent(si_name, [
+    'CORTEX.AGENT_DOCS',
+    'CORTEX.AGENT_OPERATIONS'
+  ]) }}
+
+  {{ dbt_dataengineers_utils.remove_snowflake_intelligence_agent(si_name, [
+    'CORTEX.AGENT_LEGACY_SUPPORT'
+  ]) }}
+{% endmacro %}
+```
+
+```bash
+dbt run-operation sync_snowflake_intelligence_agents
+```
+
+Each `agents` entry (`'CORTEX.AGENT_DOCS'`) is resolved against the current `target.database` --
+never hardcode the database name in the payload itself, so the same macro call attaches/detaches the
+right agent whether it runs against a `dev`, `test`, or `prod` target.
+
+| Argument | Type | Description |
+|---|---|---|
+| `si_name` | string | Name of the Snowflake Intelligence (CoWork) object (e.g. `SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT` -- an account typically has exactly one). An **account-level object**, never qualified with the target database. |
+| `agents` | list of strings | `'SCHEMA.AGENT_NAME'` entries identifying agents in the **current `target.database`**. Not pre-qualified with the database name -- `target.database` is prepended automatically (e.g. `'CORTEX.AGENT_DOCS'` becomes `<target.database>.CORTEX.AGENT_DOCS` in the generated SQL), so the agent reference is always built from the current dbt target rather than hardcoded. |
+
+**Semantics an API/codegen agent should rely on**
+
+- Unlike `GRANT`/`REVOKE`, `ALTER SNOWFLAKE INTELLIGENCE ... ADD|DROP AGENT` is **not idempotent** in
+  Snowflake: re-adding an already-attached agent raises `<agent> is already present in <si_name>`, and
+  dropping an agent that isn't attached raises `<agent> was not found in <si_name>` (both confirmed live).
+  Both macros check `SHOW AGENTS IN SNOWFLAKE INTELLIGENCE <si_name>` first and only issue a statement for
+  agents whose attachment state actually needs to change -- safe to call with the same `agents` list on
+  every run. A duplicate entry within the same `agents` list (including a differently-cased duplicate) is
+  also deduplicated rather than queued twice, since the first statement would otherwise change the
+  account's actual attachment state before the second, duplicate statement runs and hits the same error.
+- A Snowflake account typically has exactly one Snowflake Intelligence object (`SHOW SNOWFLAKE
+  INTELLIGENCES;` to find its name) -- it is shared, account-level, mutable state, not a per-environment
+  scratch object. Treat changes to it with the same care as any other shared production object; avoid
+  attaching/detaching agents from more than one place at a time to avoid races similar to the ones noted
+  for `apply_database_roles` above.
+- `agents` entries only need `SCHEMA.AGENT_NAME` -- do not include the database name, even though the
+  underlying `ALTER` statement requires a fully-qualified `db.schema.agent` reference; these macros build
+  that reference from `target.database` for you.
+
+**Known limitations** (shared with the rest of this package's grant macros, not specific to these two):
+- No identifier quoting, escaping, or allow-list validation is applied to `si_name`/`agents` values before
+  they're interpolated into generated SQL -- consistent with every other macro in this package. Treat
+  these arguments as trusted, project-authored infrastructure-as-code input, not as a surface for
+  untrusted/external input.
+- Each `agents` entry is compared against Snowflake's `SHOW AGENTS IN SNOWFLAKE INTELLIGENCE` output by
+  uppercasing both sides; this does not correctly handle a quoted, case-sensitive identifier (e.g.
+  `'"MySchema"."MyAgent"'`) -- unquoted, uppercase-normalized identifiers are assumed, matching this
+  package's existing convention for object/schema names elsewhere.
+- Snowflake's `ALTER SNOWFLAKE INTELLIGENCE` DDL has no multi-statement transactions: if a multi-agent
+  `agents` list's statements fail partway through (or the run is interrupted), earlier attachments/
+  detachments in that same call are not rolled back, leaving a partially-applied membership state until
+  the same call is retried. Concurrent `add_snowflake_intelligence_agent`/`remove_snowflake_intelligence_agent`
+  calls for the same Snowflake Intelligence object can also race (each makes its attach/detach decisions
+  from its own `SHOW AGENTS` snapshot), the same class of race already documented for `apply_database_roles`
+  above.
 
 ---
 

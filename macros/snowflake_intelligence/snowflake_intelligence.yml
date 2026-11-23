@@ -1,0 +1,38 @@
+version: 2
+
+macros:
+  - name: add_snowflake_intelligence_agent
+    description: |
+      Attaches one or more Cortex Agents to a Snowflake Intelligence (CoWork) object via
+      `ALTER SNOWFLAKE INTELLIGENCE <si_name> ADD AGENT <db>.<schema>.<agent>`. Not idempotent in
+      Snowflake (re-adding an already-attached agent raises an error), so this macro checks
+      `SHOW AGENTS IN SNOWFLAKE INTELLIGENCE <si_name>` first and only issues ADD statements for agents
+      that aren't already attached. Duplicate entries within `agents` (including case-variant duplicates)
+      are deduplicated so the same ADD is never queued twice.
+    docs:
+      show: true
+    arguments:
+      - name: si_name
+        type: string
+        description: Name of the Snowflake Intelligence (CoWork) object to modify (e.g. SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT). An account-level object, never qualified with the target database.
+      - name: agents
+        type: List[string]
+        description: List of 'SCHEMA.AGENT_NAME' strings identifying agents in the current target database to attach. Not pre-qualified with the database name -- target.database is prepended automatically.
+
+  - name: remove_snowflake_intelligence_agent
+    description: |
+      Detaches one or more Cortex Agents from a Snowflake Intelligence (CoWork) object via
+      `ALTER SNOWFLAKE INTELLIGENCE <si_name> DROP AGENT <db>.<schema>.<agent>`. Not idempotent in
+      Snowflake (dropping an agent that isn't currently attached raises an error), so this macro checks
+      `SHOW AGENTS IN SNOWFLAKE INTELLIGENCE <si_name>` first and only issues DROP statements for agents
+      currently attached. Duplicate entries within `agents` (including case-variant duplicates) are
+      deduplicated so the same DROP is never queued twice.
+    docs:
+      show: true
+    arguments:
+      - name: si_name
+        type: string
+        description: Name of the Snowflake Intelligence (CoWork) object to modify. An account-level object, never qualified with the target database.
+      - name: agents
+        type: List[string]
+        description: List of 'SCHEMA.AGENT_NAME' strings identifying agents in the current target database to detach. Not pre-qualified with the database name -- target.database is prepended automatically.

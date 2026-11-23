@@ -674,11 +674,11 @@ macros:
     description: |
       Orchestrates full database role setup from a single declarative payload, keyed by database role
       name: creates each database role, revokes anything explicitly marked for removal, applies its
-      configured inherited (current + future) privilege grants, and maps it to the account roles and/or
-      applications configured for the current target. Delegates to create_database_role,
-      revoke_database_role_inherited_privileges, revoke_database_role_object,
-      grant_database_role_inherited_privileges, grant_database_role_to_role, and
-      grant_database_role_to_application. revoke_inherited/revoke_objects are explicit-only, not automatic
+      configured inherited (current + future) privilege grants and explicit object-level grants, and maps
+      it to the account roles and/or applications configured for the current target. Delegates to
+      create_database_role, revoke_database_role_inherited_privileges, revoke_database_role_object,
+      grant_database_role_inherited_privileges, grant_database_role_object, grant_database_role_to_role,
+      and grant_database_role_to_application. revoke_inherited/revoke_objects are explicit-only, not automatic
       reconciliation -- Snowflake has no reliable way to pre-check a database role's existing inherited
       grants, so nothing not declared in the payload is ever auto-revoked.
     docs:
@@ -691,8 +691,11 @@ macros:
           {object_type, permissions} dicts), include_schemas (list, optional), exclude_schemas (list,
           optional, ignored if include_schemas is set), roles (dict of target name -> list of account role
           names, optional), applications (dict of target name -> list of application names, optional),
-          revoke_inherited (optional list of {object_type, permissions, include_schemas, exclude_schemas}
-          dicts to explicitly revoke -- independent of the role's own top-level include_schemas/
-          exclude_schemas; omitting both on an entry scopes that revoke to the whole database),
-          revoke_objects (optional list of {object_type, objects, grant_types} dicts to explicitly revoke)
+          grant_objects (optional list of {object_type, objects, grant_types} dicts to explicitly grant a
+          privilege on specific objects, e.g. a single AGENT/PROCEDURE/FUNCTION/TABLE -- run after
+          inherited grants), revoke_inherited (optional list of {object_type, permissions, include_schemas,
+          exclude_schemas} dicts to explicitly revoke -- independent of the role's own top-level
+          include_schemas/exclude_schemas; omitting both on an entry scopes that revoke to the whole
+          database), revoke_objects (optional list of {object_type, objects, grant_types} dicts to
+          explicitly revoke)
 

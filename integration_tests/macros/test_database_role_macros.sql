@@ -15,7 +15,8 @@
     - grant_database_role_to_role
     - apply_database_roles, using only SCHEMA-type `inherited`/`revoke_inherited` entries with
       `include_schemas` set (that combination is documented to route to a direct schema-level grant/revoke,
-      not INHERITED, since a schema can't contain other schemas), plus `revoke_objects` and `roles` mapping.
+      not INHERITED, since a schema can't contain other schemas), plus `revoke_objects`, `grant_objects`,
+      and `roles` mapping.
   grant_database_role_to_application and the true GRANT/REVOKE INHERITED code paths are not covered here --
   the former needs a real installed Native App, the latter needs a Snowflake edition/account with inherited
   grants enabled. Both are exercised only via `dbt parse`/`dbt compile` (see dbt-verify), not live execution.
@@ -231,6 +232,27 @@
             {% do failures.append('Test 6b-revoke-objects FAILED: apply_database_roles did not revoke SELECT on ' ~ target_object ~ ' from ' ~ role_b ~ ' via the revoke_objects payload key') %}
         {% else %}
             {% do log('Test 6b-revoke-objects PASSED: apply_database_roles revoked SELECT on ' ~ target_object ~ ' via the revoke_objects payload key', info=True) %}
+        {% endif %}
+
+        {# ── Test 6d: grant_objects. Run as a separate apply_database_roles call, after the
+           revoke_objects call above has already been verified, so this grant can't mask a
+           revoke_objects regression (both act on the same object/privilege). #}
+        {{ dbt_dataengineers_utils.apply_database_roles({
+            role_b: {'grant_objects': [
+                {'object_type': 'VIEW', 'objects': [target_object], 'grant_types': ['SELECT']}
+            ]}
+        }) }}
+        {% set apply_grant_objects_rows = run_query('show grants on view ' ~ target.database ~ '.' ~ target_object ~ ';') %}
+        {% set t6d = namespace(has_object_select=false) %}
+        {% for row in apply_grant_objects_rows %}
+            {% if row.privilege == 'SELECT' and row.granted_to == 'DATABASE_ROLE' and row.grantee_name == role_b %}
+                {% set t6d.has_object_select = true %}
+            {% endif %}
+        {% endfor %}
+        {% if not t6d.has_object_select %}
+            {% do failures.append('Test 6d FAILED: apply_database_roles did not grant SELECT on ' ~ target_object ~ ' to ' ~ role_b ~ ' via the grant_objects payload key') %}
+        {% else %}
+            {% do log('Test 6d PASSED: apply_database_roles granted SELECT on ' ~ target_object ~ ' via the grant_objects payload key', info=True) %}
         {% endif %}
     {% endif %}
 
