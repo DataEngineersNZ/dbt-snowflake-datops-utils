@@ -1,7 +1,7 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
-## v1.5.1 - 2026-11-23 - apply_database_roles grant_objects
+## v1.6.0 - 2026-11-23 - apply_database_roles grant_objects
 
 ### Added
 - Added a `grant_objects` key to `apply_database_roles(database_roles)`'s per-role payload (`macros/grants/apply_database_roles.sql`): an optional list of `{object_type, objects, grant_types}` dicts, run after `inherited` grants, delegating to `grant_database_role_object`. Lets a payload grant a database role direct access to a specific object -- in particular, object types Snowflake doesn't support `INHERITED` grants for at all (e.g. `AGENT`), where `inherited` was never an option. Mirrors the existing `revoke_objects` key's shape and is additive/backward-compatible: omitting `grant_objects` entirely is a no-op.
