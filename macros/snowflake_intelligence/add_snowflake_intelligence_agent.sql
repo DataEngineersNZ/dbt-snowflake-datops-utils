@@ -3,7 +3,11 @@
        ALTER SNOWFLAKE INTELLIGENCE <si_name> ADD AGENT <db>.<schema>.<agent>. Unlike GRANT, this is NOT
        idempotent in Snowflake -- re-adding an already-attached agent raises "<agent> is already present
        in <si_name>" (confirmed live), so existing attachments are checked first via SHOW AGENTS IN
-       SNOWFLAKE INTELLIGENCE and only agents not already attached are added.
+       SNOWFLAKE INTELLIGENCE and only agents not already attached are added. A duplicate entry within
+       `agents` itself (including a case-variant of one already queued) is also skipped rather than
+       queued twice -- queuing the same ADD statement twice would hit the same "already present" error
+       on the second statement, since the first ADD changes the account's actual attachment state before
+       the second one runs.
 
        `agents` is a list of 'SCHEMA.AGENT_NAME' strings identifying agents in the current
        target.database (mirroring grant_database_role_object's `objects` convention) -- not pre-qualified
@@ -34,12 +38,17 @@
     {% endfor %}
 
     {% set add_statements = [] %}
+    {% set queued = [] %}
     {% for agent in agents %}
         {% set fqn = target.database ~ '.' ~ agent %}
-        {% if (fqn | upper) in existing_agents %}
+        {% set fqn_upper = fqn | upper %}
+        {% if fqn_upper in existing_agents %}
             {% do log('add_snowflake_intelligence_agent: ' ~ fqn ~ ' already attached to ' ~ si_name ~ ', skipping', info=True) %}
+        {% elif fqn_upper in queued %}
+            {% do log('add_snowflake_intelligence_agent: ' ~ fqn ~ ' already queued to attach to ' ~ si_name ~ ', skipping duplicate', info=True) %}
         {% else %}
             {% do add_statements.append('alter snowflake intelligence ' ~ si_name ~ ' add agent ' ~ fqn ~ ';') %}
+            {% do queued.append(fqn_upper) %}
         {% endif %}
     {% endfor %}
 

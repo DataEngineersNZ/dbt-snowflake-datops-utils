@@ -3,7 +3,10 @@
        ALTER SNOWFLAKE INTELLIGENCE <si_name> DROP AGENT <db>.<schema>.<agent>. Unlike REVOKE, this is NOT
        idempotent in Snowflake -- dropping an agent that isn't currently attached raises "<agent> was not
        found in <si_name>" (confirmed live), so current attachments are checked first via SHOW AGENTS IN
-       SNOWFLAKE INTELLIGENCE and only agents currently attached are dropped.
+       SNOWFLAKE INTELLIGENCE and only agents currently attached are dropped. A duplicate entry within
+       `agents` itself (including a case-variant of one already queued) is also skipped rather than
+       queued twice -- the first DROP changes the account's actual attachment state before the second
+       one runs, so queuing the same DROP statement twice would hit the same "not found" error.
 
        `agents` is a list of 'SCHEMA.AGENT_NAME' strings, same convention as
        add_snowflake_intelligence_agent. `si_name` is the bare name of the Snowflake Intelligence object
@@ -32,10 +35,15 @@
     {% endfor %}
 
     {% set drop_statements = [] %}
+    {% set queued = [] %}
     {% for agent in agents %}
         {% set fqn = target.database ~ '.' ~ agent %}
-        {% if (fqn | upper) in existing_agents %}
+        {% set fqn_upper = fqn | upper %}
+        {% if fqn_upper in existing_agents and fqn_upper not in queued %}
             {% do drop_statements.append('alter snowflake intelligence ' ~ si_name ~ ' drop agent ' ~ fqn ~ ';') %}
+            {% do queued.append(fqn_upper) %}
+        {% elif fqn_upper in queued %}
+            {% do log('remove_snowflake_intelligence_agent: ' ~ fqn ~ ' already queued to detach from ' ~ si_name ~ ', skipping duplicate', info=True) %}
         {% else %}
             {% do log('remove_snowflake_intelligence_agent: ' ~ fqn ~ ' not attached to ' ~ si_name ~ ', skipping', info=True) %}
         {% endif %}

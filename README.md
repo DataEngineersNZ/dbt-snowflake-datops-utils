@@ -467,7 +467,9 @@ right agent whether it runs against a `dev`, `test`, or `prod` target.
   dropping an agent that isn't attached raises `<agent> was not found in <si_name>` (both confirmed live).
   Both macros check `SHOW AGENTS IN SNOWFLAKE INTELLIGENCE <si_name>` first and only issue a statement for
   agents whose attachment state actually needs to change -- safe to call with the same `agents` list on
-  every run.
+  every run. A duplicate entry within the same `agents` list (including a differently-cased duplicate) is
+  also deduplicated rather than queued twice, since the first statement would otherwise change the
+  account's actual attachment state before the second, duplicate statement runs and hits the same error.
 - A Snowflake account typically has exactly one Snowflake Intelligence object (`SHOW SNOWFLAKE
   INTELLIGENCES;` to find its name) -- it is shared, account-level, mutable state, not a per-environment
   scratch object. Treat changes to it with the same care as any other shared production object; avoid
@@ -476,6 +478,23 @@ right agent whether it runs against a `dev`, `test`, or `prod` target.
 - `agents` entries only need `SCHEMA.AGENT_NAME` -- do not include the database name, even though the
   underlying `ALTER` statement requires a fully-qualified `db.schema.agent` reference; these macros build
   that reference from `target.database` for you.
+
+**Known limitations** (shared with the rest of this package's grant macros, not specific to these two):
+- No identifier quoting, escaping, or allow-list validation is applied to `si_name`/`agents` values before
+  they're interpolated into generated SQL -- consistent with every other macro in this package. Treat
+  these arguments as trusted, project-authored infrastructure-as-code input, not as a surface for
+  untrusted/external input.
+- Each `agents` entry is compared against Snowflake's `SHOW AGENTS IN SNOWFLAKE INTELLIGENCE` output by
+  uppercasing both sides; this does not correctly handle a quoted, case-sensitive identifier (e.g.
+  `'"MySchema"."MyAgent"'`) -- unquoted, uppercase-normalized identifiers are assumed, matching this
+  package's existing convention for object/schema names elsewhere.
+- Snowflake's `ALTER SNOWFLAKE INTELLIGENCE` DDL has no multi-statement transactions: if a multi-agent
+  `agents` list's statements fail partway through (or the run is interrupted), earlier attachments/
+  detachments in that same call are not rolled back, leaving a partially-applied membership state until
+  the same call is retried. Concurrent `add_snowflake_intelligence_agent`/`remove_snowflake_intelligence_agent`
+  calls for the same Snowflake Intelligence object can also race (each makes its attach/detach decisions
+  from its own `SHOW AGENTS` snapshot), the same class of race already documented for `apply_database_roles`
+  above.
 
 ---
 

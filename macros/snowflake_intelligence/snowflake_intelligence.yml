@@ -7,7 +7,8 @@ macros:
       `ALTER SNOWFLAKE INTELLIGENCE <si_name> ADD AGENT <db>.<schema>.<agent>`. Not idempotent in
       Snowflake (re-adding an already-attached agent raises an error), so this macro checks
       `SHOW AGENTS IN SNOWFLAKE INTELLIGENCE <si_name>` first and only issues ADD statements for agents
-      that aren't already attached.
+      that aren't already attached. Duplicate entries within `agents` (including case-variant duplicates)
+      are deduplicated so the same ADD is never queued twice.
     docs:
       show: true
     arguments:
@@ -24,7 +25,8 @@ macros:
       `ALTER SNOWFLAKE INTELLIGENCE <si_name> DROP AGENT <db>.<schema>.<agent>`. Not idempotent in
       Snowflake (dropping an agent that isn't currently attached raises an error), so this macro checks
       `SHOW AGENTS IN SNOWFLAKE INTELLIGENCE <si_name>` first and only issues DROP statements for agents
-      currently attached.
+      currently attached. Duplicate entries within `agents` (including case-variant duplicates) are
+      deduplicated so the same DROP is never queued twice.
     docs:
       show: true
     arguments:
