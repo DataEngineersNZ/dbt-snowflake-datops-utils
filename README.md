@@ -2,7 +2,7 @@
 
 A macro-only [dbt](https://github.com/dbt-labs/dbt) package for Snowflake DataOps. Provides utilities for object lifecycle management, RBAC grant orchestration, dimensional modelling helpers, tagging, shares, and more.
 
-- **Version**: 1.5.0
+- **Version**: 1.6.0
 - **dbt**: `>=1.9.4, <3.0.0`
 - **Dependencies**: None (zero external package dependencies)
 - **dbt Fusion**: Compatible
@@ -16,7 +16,7 @@ Add the following to your `packages.yml`:
 ```yaml
 packages:
   - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-utils.git
-    revision: "1.5.0"
+    revision: "1.6.0"
 ```
 
 Then run `dbt deps`.
@@ -196,6 +196,13 @@ The following `vars` can be set in your `dbt_project.yml` or via `--vars` on the
 |---|---|
 | `create_share(share_name, accounts, environments)` | Create/update a Snowflake share and grant usage to accounts |
 | `create_internal_share(share_name, reference_databases, environments)` | Create/update a share with unsecured objects and reference usage on additional databases |
+
+### snowflake_intelligence
+
+| Macro | Description |
+|---|---|
+| `add_snowflake_intelligence_agent(si_name, agents)` | Attach one or more Cortex Agents to a Snowflake Intelligence (CoWork) object |
+| `remove_snowflake_intelligence_agent(si_name, agents)` | Detach one or more Cortex Agents from a Snowflake Intelligence (CoWork) object |
 
 ### tags
 
@@ -392,6 +399,70 @@ new `include_schemas` (which would leave the stale whole-database grant in place
   this macro performs no reconciliation, re-running a *different* (e.g. narrower) payload does NOT revoke
   privileges a previous, different payload granted -- any no-longer-wanted grant from an old payload must
   be removed explicitly via `revoke_inherited`/`revoke_objects` in the new one.
+
+---
+
+## Snowflake Intelligence
+
+Macros for attaching/detaching Cortex Agents to a Snowflake Intelligence (CoWork) object via
+`ALTER SNOWFLAKE INTELLIGENCE <si_name> ADD|DROP AGENT <db>.<schema>.<agent>`.
+
+### add_snowflake_intelligence_agent / remove_snowflake_intelligence_agent
+
+**Basic usage**
+
+```jinja
+{{ dbt_dataengineers_utils.add_snowflake_intelligence_agent('SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT', ['CORTEX.AGENT_YAG_DOCS']) }}
+{{ dbt_dataengineers_utils.remove_snowflake_intelligence_agent('SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT', ['CORTEX.AGENT_YAG_DOCS']) }}
+```
+
+**Full example** -- attaching multiple agents (e.g. as a `run-operation` invoked from CI after an agent's
+definition changes), and detaching one that's being retired:
+
+```jinja
+{% macro sync_snowflake_intelligence_agents() %}
+  {% set si_name = 'SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT' %}
+
+  {{ dbt_dataengineers_utils.add_snowflake_intelligence_agent(si_name, [
+    'CORTEX.AGENT_YAG_DOCS',
+    'CORTEX.AGENT_YAG_OPERATIONS'
+  ]) }}
+
+  {{ dbt_dataengineers_utils.remove_snowflake_intelligence_agent(si_name, [
+    'CORTEX.AGENT_YAG_LEGACY_SUPPORT'
+  ]) }}
+{% endmacro %}
+```
+
+```bash
+dbt run-operation sync_snowflake_intelligence_agents
+```
+
+Each `agents` entry (`'CORTEX.AGENT_YAG_DOCS'`) is resolved against the current `target.database` --
+never hardcode the database name in the payload itself, so the same macro call attaches/detaches the
+right agent whether it runs against a `dev`, `test`, or `prod` target.
+
+| Argument | Type | Description |
+|---|---|---|
+| `si_name` | string | Name of the Snowflake Intelligence (CoWork) object (e.g. `SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT` -- an account typically has exactly one). An **account-level object**, never qualified with the target database. |
+| `agents` | list of strings | `'SCHEMA.AGENT_NAME'` entries identifying agents in the **current `target.database`**. Not pre-qualified with the database name -- `target.database` is prepended automatically (e.g. `'CORTEX.AGENT_YAG_DOCS'` becomes `<target.database>.CORTEX.AGENT_YAG_DOCS` in the generated SQL), so the agent reference is always built from the current dbt target rather than hardcoded. |
+
+**Semantics an API/codegen agent should rely on**
+
+- Unlike `GRANT`/`REVOKE`, `ALTER SNOWFLAKE INTELLIGENCE ... ADD|DROP AGENT` is **not idempotent** in
+  Snowflake: re-adding an already-attached agent raises `<agent> is already present in <si_name>`, and
+  dropping an agent that isn't attached raises `<agent> was not found in <si_name>` (both confirmed live).
+  Both macros check `SHOW AGENTS IN SNOWFLAKE INTELLIGENCE <si_name>` first and only issue a statement for
+  agents whose attachment state actually needs to change -- safe to call with the same `agents` list on
+  every run.
+- A Snowflake account typically has exactly one Snowflake Intelligence object (`SHOW SNOWFLAKE
+  INTELLIGENCES;` to find its name) -- it is shared, account-level, mutable state, not a per-environment
+  scratch object. Treat changes to it with the same care as any other shared production object; avoid
+  attaching/detaching agents from more than one place at a time to avoid races similar to the ones noted
+  for `apply_database_roles` above.
+- `agents` entries only need `SCHEMA.AGENT_NAME` -- do not include the database name, even though the
+  underlying `ALTER` statement requires a fully-qualified `db.schema.agent` reference; these macros build
+  that reference from `target.database` for you.
 
 ---
 

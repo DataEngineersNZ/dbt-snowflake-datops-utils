@@ -1,6 +1,11 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v1.6.0 - 2026-11-23 - snowflake_intelligence agent attach/detach
+
+### Added
+- Added `add_snowflake_intelligence_agent(si_name, agents)` and `remove_snowflake_intelligence_agent(si_name, agents)` macros (new `macros/snowflake_intelligence/` directory): attach/detach one or more Cortex Agents to/from a Snowflake Intelligence (CoWork) object via `ALTER SNOWFLAKE INTELLIGENCE <si_name> ADD|DROP AGENT <db>.<schema>.<agent>`. Unlike `GRANT`/`REVOKE`, this `ALTER` is **not idempotent** in Snowflake (re-adding an already-attached agent, or dropping one that isn't attached, raises an error -- confirmed live), so both macros check `SHOW AGENTS IN SNOWFLAKE INTELLIGENCE <si_name>` first and only issue a statement for agents whose attachment state actually needs to change. `agents` entries are `'SCHEMA.AGENT_NAME'` strings resolved against the current `target.database` (never hardcoded), matching this package's existing `grant_database_role_object`-style convention.
+
 ## v1.5.0 - 2026-11-20 - apply_database_roles, database-role revokes
 
 ### Added
