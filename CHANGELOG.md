@@ -1,6 +1,10 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v1.7.0 - 2026-11-25 - package move to dbt_monitorial_snowflake_cortex
+
+- Removed `add_snowflake_intelligence_agent(si_name, agents)` and `remove_snowflake_intelligence_agent(si_name, agents)` macros from this package and moved them into the dbt package `dbt_monitorial_snowflake_cortex`
+
 ## v1.6.0 - 2026-11-23 - apply_database_roles grant_objects, snowflake_intelligence agent attach/detach
 
 ### Added

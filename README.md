@@ -197,13 +197,6 @@ The following `vars` can be set in your `dbt_project.yml` or via `--vars` on the
 | `create_share(share_name, accounts, environments)` | Create/update a Snowflake share and grant usage to accounts |
 | `create_internal_share(share_name, reference_databases, environments)` | Create/update a share with unsecured objects and reference usage on additional databases |
 
-### snowflake_intelligence
-
-| Macro | Description |
-|---|---|
-| `add_snowflake_intelligence_agent(si_name, agents)` | Attach one or more Cortex Agents to a Snowflake Intelligence (CoWork) object |
-| `remove_snowflake_intelligence_agent(si_name, agents)` | Detach one or more Cortex Agents from a Snowflake Intelligence (CoWork) object |
-
 ### tags
 
 | Macro | Description |
