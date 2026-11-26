@@ -1,6 +1,17 @@
 # Data Engineers Snowflake DataOps Utils Project Changelog
 This file contains the changelog for the Data Engineers Snowflake DataOps Utils project, detailing updates, fixes, and enhancements made to the project over time.
 
+## v2.0.0 - 2026-11-25 - package move to dbt_monitorial_snowflake_cortex
+
+### Added
+- Added `integration_tests/macros/test_is_docs_generate_invocation.sql`: a pure-logic `run-operation` test covering `is_docs_generate_invocation` against dbt-core and dbt Fusion invocation patterns, including the adversarial `--vars`/`--select` false-positive cases below.
+
+### Changed
+- Removed `add_snowflake_intelligence_agent(si_name, agents)` and `remove_snowflake_intelligence_agent(si_name, agents)` macros from this package and moved them into the dbt package `dbt_monitorial_snowflake_cortex`. This is a breaking change for consumers of those macros.
+
+### Fixed
+- Fixed macros `depends_on_ref` and `depends_on_source` for dbt 2.x (Fusion) compatibility when generating docs: under dbt Fusion, `flags.WHICH` reports `compile` for both `dbt compile` and `dbt docs generate`, so `flags.WHICH` alone can't distinguish them. Both macros now delegate to a new internal helper macro, `is_docs_generate_invocation(which, invocation_command)` (`macros/dependancies/is_docs_generate_invocation.sql`), which checks whether the leading run of non-flag tokens in `invocation_args_dict.invocation_command` ends in `docs generate` -- not anchored to a specific `dbt`/`dbt.exe` executable name (which can't be assumed stable across the CLI, `snow dbt execute`, or a managed execution environment like dbt Projects on Snowflake), and not a substring search across the whole command line, which could false-positive on something like `--vars '{"note":"docs generate"}'`. The `run` branch explicitly excludes docs-generation to avoid firing both directions of the dependency edge at once.
+
 ## v1.6.0 - 2026-11-23 - apply_database_roles grant_objects, snowflake_intelligence agent attach/detach
 
 ### Added

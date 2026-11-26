@@ -101,6 +101,7 @@ jobs:
         working-directory: integration_tests
         run: |
           dbt run-operation test_has_matching_nodes
+          dbt run-operation test_is_docs_generate_invocation
           dbt run-operation test_grants_helpers
           dbt run-operation test_grants_idempotency
           dbt run-operation test_clean_macros

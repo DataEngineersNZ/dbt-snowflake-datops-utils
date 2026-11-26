@@ -30,3 +30,19 @@ macros:
       - name: include_database
         type: boolean
         description: specify if the database name should be included
+
+  - name: is_docs_generate_invocation
+    description: |
+      Internal helper used by depends_on_ref/depends_on_source to detect whether the current dbt
+      invocation is `dbt docs generate`. flags.WHICH alone is unreliable for this on dbt Fusion, where
+      it reports 'compile' for both `dbt compile` and `dbt docs generate`; this macro also parses the
+      actual subcommand positionally out of the raw invocation command line as a second signal.
+    docs:
+      show: false
+    arguments:
+      - name: which
+        type: string
+        description: the current flags.WHICH value
+      - name: invocation_command
+        type: string
+        description: the raw dbt invocation command line (invocation_args_dict.invocation_command)

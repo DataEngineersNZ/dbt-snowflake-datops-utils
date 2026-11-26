@@ -2,7 +2,7 @@
 
 A macro-only [dbt](https://github.com/dbt-labs/dbt) package for Snowflake DataOps. Provides utilities for object lifecycle management, RBAC grant orchestration, dimensional modelling helpers, tagging, shares, and more.
 
-- **Version**: 1.6.0
+- **Version**: 2.0.0
 - **dbt**: `>=1.9.4, <3.0.0`
 - **Dependencies**: None (zero external package dependencies)
 - **dbt Fusion**: Compatible
@@ -16,7 +16,7 @@ Add the following to your `packages.yml`:
 ```yaml
 packages:
   - git: https://github.com/DataEngineersNZ/dbt-snowflake-datops-utils.git
-    revision: "1.6.0"
+    revision: "2.0.0"
 ```
 
 Then run `dbt deps`.
@@ -196,13 +196,6 @@ The following `vars` can be set in your `dbt_project.yml` or via `--vars` on the
 |---|---|
 | `create_share(share_name, accounts, environments)` | Create/update a Snowflake share and grant usage to accounts |
 | `create_internal_share(share_name, reference_databases, environments)` | Create/update a share with unsecured objects and reference usage on additional databases |
-
-### snowflake_intelligence
-
-| Macro | Description |
-|---|---|
-| `add_snowflake_intelligence_agent(si_name, agents)` | Attach one or more Cortex Agents to a Snowflake Intelligence (CoWork) object |
-| `remove_snowflake_intelligence_agent(si_name, agents)` | Detach one or more Cortex Agents from a Snowflake Intelligence (CoWork) object |
 
 ### tags
 
@@ -417,84 +410,9 @@ new `include_schemas` (which would leave the stale whole-database grant in place
 
 ## Snowflake Intelligence
 
-Macros for attaching/detaching Cortex Agents to a Snowflake Intelligence (CoWork) object via
-`ALTER SNOWFLAKE INTELLIGENCE <si_name> ADD|DROP AGENT <db>.<schema>.<agent>`.
-
-### add_snowflake_intelligence_agent / remove_snowflake_intelligence_agent
-
-**Basic usage**
-
-```jinja
-{{ dbt_dataengineers_utils.add_snowflake_intelligence_agent('SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT', ['CORTEX.AGENT_DOCS']) }}
-{{ dbt_dataengineers_utils.remove_snowflake_intelligence_agent('SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT', ['CORTEX.AGENT_DOCS']) }}
-```
-
-**Full example** -- attaching multiple agents (e.g. as a `run-operation` invoked from CI after an agent's
-definition changes), and detaching one that's being retired:
-
-```jinja
-{% macro sync_snowflake_intelligence_agents() %}
-  {% set si_name = 'SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT' %}
-
-  {{ dbt_dataengineers_utils.add_snowflake_intelligence_agent(si_name, [
-    'CORTEX.AGENT_DOCS',
-    'CORTEX.AGENT_OPERATIONS'
-  ]) }}
-
-  {{ dbt_dataengineers_utils.remove_snowflake_intelligence_agent(si_name, [
-    'CORTEX.AGENT_LEGACY_SUPPORT'
-  ]) }}
-{% endmacro %}
-```
-
-```bash
-dbt run-operation sync_snowflake_intelligence_agents
-```
-
-Each `agents` entry (`'CORTEX.AGENT_DOCS'`) is resolved against the current `target.database` --
-never hardcode the database name in the payload itself, so the same macro call attaches/detaches the
-right agent whether it runs against a `dev`, `test`, or `prod` target.
-
-| Argument | Type | Description |
-|---|---|---|
-| `si_name` | string | Name of the Snowflake Intelligence (CoWork) object (e.g. `SNOWFLAKE_INTELLIGENCE_OBJECT_DEFAULT` -- an account typically has exactly one). An **account-level object**, never qualified with the target database. |
-| `agents` | list of strings | `'SCHEMA.AGENT_NAME'` entries identifying agents in the **current `target.database`**. Not pre-qualified with the database name -- `target.database` is prepended automatically (e.g. `'CORTEX.AGENT_DOCS'` becomes `<target.database>.CORTEX.AGENT_DOCS` in the generated SQL), so the agent reference is always built from the current dbt target rather than hardcoded. |
-
-**Semantics an API/codegen agent should rely on**
-
-- Unlike `GRANT`/`REVOKE`, `ALTER SNOWFLAKE INTELLIGENCE ... ADD|DROP AGENT` is **not idempotent** in
-  Snowflake: re-adding an already-attached agent raises `<agent> is already present in <si_name>`, and
-  dropping an agent that isn't attached raises `<agent> was not found in <si_name>` (both confirmed live).
-  Both macros check `SHOW AGENTS IN SNOWFLAKE INTELLIGENCE <si_name>` first and only issue a statement for
-  agents whose attachment state actually needs to change -- safe to call with the same `agents` list on
-  every run. A duplicate entry within the same `agents` list (including a differently-cased duplicate) is
-  also deduplicated rather than queued twice, since the first statement would otherwise change the
-  account's actual attachment state before the second, duplicate statement runs and hits the same error.
-- A Snowflake account typically has exactly one Snowflake Intelligence object (`SHOW SNOWFLAKE
-  INTELLIGENCES;` to find its name) -- it is shared, account-level, mutable state, not a per-environment
-  scratch object. Treat changes to it with the same care as any other shared production object; avoid
-  attaching/detaching agents from more than one place at a time to avoid races similar to the ones noted
-  for `apply_database_roles` above.
-- `agents` entries only need `SCHEMA.AGENT_NAME` -- do not include the database name, even though the
-  underlying `ALTER` statement requires a fully-qualified `db.schema.agent` reference; these macros build
-  that reference from `target.database` for you.
-
-**Known limitations** (shared with the rest of this package's grant macros, not specific to these two):
-- No identifier quoting, escaping, or allow-list validation is applied to `si_name`/`agents` values before
-  they're interpolated into generated SQL -- consistent with every other macro in this package. Treat
-  these arguments as trusted, project-authored infrastructure-as-code input, not as a surface for
-  untrusted/external input.
-- Each `agents` entry is compared against Snowflake's `SHOW AGENTS IN SNOWFLAKE INTELLIGENCE` output by
-  uppercasing both sides; this does not correctly handle a quoted, case-sensitive identifier (e.g.
-  `'"MySchema"."MyAgent"'`) -- unquoted, uppercase-normalized identifiers are assumed, matching this
-  package's existing convention for object/schema names elsewhere.
-- Snowflake's `ALTER SNOWFLAKE INTELLIGENCE` DDL has no multi-statement transactions: if a multi-agent
-  `agents` list's statements fail partway through (or the run is interrupted), earlier attachments/
-  detachments in that same call are not rolled back, leaving a partially-applied membership state until
-  the same call is retried. Concurrent `add_snowflake_intelligence_agent`/`remove_snowflake_intelligence_agent`
-  calls for the same Snowflake Intelligence object can also race (each makes its attach/detach decisions
-  from its own `SHOW AGENTS` snapshot), the same class of race already documented for `apply_database_roles`
-  above.
+The `add_snowflake_intelligence_agent`/`remove_snowflake_intelligence_agent` macros have moved to the
+`dbt_monitorial_snowflake_cortex` package as of v2.0.0. Install that package and call the macros from
+there instead; they are no longer defined in this package.
 
 ---
 
@@ -648,6 +566,7 @@ state -- run them after `dbt build` so the fixture models/views they depend on e
 
 ```bash
 dbt run-operation test_has_matching_nodes
+dbt run-operation test_is_docs_generate_invocation
 dbt run-operation test_grants_helpers
 dbt run-operation test_grants_idempotency
 dbt run-operation test_clean_macros
@@ -658,6 +577,7 @@ dbt run-operation test_database_role_macros
 - **checks**: `get_populated_array`, `get_populated_array_value_as_string`, `get_populated_array_value_or_string_as_string`, `get_populated_numeric_value`, `get_populated_string_value`
 - **modelling**: `date_key`, `time_key`, `datetime_from_dim`, `datetime_to_date_dim`, `datetime_to_time_dim`, `dimension_id`, `generate_surrogate_key`
 - **parse**: `to_date`, `num_to_date`, `string_to_num`, `null_to_empty_string`, `first_day_of_month`, `last_day_of_month`, `string_epoch_to_timestamp_ltz`, `string_epoch_to_timestamp_ntz`
+- **dependancies**: `is_docs_generate_invocation` (internal helper behind `depends_on_ref`/`depends_on_source`) -- covers dbt-core's `flags.WHICH == 'generate'`, dbt Fusion's `flags.WHICH == 'compile'` fallback to argv parsing for both absolute-path and `dbt.exe` invocations, trailing CLI flags after the subcommand, an empty/missing invocation command, and the adversarial case where the literal text `docs generate` appears inside a `--vars` value or an unrelated `--select` argument rather than as the actual subcommand (must not false-positive)
 - **data_metric_functions**: `apply_data_metric_functions` -- live-verified against `INFORMATION_SCHEMA.DATA_METRIC_FUNCTION_REFERENCES`, covering system DMFs (`dmf_not_null`, `dmf_unique`, `dmf_accepted_values` with both string and numeric enum values -- the string case is a regression test for a SQL-quoting bug), a custom DMF attached via model-level `meta.dmf_custom` (requires the `dbt_dataengineers_materializations` package, installed only in `integration_tests/packages.yml`), and the `dmf_schedule` fallback chain (model meta > var > default)
 - **database roles** (`test_database_role_macros`, live-verified): `create_database_role`, `grant_database_role_schema_privileges`, `grant_database_role_object` / `revoke_database_role_object` (against an existing view from another test model), `grant_database_role_to_role`, and `apply_database_roles` (create + `inherited`/`revoke_inherited` with `include_schemas` set + `revoke_objects` + `roles` mapping, all in one payload). `GRANT`/`REVOKE INHERITED` itself and `grant_database_role_to_application` are intentionally **not** exercised live: `INHERITED` isn't available on every Snowflake account/edition (confirmed: `Unsupported feature 'INHERITED'` on at least one tested account), and `run_query()` failures can't be caught in Jinja, so hitting that keyword live here would risk breaking CI on accounts without it enabled; granting to an application needs a real installed Native App. Both are covered only by `dbt parse`/`dbt compile`, not live execution.
 
