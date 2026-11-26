@@ -62,6 +62,14 @@
         {% do failures.append("Test 9 FAILED: unrelated tokens containing 'generate'/'docs' expected false, got " ~ result) %}
     {% endif %}
 
+    {# ── Test 10: non-"dbt"-named executable (e.g. a managed execution environment like dbt Projects on
+         Snowflake, which may not invoke a literal "dbt"/"dbt.exe" binary) -- detection must not depend
+         on recognizing the executable name, only on the trailing "docs generate" pair ── #}
+    {% set result = dbt_dataengineers_utils.is_docs_generate_invocation('compile', '/opt/snowflake/dbt-engine docs generate') %}
+    {% if result != true %}
+        {% do failures.append("Test 10 FAILED: non-dbt-named executable docs generate expected true, got " ~ result) %}
+    {% endif %}
+
     {# ── Report results ── #}
     {% if failures | length > 0 %}
         {% for f in failures %}
@@ -69,6 +77,6 @@
         {% endfor %}
         {{ exceptions.raise_compiler_error("is_docs_generate_invocation: " ~ (failures | length) ~ " test(s) failed. See log above.") }}
     {% else %}
-        {% do log("is_docs_generate_invocation: all 9 tests passed", info=True) %}
+        {% do log("is_docs_generate_invocation: all 10 tests passed", info=True) %}
     {% endif %}
 {% endmacro %}
